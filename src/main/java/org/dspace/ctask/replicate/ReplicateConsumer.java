@@ -76,6 +76,8 @@ public class ReplicateConsumer implements Consumer {
     private List<String> delTasks = null;
     // create deletion catalogs?
     private boolean catalogDeletes = false;
+    // Group/catalog where all AIPs are temporarily moved when deleted
+    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
 
     @Override
     public void initialize() throws Exception
@@ -296,10 +298,10 @@ public class ReplicateConsumer implements Consumer {
             Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
             try
             {
-                File packDir = repMan.stage("deletes", delObjId);
+                File packDir = repMan.stage(deleteGroupName, delObjId);
                 File archive = packer.pack(packDir);
                 //System.out.println("delcat about to transfer");
-                repMan.transferObject("deletes", archive);
+                repMan.transferObject(deleteGroupName, archive);
             }
             catch (AuthorizeException authE)
             {

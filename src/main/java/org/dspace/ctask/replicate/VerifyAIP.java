@@ -26,12 +26,15 @@ public class VerifyAIP extends AbstractCurationTask
 {
     private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    
+    // Group where all AIPs are stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
 
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
         String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
-        boolean found = repMan.objectExists("aips", objId);
+        boolean found = repMan.objectExists(storeGroupName, objId);
         String result = "AIP for object: " + dso.getHandle() + " found: " + found;
         report(result);
         setResult(result);

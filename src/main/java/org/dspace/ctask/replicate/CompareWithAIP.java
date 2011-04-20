@@ -40,6 +40,9 @@ public class CompareWithAIP extends AbstractCurationTask
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
     private int status = Curator.CURATE_UNSET;
     private String result = null;
+    
+    // Group where all AIPs are stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
 
     public int perform(DSpaceObject dso) throws IOException
     {
@@ -51,11 +54,11 @@ public class CompareWithAIP extends AbstractCurationTask
         try
         {
             // generate an archive and calculate it's checksum
-            File packDir = repMan.stage("aips", id);
+            File packDir = repMan.stage(storeGroupName, id);
             File archive = packer.pack(packDir);
             String chkSum = Utils.checksum(archive, "MD5");
             // compare with replica
-            String repChkSum = repMan.objectAttribute("aips", objId, "checksum");
+            String repChkSum = repMan.objectAttribute(storeGroupName, objId, "checksum");
             if (! chkSum.equals(repChkSum))
             {
                 report("Local and remote checksums differ for: " + id);
@@ -130,7 +133,7 @@ public class CompareWithAIP extends AbstractCurationTask
 
     private void checkReplica(DSpaceObject dso) throws IOException
     {
-       if (! repMan.objectExists("aips", dso.getHandle()))
+       if (! repMan.objectExists(storeGroupName, dso.getHandle()))
        {
            String msg = "Missing replica for: " + dso.getHandle();
            report(msg);

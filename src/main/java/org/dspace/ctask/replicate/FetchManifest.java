@@ -28,11 +28,14 @@ public class FetchManifest extends AbstractCurationTask
     private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
+    // Group where all Manifests are stored
+    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
+    
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
         String objId = ReplicaManager.safeId(dso.getHandle());
-        File archive = repMan.fetchObject("manifests", objId);
+        File archive = repMan.fetchObject(manifestGroupName, objId);
         boolean found = archive != null;
         setResult("Manifest for object: " + dso.getHandle() + " found: " + found);
         return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;

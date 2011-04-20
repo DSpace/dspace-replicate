@@ -26,12 +26,15 @@ public class VerifyManifest extends AbstractCurationTask {
 
     private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    
+    // Group where all Manifests are stored
+    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
 
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
         String objId = ReplicaManager.safeId(dso.getHandle());
-        boolean found = repMan.objectExists("manifests", objId);
+        boolean found = repMan.objectExists(manifestGroupName, objId);
         String result = "Manifest for object: " + dso.getHandle() + " found: " + found;
         report(result);
         setResult(result);

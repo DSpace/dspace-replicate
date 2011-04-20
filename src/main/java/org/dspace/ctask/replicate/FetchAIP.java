@@ -28,11 +28,14 @@ public class FetchAIP extends AbstractCurationTask
     private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
+    // Group where all AIPs are stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
         String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
-        File archive = repMan.fetchObject("aips", objId);
+        File archive = repMan.fetchObject(storeGroupName, objId);
         boolean found = archive != null;
         setResult("AIP for object: " + dso.getHandle() + " found: " + found);
         return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;

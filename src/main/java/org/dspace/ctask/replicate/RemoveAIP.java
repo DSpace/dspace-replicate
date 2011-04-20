@@ -34,6 +34,12 @@ public class RemoveAIP extends AbstractCurationTask {
 
     private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    
+    // Group where all AIPs are stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    
+    // Group where all AIPs are temporarily moved when deleted
+    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
 
     /**
      * Removes replicas of passed object from the replica store.
@@ -52,9 +58,12 @@ public class RemoveAIP extends AbstractCurationTask {
     }
 
     private void remove(DSpaceObject dso) throws IOException {
+        //Remove object from AIP storage
         String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
-        repMan.removeObject("aips", objId);
+        repMan.removeObject(storeGroupName, objId);
         report("Removing AIP for: " + objId);
+        
+        //If it is a Collection, also remove all Items from AIP storage
         if (dso instanceof Collection) {
             Collection coll = (Collection)dso;
             try {
@@ -65,7 +74,8 @@ public class RemoveAIP extends AbstractCurationTask {
             } catch (SQLException sqlE) {
                 throw new IOException(sqlE.getMessage());
             }
-        } else if (dso instanceof Community) {
+        } // else if it a Community, also remove all sub-communities, collections (and items) from AIP storage 
+        else if (dso instanceof Community) {
             Community comm = (Community)dso;
             try {
                 for (Community subcomm : comm.getSubcommunities()) {
@@ -101,17 +111,17 @@ public class RemoveAIP extends AbstractCurationTask {
         // treat as a deletion GC
         String objId = ReplicaManager.safeId(id) + "." + archFmt;
         int status = Curator.CURATE_FAIL;
-        File catFile = repMan.fetchObject("deletes", objId);
+        File catFile = repMan.fetchObject(deleteGroupName, objId);
         if (catFile != null) {
             CatalogPacker cpack = new CatalogPacker(id);
             cpack.unpack(catFile);
             // remove the object, then all members, last of all the deletion catalog
-            repMan.removeObject("aips", objId);
+            repMan.removeObject(storeGroupName, objId);
             for (String mem : cpack.getMembers()) {
                 String memId = ReplicaManager.safeId(mem) + "." + archFmt;
-                repMan.removeObject("aips", memId);
+                repMan.removeObject(storeGroupName, memId);
             }
-            repMan.removeObject("deletes", objId);
+            repMan.removeObject(deleteGroupName, objId);
             status = Curator.CURATE_SUCCESS;
         }
         return status;

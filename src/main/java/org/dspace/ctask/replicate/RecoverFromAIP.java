@@ -52,6 +52,12 @@ public class RecoverFromAIP extends AbstractCurationTask {
     private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
+    // Group where all AIPs are stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    
+    // Group where all AIPs are temporarily moved when deleted
+    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
+    
     @Override
     public int perform(DSpaceObject dso) throws IOException {
         throw new IllegalStateException("Cannot recover if object exists");
@@ -61,7 +67,7 @@ public class RecoverFromAIP extends AbstractCurationTask {
     public int perform(Context ctx, String id) throws IOException {
         // first we locate the deletion catalog for this object
         String objId = ReplicaManager.safeId(id) + "." + archFmt;
-        File catArchive = repMan.fetchObject("deletes", objId);
+        File catArchive = repMan.fetchObject(deleteGroupName, objId);
         int status = Curator.CURATE_FAIL;
         if (catArchive != null) {
             CatalogPacker cpack = new CatalogPacker(id);
@@ -80,7 +86,7 @@ public class RecoverFromAIP extends AbstractCurationTask {
 
     private void recover(Context ctx, String id) throws IOException {
         String objId = ReplicaManager.safeId(id) + "." + archFmt;
-        File archive = repMan.fetchObject("aips", objId);
+        File archive = repMan.fetchObject(storeGroupName, objId);
         if (archive != null) {
             Bag bag = new Bag(archive);
             Properties props = new Properties();

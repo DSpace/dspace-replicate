@@ -38,6 +38,9 @@ public class ReplaceWithAIP extends AbstractCurationTask {
     private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
+    // Group where all AIPs are stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    
     @Override
     public int perform(DSpaceObject dso) throws IOException {
         // overwrite with AIP data
@@ -45,7 +48,7 @@ public class ReplaceWithAIP extends AbstractCurationTask {
         try {
             int status = Curator.CURATE_FAIL;
             String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
-            File archive = repMan.fetchObject("aips", objId);
+            File archive = repMan.fetchObject(storeGroupName, objId);
             if (archive != null) {
                 // clear object where necessary
                 if (dso.getType() == Constants.ITEM) {

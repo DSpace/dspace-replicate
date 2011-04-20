@@ -18,6 +18,7 @@ import org.dspace.content.Community;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.ItemIterator;
+import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -35,6 +36,9 @@ public class RemoveManifest extends AbstractCurationTask {
 
     private ReplicaManager repMan = ReplicaManager.instance();
 
+    // Group where all Manifests are stored
+    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
+    
     /**
      * Removes replicas of passed object from the replica store.
      * If a container, removes all the member replicas, in addition
@@ -53,7 +57,7 @@ public class RemoveManifest extends AbstractCurationTask {
 
     private void remove(DSpaceObject dso) throws IOException {
         String objId = ReplicaManager.safeId(dso.getHandle());
-        repMan.removeObject("manifests", objId);
+        repMan.removeObject(manifestGroupName, objId);
         report("Removing manifest for: " + objId);
         if (dso instanceof Collection) {
             Collection coll = (Collection)dso;
@@ -105,7 +109,7 @@ public class RemoveManifest extends AbstractCurationTask {
     
     // recursive manifest deletion
     private void deleteManifest(String id) throws IOException {
-        File manFile = repMan.fetchObject("manifests", id);
+        File manFile = repMan.fetchObject(manifestGroupName, id);
         if (manFile != null) {
             BufferedReader reader = new BufferedReader(new FileReader(manFile));
             String line = null;
@@ -120,7 +124,7 @@ public class RemoveManifest extends AbstractCurationTask {
             }
             reader.close();
             report("Removing manifest for: " + id);
-            repMan.removeObject("manifests", id);
+            repMan.removeObject(manifestGroupName, id);
         }
     }
 }

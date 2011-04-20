@@ -46,6 +46,9 @@ public class TransmitManifest extends AbstractCurationTask {
     private ReplicaManager repMan = ReplicaManager.instance();
     private static String template = null;
     
+    // Group where all Manifests will be stored
+    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
+    
     static {
         template = ConfigurationManager.getProperty("replicate", "checkm.template");
     }
@@ -71,7 +74,7 @@ public class TransmitManifest extends AbstractCurationTask {
                 // create manifests on down
                 manFile = communityManifest((Community)dso);
             }
-            repMan.transferObject("manifests", manFile);
+            repMan.transferObject(manifestGroupName, manFile);
         }
         catch (SQLException sqlE)
         {
@@ -83,22 +86,25 @@ public class TransmitManifest extends AbstractCurationTask {
 
     private File communityManifest(Community comm) throws IOException, SQLException
     {
-        File manFile = repMan.stage("manifests", comm.getHandle());
+        //Create community manifest
+        File manFile = repMan.stage(manifestGroupName, comm.getHandle());
         Writer writer = manifestWriter(manFile);
         int count = 0;
+        //Create sub-community manifests & transfer each
         for (Community subComm : comm.getSubcommunities())
         {
             File scFile = communityManifest(subComm);
             writer.write(tokenized(scFile) + "\n");
             count++;
-            repMan.transferObject("manifests", scFile); 
+            repMan.transferObject(manifestGroupName, scFile); 
         }
+        //Create collection manifests & transfer each
         for (Collection coll: comm.getCollections())
         {
             File colFile = collectionManifest(coll);
             writer.write(tokenized(colFile) + "\n");
             count++;
-            repMan.transferObject("manifests", colFile);
+            repMan.transferObject(manifestGroupName, colFile);
         }
         if (count == 0)
         {
@@ -111,16 +117,19 @@ public class TransmitManifest extends AbstractCurationTask {
 
     private File collectionManifest(Collection coll) throws IOException, SQLException
     {
-        File manFile = repMan.stage("manifests", coll.getHandle());
+        //Create Collection manifest
+        File manFile = repMan.stage(manifestGroupName, coll.getHandle());
         Writer writer = manifestWriter(manFile);
         int count = 0;
+        
+        //Create all Item manifests & transfer each
         ItemIterator ii = coll.getItems();
         while (ii.hasNext())
         {
             File itemMan = itemManifest(ii.next());
             count++;
             writer.write(tokenized(itemMan) + "\n");
-            repMan.transferObject("manifests", itemMan);
+            repMan.transferObject(manifestGroupName, itemMan);
         }
         if (count == 0)
         {
@@ -133,7 +142,8 @@ public class TransmitManifest extends AbstractCurationTask {
 
     private File itemManifest(Item item) throws IOException, SQLException
     {
-        File manFile = repMan.stage("manifests", item.getHandle());
+        //Create Item manifest
+        File manFile = repMan.stage(manifestGroupName, item.getHandle());
         Writer writer = manifestWriter(manFile);
         // look through all ORIGINAL bitstreams, comparing
         // stored to recalculated checksums - report disagreements

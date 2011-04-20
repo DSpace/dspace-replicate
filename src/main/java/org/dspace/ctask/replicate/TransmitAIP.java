@@ -14,6 +14,7 @@ import java.sql.SQLException;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.ConfigurationManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
@@ -28,6 +29,9 @@ import org.dspace.pack.PackerFactory;
 public class TransmitAIP extends AbstractCurationTask
 {
     private ReplicaManager repMan = ReplicaManager.instance();
+    
+    // Group where all AIPs will be stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
 
     @Override
     public int perform(DSpaceObject dso) throws IOException
@@ -36,10 +40,10 @@ public class TransmitAIP extends AbstractCurationTask
         try
         {
             // get location for staging our replica archive file
-            File archive = packer.pack(repMan.stage("aips", dso.getHandle()));
+            File archive = packer.pack(repMan.stage(storeGroupName, dso.getHandle()));
             String msg = "Created AIP: '" + archive.getName() + 
                          "' size: " + archive.length();
-            repMan.transferObject("aips", archive);
+            repMan.transferObject(storeGroupName, archive);
             setResult(msg);
             return Curator.CURATE_SUCCESS;
         }

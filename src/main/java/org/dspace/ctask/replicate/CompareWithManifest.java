@@ -20,6 +20,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Item;
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -35,6 +36,9 @@ public class CompareWithManifest extends AbstractCurationTask
 {
     private ReplicaManager repMan = ReplicaManager.instance();
     private int status = Curator.CURATE_SUCCESS;
+    
+    // Group where all Manifests will be stored
+    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
 
     public int perform(DSpaceObject dso) throws IOException
     {
@@ -55,7 +59,7 @@ public class CompareWithManifest extends AbstractCurationTask
     // recursive manifest checking
     private void checkManifest(String id, Context context) throws IOException, SQLException
     {
-        File manFile = repMan.fetchObject("manifests", id);
+        File manFile = repMan.fetchObject(manifestGroupName, id);
         if (manFile != null)
         {
             Item item = null;
