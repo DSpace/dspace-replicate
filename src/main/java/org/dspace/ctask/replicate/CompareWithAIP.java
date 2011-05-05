@@ -36,7 +36,6 @@ import org.dspace.pack.PackerFactory;
  */
 public class CompareWithAIP extends AbstractCurationTask
 {
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
     private int status = Curator.CURATE_UNSET;
     private String result = null;
@@ -44,8 +43,16 @@ public class CompareWithAIP extends AbstractCurationTask
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
 
+    /**
+     * Perform 'Compare with AIP' task
+     * @param dso DSpace Object to perform on
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
+    @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
         Packer packer = PackerFactory.instance(dso);
         String id = dso.getHandle();
         status = Curator.CURATE_SUCCESS;
@@ -74,7 +81,7 @@ public class CompareWithAIP extends AbstractCurationTask
             // does replica store have replicas for each object in container?
             if (Curator.isContainer(dso))
             {
-                auditExtent(dso);
+                auditExtent(repMan, dso);
             }
             setResult(result);
             return status;
@@ -89,7 +96,13 @@ public class CompareWithAIP extends AbstractCurationTask
         }
     }
 
-    private void auditExtent(DSpaceObject dso) throws IOException
+    /**
+     * Audit the existing contents in the Replica ObjectStore against DSpace object
+     * @param repMan ReplicaManager (used to access ObjectStore)
+     * @param dso DSpace Object
+     * @throws IOException 
+     */
+    private void auditExtent(ReplicaManager repMan, DSpaceObject dso) throws IOException
     {
         int type = dso.getType();
         if (Constants.COLLECTION == type)
@@ -100,7 +113,7 @@ public class CompareWithAIP extends AbstractCurationTask
                 ItemIterator iter = coll.getItems();
                 while (iter.hasNext())
                 {
-                    checkReplica(iter.next());
+                    checkReplica(repMan, iter.next());
                 }
             }
             catch (SQLException sqlE)
@@ -115,13 +128,13 @@ public class CompareWithAIP extends AbstractCurationTask
             {
                 for (Community subcomm : comm.getSubcommunities())
                 {
-                    checkReplica(subcomm);
-                    auditExtent(subcomm);
+                    checkReplica(repMan, subcomm);
+                    auditExtent(repMan, subcomm);
                 }
                 for (Collection coll : comm.getCollections())
                 {
-                    checkReplica(coll);
-                    auditExtent(coll);
+                    checkReplica(repMan, coll);
+                    auditExtent(repMan, coll);
                 }
             }
             catch (SQLException sqlE)
@@ -131,7 +144,13 @@ public class CompareWithAIP extends AbstractCurationTask
         }
     }
 
-    private void checkReplica(DSpaceObject dso) throws IOException
+    /**
+     * Check if the DSpace Object already exists in the Replica ObjectStore
+     * @param repMan ReplicaManager  (used to access ObjectStore)
+     * @param dso DSpaceObject
+     * @throws IOException 
+     */
+    private void checkReplica(ReplicaManager repMan, DSpaceObject dso) throws IOException
     {
        if (! repMan.objectExists(storeGroupName, dso.getHandle()))
        {

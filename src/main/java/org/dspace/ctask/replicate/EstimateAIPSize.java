@@ -28,6 +28,7 @@ import org.dspace.pack.PackerFactory;
  * defined by <code>setContentFilter</code> on the AIP Packer.
  * 
  * @author richardrodgers
+ * @see TransmitAIP
  */
 @Distributive
 public class EstimateAIPSize extends AbstractCurationTask

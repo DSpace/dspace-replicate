@@ -60,8 +60,8 @@ public class DuraCloudObjectStore implements ObjectStore
             dcStore = storeManager.getPrimaryContentStore();
         }
         catch (ContentStoreException csE)
-        {
-            throw new IOException(csE.getMessage(), csE);
+        {      
+            throw new IOException("Unable to connect to the DuraCloud Primary Content Store. Please check the DuraCloud connection/authentication settings in your 'duracloud.cfg' file.", csE);
         }
     }
 

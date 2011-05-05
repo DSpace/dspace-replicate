@@ -18,22 +18,29 @@ import org.dspace.curate.Curator;
 
 /**
  * FetchAIP task will simply retrieve replica representations of the object
- * into the local staging area
+ * into the local staging area.
  * 
  * @author richardrodgers
+ * @see TransmitAIP
  */
 
 public class FetchAIP extends AbstractCurationTask
 {
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
     
+    /**
+     * Perform the 'Fetch AIP' task
+     * @param dso DSpace Object to perform on
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
         String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
         File archive = repMan.fetchObject(storeGroupName, objId);
         boolean found = archive != null;

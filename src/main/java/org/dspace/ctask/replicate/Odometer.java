@@ -21,8 +21,15 @@ import java.util.Properties;
  * Odometer holds a small set of persistent operational parameters of service
  * usage. This can assist the consumer of the service to monitor it's cost,
  * inter alia.
+ * <p>
+ * The Odometer tracks basic statistics of replication activities: bytes uploaded, 
+ * modified, count of objects, and external objectstore size.
+ * <p>
+ * See org.dspace.ctask.replicate.ReplicaManager for how the Odometer readings
+ * are kept up-to-date.
  *
  * @author richardrodgers
+ * @see org.dspace.ctask.replicate.ReplicaManager
  */
 public class Odometer
 {

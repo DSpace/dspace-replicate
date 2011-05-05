@@ -29,24 +29,36 @@ import org.dspace.handle.HandleManager;
 /**
  * CompareWithManifest task compares local repository content against the
  * representation contained in the replica store manifest.
+ * <p>
+ * Manifests conform to the CDL Checkm v0.7 manifest format spec.
+ * http://www.cdlib.org/uc3/docs/checkmspec.html
  *
  * @author richardrodgers
+ * @see TransmitManifest
  */
 public class CompareWithManifest extends AbstractCurationTask
 {
-    private ReplicaManager repMan = ReplicaManager.instance();
     private int status = Curator.CURATE_SUCCESS;
     
     // Group where all Manifests will be stored
     private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
 
+    /**
+     * Perform 'Compare with Manifest' task
+     * @param dso DSpace Object to perform on
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
+    @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
+        
         String objId = ReplicaManager.safeId(dso.getHandle());
         try
         {
             Context context = new Context();
-            checkManifest(objId, context);
+            checkManifest(repMan, objId, context);
             context.complete();
         }
         catch (SQLException sqlE)
@@ -57,7 +69,7 @@ public class CompareWithManifest extends AbstractCurationTask
     }
     
     // recursive manifest checking
-    private void checkManifest(String id, Context context) throws IOException, SQLException
+    private void checkManifest(ReplicaManager repMan, String id, Context context) throws IOException, SQLException
     {
         File manFile = repMan.fetchObject(manifestGroupName, id);
         if (manFile != null)
@@ -76,7 +88,7 @@ public class CompareWithManifest extends AbstractCurationTask
                         // it's another manifest - fetch & check it
                         item = null;
                         bsMap.clear();
-                        checkManifest(entry, context);
+                        checkManifest(repMan, entry, context);
                     }
                     else
                     {

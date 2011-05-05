@@ -18,17 +18,27 @@ import org.dspace.curate.Distributive;
 /**
  * ReadOdometer simply reads and displays the odometer data. Since this data
  * is currently only maintained per site, the actual data object is ignored. 
+ * <p>
+ * Odometer data is stored in base folder for the Replication Task Suite
+ * (see 'base.dir' setting in 'replicate.cfg'). It is stored in a text file
+ * named 'odometer' -- see org.dspace.ctask.replicate.Odometer for more info.
  * 
  * @author richardrodgers
+ * @see Odometer
  */
 @Distributive
 public class ReadOdometer extends AbstractCurationTask
 {
-    private ReplicaManager repMan = ReplicaManager.instance();
-
+    /**
+     * Performs the "Read Odometer" task.
+     * @param dso this param is ignored, as the odometer is sitewide
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
         Odometer odometer = repMan.getOdometer();
         StringBuilder sb = new StringBuilder();
         sb.append("Objects:    ").append(odometer.getProperty("count")).append("\n");

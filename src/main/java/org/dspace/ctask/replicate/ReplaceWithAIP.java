@@ -31,18 +31,30 @@ import org.dspace.pack.PackerFactory;
  * place of the current (repository) one.
  * 
  * @author richardrodgers
+ * @see TransmitAIP
  */
 @Mutative
 public class ReplaceWithAIP extends AbstractCurationTask {
 
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
     
+    /**
+     * Perform the 'Replace with AIP' task.
+     * <P>
+     * Actually overwrite any existing object data in the repository with
+     * whatever information is contained in the AIP.
+     * @param dso the DSpace object to replace
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(DSpaceObject dso) throws IOException 
+    {
+        ReplicaManager repMan = ReplicaManager.instance();
+        
         // overwrite with AIP data
         Packer packer = PackerFactory.instance(dso);
         try {

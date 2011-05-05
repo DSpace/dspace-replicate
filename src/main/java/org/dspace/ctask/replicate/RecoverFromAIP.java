@@ -43,13 +43,13 @@ import static org.dspace.pack.PackerFactory.*;
  * If the object is a container, it recovers all its children/members.
  *
  * @author richardrodgers
+ * @see TransmitAIP
  */
 @Distributive
 @Mutative
 public class RecoverFromAIP extends AbstractCurationTask {
 
     private static Logger log = Logger.getLogger(RecoverFromAIP.class);
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
     // Group where all AIPs are stored
@@ -58,13 +58,32 @@ public class RecoverFromAIP extends AbstractCurationTask {
     // Group where all AIPs are temporarily moved when deleted
     private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
     
+    /**
+     * Perform 'Recover From AIP' task on a particular object.
+     * As you cannot recover an object that already exists, this method
+     * always returns an exception. 
+     * @param dso DSpace Object to recover
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException {
         throw new IllegalStateException("Cannot recover if object exists");
     }
 
+    /**
+     * Perform 'Recover From AIP' task by retrieving an object package
+     * of a particular ID (name) and restoring it to the current DSpace
+     * Context.
+     * @param ctx current DSpace context
+     * @param id identifier of object to restore
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
-    public int perform(Context ctx, String id) throws IOException {
+    public int perform(Context ctx, String id) throws IOException 
+    {
+        ReplicaManager repMan = ReplicaManager.instance();
         // first we locate the deletion catalog for this object
         String objId = ReplicaManager.safeId(id) + "." + archFmt;
         File catArchive = repMan.fetchObject(deleteGroupName, objId);
@@ -75,16 +94,24 @@ public class RecoverFromAIP extends AbstractCurationTask {
             // RLR TODO - remove filename collision next delete requires
             catArchive.delete();
             // recover root object itself, then any members
-            recover(ctx, id);
+            recover(ctx, repMan, id);
             for (String mem : cpack.getMembers()) {
-                recover(ctx, mem);
+                recover(ctx, repMan, mem);
             }
             status = Curator.CURATE_SUCCESS;
         }
         return status;
     }
 
-    private void recover(Context ctx, String id) throws IOException {
+    /**
+     * Recover an object from an ObjectStore based on its identifier
+     * @param ctx current DSpace Context
+     * @param repMan ReplicaManager (used to access ObjectStore)
+     * @param id Identifier of object in ObjectStore
+     * @throws IOException 
+     */
+    private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException 
+    {
         String objId = ReplicaManager.safeId(id) + "." + archFmt;
         File archive = repMan.fetchObject(storeGroupName, objId);
         if (archive != null) {
@@ -105,7 +132,16 @@ public class RecoverFromAIP extends AbstractCurationTask {
         }
     }
 
-    private void recoverItem(Context ctx, File archive, String objId, Properties props) throws IOException {
+    /**
+     * Recover a DSpace Item from a particular AIP package file
+     * @param ctx current DSpace context
+     * @param archive AIP package file 
+     * @param objId identifier of object we are restoring
+     * @param props properties which control how item is restored
+     * @throws IOException 
+     */
+    private void recoverItem(Context ctx, File archive, String objId, Properties props) throws IOException 
+    {
         try {
             String collId = props.getProperty(OWNER_ID);
             Collection coll = (Collection)HandleManager.resolveToObject(ctx, collId);
@@ -135,7 +171,16 @@ public class RecoverFromAIP extends AbstractCurationTask {
         }
     }
 
-    private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException {
+    /**
+     * Recover a DSpace Collection from a particular AIP package file
+     * @param ctx current DSpace context
+     * @param archive AIP package file 
+     * @param collId identifier of collection we are restoring
+     * @param commId identifier of parent community for this collection
+     * @throws IOException 
+     */
+    private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException 
+    {
         Collection coll = null;
         try {
             if (commId != null) {
@@ -154,7 +199,16 @@ public class RecoverFromAIP extends AbstractCurationTask {
         }
     }
 
-    private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException {
+    /**
+     * Recover a DSpace Community from a particular AIP package file
+     * @param ctx current DSpace context
+     * @param archive AIP package file 
+     * @param commId identifier of community we are restoring
+     * @param parentId identifier of parent community (if any) for community
+     * @throws IOException 
+     */
+    private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException 
+    {
         // if not top-level, have parent create it
         Community comm = null;
         try {

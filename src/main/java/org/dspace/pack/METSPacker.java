@@ -75,13 +75,14 @@ public class METSPacker implements Packer
         }
         if (dip == null)
         {
-            //usageError("Error, Unknown package type: " + myPackager.packageType);
-            throw new IOException("Cannot obtain AIP disseminator");
+            throw new IOException("Cannot obtain AIP disseminator. No dissemination plugin named 'AIP' is configured.");
         }
-        //disseminate the requested object
+        
         Context context = new Context();
+        //Initialize packaging params
         PackageParameters pkgParams = new PackageParameters();
         File archive = new File(packDir.getParentFile(), packDir.getName() + "." + archFmt);
+        //disseminate the requested object
         try
         {
             dip.disseminate(context, dso, pkgParams, archive);
@@ -108,11 +109,11 @@ public class METSPacker implements Packer
         if (sip == null)
         {
             sip = (PackageIngester) PluginManager
-                    .getNamedPlugin(PackageIngester.class, "AIPS");
+                    .getNamedPlugin(PackageIngester.class, "AIP");
         }
         if (sip == null)
         {
-            throw new IOException("Cannot obtain AIP ingester");
+            throw new IOException("Cannot obtain AIP ingester. No ingestion plugin named 'AIP' is configured.");
         }
 
         Context context = new Context();

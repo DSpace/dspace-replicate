@@ -20,19 +20,29 @@ import org.dspace.curate.Curator;
  * of the object in the remote store. It succeeds if found, otherwise fails.
  * 
  * @author richardrodgers
+ * @see TransmitAIP
  */
 
 public class VerifyAIP extends AbstractCurationTask
 {
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
     
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
 
+    /**
+     * Performs the "Verify AIP" task.
+     * <p>
+     * Simply tests for presence of AIP in replica ObjectStore.
+     * @param dso the DSpace Object to verify
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
+        
         String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
         boolean found = repMan.objectExists(storeGroupName, objId);
         String result = "AIP for object: " + dso.getHandle() + " found: " + found;

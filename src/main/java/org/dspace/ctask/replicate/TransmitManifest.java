@@ -34,16 +34,18 @@ import org.dspace.curate.Utils;
  * in the passed DSpace object, and forwards it to the replication system for
  * transmission (upload). If the DSpace Object is a container,
  * the task produces a multi-level set of manifests representing the container.
+ * <p>
  * The manifests produced conform to the CDL Checkm v0.7 manifest format spec.
+ * http://www.cdlib.org/uc3/docs/checkmspec.html
  * 
  * @author richardrodgers
  */
 @Distributive
 public class TransmitManifest extends AbstractCurationTask {
 
+    //Version of CDL Checkm spec that this manifest conforms to
     private static final String CKM_VSN = "0.7";
 
-    private ReplicaManager repMan = ReplicaManager.instance();
     private static String template = null;
     
     // Group where all Manifests will be stored
@@ -53,26 +55,35 @@ public class TransmitManifest extends AbstractCurationTask {
         template = ConfigurationManager.getProperty("replicate", "checkm.template");
     }
 
+    /**
+     * Perform 'Transmit Manifest' task
+     * <p>
+     * Actually generates manifest and transmits to Replica ObjectStore
+     * @param dso DSpace Object to perform on
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
         try
         {
             File manFile = null;
             int type = dso.getType();
             if (Constants.ITEM == type)
             {
-                manFile = itemManifest((Item)dso);
+                manFile = itemManifest(repMan, (Item)dso);
             }
             else if (Constants.COLLECTION == type)
             {
                 // create manifests for each item - link in collection manifest
-                manFile = collectionManifest((Collection)dso);
+                manFile = collectionManifest(repMan, (Collection)dso);
             }
             else if (Constants.COMMUNITY == type)
             {
                 // create manifests on down
-                manFile = communityManifest((Community)dso);
+                manFile = communityManifest(repMan, (Community)dso);
             }
             repMan.transferObject(manifestGroupName, manFile);
         }
@@ -84,7 +95,17 @@ public class TransmitManifest extends AbstractCurationTask {
         return Curator.CURATE_SUCCESS;
     }
 
-    private File communityManifest(Community comm) throws IOException, SQLException
+    /**
+     * Generate a manifest for the specified DSpace Community. Also
+     * generate & transfer to replica ObjectStore the manifests for any child 
+     * objects (sub-communities, collections).
+     * @param repMan ReplicaManager (used to access ObjectStore)
+     * @param comm the DSpace Community
+     * @return reference to manifest file generated for Community
+     * @throws IOException
+     * @throws SQLException 
+     */
+    private File communityManifest(ReplicaManager repMan, Community comm) throws IOException, SQLException
     {
         //Create community manifest
         File manFile = repMan.stage(manifestGroupName, comm.getHandle());
@@ -93,7 +114,7 @@ public class TransmitManifest extends AbstractCurationTask {
         //Create sub-community manifests & transfer each
         for (Community subComm : comm.getSubcommunities())
         {
-            File scFile = communityManifest(subComm);
+            File scFile = communityManifest(repMan, subComm);
             writer.write(tokenized(scFile) + "\n");
             count++;
             repMan.transferObject(manifestGroupName, scFile); 
@@ -101,7 +122,7 @@ public class TransmitManifest extends AbstractCurationTask {
         //Create collection manifests & transfer each
         for (Collection coll: comm.getCollections())
         {
-            File colFile = collectionManifest(coll);
+            File colFile = collectionManifest(repMan, coll);
             writer.write(tokenized(colFile) + "\n");
             count++;
             repMan.transferObject(manifestGroupName, colFile);
@@ -115,7 +136,17 @@ public class TransmitManifest extends AbstractCurationTask {
         return manFile;
     }
 
-    private File collectionManifest(Collection coll) throws IOException, SQLException
+    /**
+     * Generate a manifest for the specified DSpace Collection. Also
+     * generate & transfer to replica ObjectStore the manifests for any child 
+     * objects (items).
+     * @param repMan ReplicaManager (used to access ObjectStore)
+     * @param coll the DSpace Collection
+     * @return reference to manifest file generated for Collection
+     * @throws IOException
+     * @throws SQLException 
+     */
+    private File collectionManifest(ReplicaManager repMan, Collection coll) throws IOException, SQLException
     {
         //Create Collection manifest
         File manFile = repMan.stage(manifestGroupName, coll.getHandle());
@@ -126,7 +157,7 @@ public class TransmitManifest extends AbstractCurationTask {
         ItemIterator ii = coll.getItems();
         while (ii.hasNext())
         {
-            File itemMan = itemManifest(ii.next());
+            File itemMan = itemManifest(repMan, ii.next());
             count++;
             writer.write(tokenized(itemMan) + "\n");
             repMan.transferObject(manifestGroupName, itemMan);
@@ -140,7 +171,15 @@ public class TransmitManifest extends AbstractCurationTask {
         return manFile;
     }
 
-    private File itemManifest(Item item) throws IOException, SQLException
+    /**
+     * Generate a manifest for the specified DSpace Item. 
+     * @param repMan ReplicaManager (used to access ObjectStore)
+     * @param item the DSpace Item
+     * @return reference to manifest file generated for Item
+     * @throws IOException
+     * @throws SQLException 
+     */
+    private File itemManifest(ReplicaManager repMan, Item item) throws IOException, SQLException
     {
         //Create Item manifest
         File manFile = repMan.stage(manifestGroupName, item.getHandle());
@@ -194,6 +233,12 @@ public class TransmitManifest extends AbstractCurationTask {
         return manFile;
     }
 
+    /**
+     * Initialize a Writer for a Manifest file. Also, writes header to manifest file.
+     * @param file file where manifest will be stored
+     * @return reference to Writer
+     * @throws IOException 
+     */
     private Writer manifestWriter(File file) throws IOException
     {
         FileWriter writer = new FileWriter(file);

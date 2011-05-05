@@ -18,21 +18,31 @@ import org.dspace.curate.Curator;
 /**
  * VerifyManifest task will simply test for the presence of a manifest
  * of the object in the remote store. It succeeds if found, otherwise fails.
+ * <p>
+ * Manifests conform to the CDL Checkm v0.7 manifest format spec.
+ * http://www.cdlib.org/uc3/docs/checkmspec.html
  * 
  * @author richardrodgers
+ * @see TransmitManifest
  */
 
 public class VerifyManifest extends AbstractCurationTask {
 
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
     
     // Group where all Manifests are stored
     private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
 
+    /**
+     * Perform the 'Verify Manifest' task
+     * @param dso the DSpace Object to be verified
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
         String objId = ReplicaManager.safeId(dso.getHandle());
         boolean found = repMan.objectExists(manifestGroupName, objId);
         String result = "Manifest for object: " + dso.getHandle() + " found: " + found;

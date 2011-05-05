@@ -23,19 +23,31 @@ import org.dspace.pack.PackerFactory;
 /**
  * TransmitAIP task creates an AIP suitable for replication, and forwards it
  * to the replication system for transmission (upload).
+ * <P>
+ * The type of AIP produced is based on the 'packer.pkgtype' setting
+ * in 'replicate.cfg'. See the org.dspace.pack.PackerFactory for more info.
  * 
  * @author richardrodgers
+ * @see PackerFactory
  */
 public class TransmitAIP extends AbstractCurationTask
 {
-    private ReplicaManager repMan = ReplicaManager.instance();
-    
     // Group where all AIPs will be stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
 
+    /**
+     * Perform 'Transmit AIP' task
+     * <p>
+     * Actually generates the AIP and transmits it to the replica ObjectStore
+     * @param dso DSpace Object to perform on
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
+            
         Packer packer = PackerFactory.instance(dso);
         try
         {

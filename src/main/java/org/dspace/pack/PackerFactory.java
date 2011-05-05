@@ -17,8 +17,8 @@ import org.dspace.core.Constants;
 
 /**
  * PackerFactory mints packers for specified object types. Packer implementation
- * is based on a configurable property, but currently, only LC METS-based
- * and Bagit-based package formats are supported.
+ * is based on a configurable property (packer.pkgtype). Currently, only 
+ * LC METS-based ("mets") and Bagit-based ("bagit") package formats are supported.
  *
  * @author richardrodgers
  */

@@ -19,21 +19,32 @@ import org.dspace.curate.Curator;
 /**
  * FetchManifest task will simply retrieve a manifest representation of the object
  * into the local staging area
+ * <p>
+ * Manifests conform to the CDL Checkm v0.7 manifest format spec.
+ * http://www.cdlib.org/uc3/docs/checkmspec.html
  * 
  * @author richardrodgers
+ * @see TransmitManifest
  */
 
 public class FetchManifest extends AbstractCurationTask
 {
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
     // Group where all Manifests are stored
     private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
     
+    
+    /**
+     * Perform 'Fetch Manifest' task
+     * @param dso DSpace Object to perform on
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        ReplicaManager repMan = ReplicaManager.instance();
         String objId = ReplicaManager.safeId(dso.getHandle());
         File archive = repMan.fetchObject(manifestGroupName, objId);
         boolean found = archive != null;

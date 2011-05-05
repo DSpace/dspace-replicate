@@ -40,11 +40,12 @@ public class ReplicaManager {
     private final Object odoLock = new Object();
 
 
-    private ReplicaManager() {
+    private ReplicaManager() throws IOException
+    {
         objStore = (ObjectStore)PluginManager.getSinglePlugin("replicate", ObjectStore.class);
         if (objStore == null) {
-            log.error("No replica store configured");
-            return;
+            log.error("No ObjectStore configured in 'replicate.cfg'!");
+            throw new IOException("No ObjectStore configured in 'replicate.cfg'!");
         }
         try
         {
@@ -52,9 +53,9 @@ public class ReplicaManager {
         }
         catch (IOException ioE)
         {
-            log.error("Replica store initialization error");
-            ioE.printStackTrace();
-            return;
+            //log error & pass this exception on to the next handler.
+            log.error("Replica store initialization error", ioE);
+            throw ioE;
         }
         // create directory structures
         new File(repDir).mkdirs();
@@ -65,11 +66,12 @@ public class ReplicaManager {
         }
         catch (IOException ioE)
         {
-            log.warn("Unable to read odometer");
+            //just log a warning
+            log.warn("Unable to read odometer file in '"+ repDir + "'", ioE);
         }
     }
 
-    public static synchronized ReplicaManager instance()
+    public static synchronized ReplicaManager instance() throws IOException
     {
         if (instance == null)
         {

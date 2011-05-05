@@ -28,11 +28,11 @@ import org.dspace.pack.CatalogPacker;
  * object is a container, all its children (members) will also be removed.
  * 
  * @author richardrodgers
+ * @see TransmitAIP
  */
 @Distributive
 public class RemoveAIP extends AbstractCurationTask {
 
-    private ReplicaManager repMan = ReplicaManager.instance();
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
     
     // Group where all AIPs are stored
@@ -48,16 +48,27 @@ public class RemoveAIP extends AbstractCurationTask {
      * the DSPace object itself.
      * 
      * @param dso the DSpace object
+     * @return integer which represents Curator return status
      * @throws IOException
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
-        remove(dso);
+    public int perform(DSpaceObject dso) throws IOException 
+    {
+        ReplicaManager repMan = ReplicaManager.instance();
+        remove(repMan, dso);
         setResult("AIP for '" + dso.getHandle() + "' has been removed");
         return Curator.CURATE_SUCCESS;
     }
 
-    private void remove(DSpaceObject dso) throws IOException {
+    /**
+     * Remove replica(s) of the passed in DSpace object from a particular
+     * replica ObjectStore.
+     * @param repMan ReplicaManager (used to access ObjectStore)
+     * @param dso the DSpace object whose replicas we will remove
+     * @throws IOException 
+     */
+    private void remove(ReplicaManager repMan, DSpaceObject dso) throws IOException 
+    {
         //Remove object from AIP storage
         String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
         repMan.removeObject(storeGroupName, objId);
@@ -69,7 +80,7 @@ public class RemoveAIP extends AbstractCurationTask {
             try {
                 ItemIterator iter = coll.getItems();
                 while (iter.hasNext()) {
-                    remove(iter.next());
+                    remove(repMan, iter.next());
                 }
             } catch (SQLException sqlE) {
                 throw new IOException(sqlE.getMessage());
@@ -79,10 +90,10 @@ public class RemoveAIP extends AbstractCurationTask {
             Community comm = (Community)dso;
             try {
                 for (Community subcomm : comm.getSubcommunities()) {
-                    remove(subcomm);
+                    remove(repMan, subcomm);
                 }
                 for (Collection coll : comm.getCollections()) {
-                    remove(coll);
+                    remove(repMan, coll);
                 }
             } catch (SQLException sqlE) {
                 throw new IOException(sqlE.getMessage());
@@ -98,12 +109,15 @@ public class RemoveAIP extends AbstractCurationTask {
      * deleted. In this case, the replica store is purged of the deleted
      * object, or objects, if the id is (was) a container.
      *
-     * @param ctx
+     * @param ctx current DSpace Context
      * @param id Identifier of the object to be removed.
+     * @return integer which represents Curator return status
      * @throws IOException
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException {
+    public int perform(Context ctx, String id) throws IOException 
+    {
+        ReplicaManager repMan = ReplicaManager.instance();
         DSpaceObject dso = dereference(ctx, id);
         if (dso != null) {
             return perform(dso);
