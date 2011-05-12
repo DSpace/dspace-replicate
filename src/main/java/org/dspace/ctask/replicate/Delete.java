@@ -60,7 +60,7 @@ public class Delete extends AbstractCurationTask {
             // consider this a task failure
             return Curator.CURATE_FAIL;
         } catch (SQLException sqlE) {
-            throw new IOException(sqlE.getMessage());
+            throw new IOException(sqlE);
         }
         return Curator.CURATE_SUCCESS;
     }

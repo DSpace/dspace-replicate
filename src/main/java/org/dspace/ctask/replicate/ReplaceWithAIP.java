@@ -85,9 +85,9 @@ public class ReplaceWithAIP extends AbstractCurationTask {
             }
             return status;
         } catch (AuthorizeException authE) {
-            throw new IOException(authE.getMessage());
+            throw new IOException(authE);
         } catch (SQLException sqlE) {
-            throw new IOException(sqlE.getMessage());
+            throw new IOException(sqlE);
         }
     }
 }

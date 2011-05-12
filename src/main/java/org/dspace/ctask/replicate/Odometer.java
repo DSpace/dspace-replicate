@@ -76,7 +76,7 @@ public class Odometer
         }
         catch (FileNotFoundException fnfE)
         {
-            throw new IOException(fnfE.getMessage(), fnfE);
+            throw new IOException(fnfE);
         }
     }
 

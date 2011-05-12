@@ -83,7 +83,7 @@ public class RemoveAIP extends AbstractCurationTask {
                     remove(repMan, iter.next());
                 }
             } catch (SQLException sqlE) {
-                throw new IOException(sqlE.getMessage());
+                throw new IOException(sqlE);
             }
         } // else if it a Community, also remove all sub-communities, collections (and items) from AIP storage 
         else if (dso instanceof Community) {
@@ -96,7 +96,7 @@ public class RemoveAIP extends AbstractCurationTask {
                     remove(repMan, coll);
                 }
             } catch (SQLException sqlE) {
-                throw new IOException(sqlE.getMessage());
+                throw new IOException(sqlE);
             }
         }
     }

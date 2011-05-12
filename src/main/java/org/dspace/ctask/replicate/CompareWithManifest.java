@@ -63,7 +63,7 @@ public class CompareWithManifest extends AbstractCurationTask
         }
         catch (SQLException sqlE)
         {
-            throw new IOException(sqlE.getMessage());
+            throw new IOException(sqlE);
         }
         return status;
     }

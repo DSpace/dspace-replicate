@@ -89,7 +89,7 @@ public class TransmitManifest extends AbstractCurationTask {
         }
         catch (SQLException sqlE)
         {
-            throw new IOException(sqlE.getMessage(), sqlE);
+            throw new IOException(sqlE);
         }
         setResult("Created manifest for: " + dso.getHandle());
         return Curator.CURATE_SUCCESS;

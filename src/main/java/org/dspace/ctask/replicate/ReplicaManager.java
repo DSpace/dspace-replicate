@@ -47,16 +47,9 @@ public class ReplicaManager {
             log.error("No ObjectStore configured in 'replicate.cfg'!");
             throw new IOException("No ObjectStore configured in 'replicate.cfg'!");
         }
-        try
-        {
-            objStore.init();
-        }
-        catch (IOException ioE)
-        {
-            //log error & pass this exception on to the next handler.
-            log.error("Replica store initialization error", ioE);
-            throw ioE;
-        }
+        
+        objStore.init();
+        
         // create directory structures
         new File(repDir).mkdirs();
         // load our odometer - writeable copy

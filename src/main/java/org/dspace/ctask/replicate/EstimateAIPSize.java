@@ -47,7 +47,7 @@ public class EstimateAIPSize extends AbstractCurationTask
         }
         catch (SQLException sqlE)
         {
-            throw new IOException(sqlE.getMessage(), sqlE);
+            throw new IOException(sqlE);
         }
         return Curator.CURATE_SUCCESS;
     }

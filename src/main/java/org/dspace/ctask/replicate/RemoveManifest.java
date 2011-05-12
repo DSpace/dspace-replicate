@@ -85,7 +85,7 @@ public class RemoveManifest extends AbstractCurationTask {
                     remove(repMan, iter.next());
                 }
             } catch (SQLException sqlE) {
-                throw new IOException(sqlE.getMessage());
+                throw new IOException(sqlE);
             }
         } else if (dso instanceof Community) {
             Community comm = (Community)dso;
@@ -97,7 +97,7 @@ public class RemoveManifest extends AbstractCurationTask {
                     remove(repMan, coll);
                 }
             } catch (SQLException sqlE) {
-                throw new IOException(sqlE.getMessage());
+                throw new IOException(sqlE);
             }
         }
     }

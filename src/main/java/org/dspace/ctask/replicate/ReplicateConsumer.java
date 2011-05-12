@@ -305,11 +305,11 @@ public class ReplicateConsumer implements Consumer {
             }
             catch (AuthorizeException authE)
             {
-                throw new IOException(authE.getMessage(), authE);
+                throw new IOException(authE);
             }
             catch (SQLException sqlE)
             {
-                throw new IOException(sqlE.getMessage(), sqlE);
+                throw new IOException(sqlE);
             }
         }
         // reset for next events

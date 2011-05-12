@@ -61,11 +61,11 @@ public class TransmitAIP extends AbstractCurationTask
         }
         catch (AuthorizeException authE)
         {
-            throw new IOException(authE.getMessage(), authE);
+            throw new IOException(authE);
         }
         catch (SQLException sqlE)
         {
-            throw new IOException(sqlE.getMessage(), sqlE);
+            throw new IOException(sqlE);
         }
     }
 }
