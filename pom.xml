@@ -17,7 +17,7 @@
     <!-- DSpace Version Information (supported version of DSpace) -->
     <dspace.version>1.7.1</dspace.version>
     <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-    <duracloud.version>0.8.0</duracloud.version>
+    <duracloud.version>0.9.0</duracloud.version>
   </properties>
   
   
@@ -34,65 +34,7 @@
           <target>1.6</target>
         </configuration>
       </plugin>
-      <!-- HACK: Auto-install necesary DuraCloud dependencies, which are
-           not yet available in Maven Central. Once they are available
-           in Maven Central or DuraSpace's Maven repo, this entire 
-           'maven-install-plugin' section can be removed. -->
-      <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-install-plugin</artifactId>
-          <executions>
-            <!--Add duracloud-common.jar to local mvn repository-->
-            <execution>
-              <id>install-duracloud-common-jar</id>
-              <phase>validate</phase>
-              <goals>
-                <goal>install-file</goal>
-              </goals>
-              <configuration>
-                <file>${basedir}/lib/duracloud-common-${duracloud.version}.jar</file>
-                <groupId>org.duracloud</groupId>
-                <artifactId>common</artifactId>
-                <version>${duracloud.version}</version>
-                <packaging>jar</packaging>
-                <generatePom>true</generatePom>
-              </configuration>
-            </execution>
-            <!--Add duracloud-storeclient.jar to local mvn repository-->
-            <execution>
-              <id>install-duracloud-storeclient-jar</id>
-              <phase>validate</phase>
-              <goals>
-                <goal>install-file</goal>
-              </goals>
-              <configuration>
-                <file>${basedir}/lib/duracloud-storeclient-${duracloud.version}.jar</file>
-                <groupId>org.duracloud</groupId>
-                <artifactId>storeclient</artifactId>
-                <version>${duracloud.version}</version>
-                <packaging>jar</packaging>
-                <generatePom>true</generatePom>
-              </configuration>
-            </execution>
-            <!--Add duracloud-storageprovider.jar to local mvn repository-->
-            <execution>
-              <id>install-duracloud-storageprovider-jar</id>
-              <phase>validate</phase>
-              <goals>
-                <goal>install-file</goal>
-              </goals>
-              <configuration>
-                <file>${basedir}/lib/duracloud-storageprovider-${duracloud.version}.jar</file>
-                <groupId>org.duracloud</groupId>
-                <artifactId>storageprovider</artifactId>
-                <version>${duracloud.version}</version>
-                <packaging>jar</packaging>
-                <generatePom>true</generatePom>
-              </configuration>
-            </execution>
-          </executions>
-      </plugin>
-      
+     
       <!-- Copy necessary Runtime Depenencies to /target/lib/
            during build process. (We are only including Runtime
            dependencies which are not a part of DSpace by default)-->
@@ -117,6 +59,15 @@
       </plugin>
     </plugins>
   </build>
+  
+  <!-- Define the DuraCloud Release repository - used to pull in all DuraCloud dependencies -->
+  <repositories>
+    <repository>
+        <id>duracloud-releases</id>
+        <url>https://m2.duraspace.org/content/repositories/releases</url>
+    </repository>
+  </repositories>
+  
   <dependencies>
     <dependency>
         <groupId>org.dspace</groupId>
@@ -134,7 +85,7 @@
       <artifactId>commons-compress</artifactId>
       <version>1.0</version>
     </dependency>
-    <!-- DuraCloud libraries (used for replication to/from DuraCloud) -->
+    <!-- DuraCloud dependencies (used for replication to/from DuraCloud) -->
     <dependency>
         <groupId>org.duracloud</groupId>
         <artifactId>common</artifactId>
@@ -145,7 +96,6 @@
         <artifactId>storeclient</artifactId>
         <version>${duracloud.version}</version>
     </dependency>
-    <!-- @TODO / @FIXME unclear if this dependency required -->
     <dependency>
       <groupId>org.duracloud</groupId>
       <artifactId>storageprovider</artifactId>
