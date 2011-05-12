@@ -89,7 +89,7 @@ public class SyncObjectStore implements ObjectStore {
             } catch (NotFoundException nfE) {
                 // not found - no op
             } catch (ContentStoreException csE) {
-                throw new IOException(csE.getMessage());
+                throw new IOException(csE);
             }
         }
         return size;
@@ -108,7 +108,7 @@ public class SyncObjectStore implements ObjectStore {
         } catch (NotFoundException nfE) {
             return false;
         } catch (ContentStoreException csE) {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
     }
 
@@ -130,7 +130,7 @@ public class SyncObjectStore implements ObjectStore {
         } catch (NotFoundException nfE) {
             // no-op
         } catch (ContentStoreException csE) {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
         return size;
     }

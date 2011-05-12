@@ -165,9 +165,9 @@ public class RecoverFromAIP extends AbstractCurationTask {
             }
             EmbargoManager.setEmbargo(ctx, item, null);
         } catch (AuthorizeException authE) {
-            throw new IOException(authE.getMessage());
+            throw new IOException(authE);
         } catch (SQLException sqlE) {
-            throw new IOException(sqlE.getMessage());
+            throw new IOException(sqlE);
         }
     }
 
@@ -193,9 +193,9 @@ public class RecoverFromAIP extends AbstractCurationTask {
             Packer packer = PackerFactory.instance(coll);
             packer.unpack(archive);
         } catch (AuthorizeException authE) {
-            throw new IOException(authE.getMessage());
+            throw new IOException(authE);
         } catch (SQLException sqlE) {
-            throw new IOException(sqlE.getMessage());
+            throw new IOException(sqlE);
         }
     }
 

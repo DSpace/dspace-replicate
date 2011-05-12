@@ -95,7 +95,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
         return size;
     }
@@ -113,7 +113,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
     }
 
@@ -134,7 +134,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
         return size;
     }
@@ -161,7 +161,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
         // delete staging file
         file.delete();
@@ -185,7 +185,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
     }
 
@@ -220,7 +220,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE.getMessage());
+            throw new IOException(csE);
         }
     }
     
