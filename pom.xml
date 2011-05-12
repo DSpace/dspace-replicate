@@ -85,21 +85,39 @@
       <artifactId>commons-compress</artifactId>
       <version>1.0</version>
     </dependency>
-    <!-- DuraCloud dependencies (used for replication to/from DuraCloud) -->
-    <dependency>
-        <groupId>org.duracloud</groupId>
-        <artifactId>common</artifactId>
-        <version>${duracloud.version}</version>
-    </dependency>
+    <!-- DuraCloud dependencies (used for replication to/from DuraCloud).
+         We only need to specify a dependency on the 'storeclient', as it already 
+         declares dependencies on DuraCloud 'common' and 'storeprovider' APIs. -->
     <dependency>
         <groupId>org.duracloud</groupId>
         <artifactId>storeclient</artifactId>
         <version>${duracloud.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.duracloud</groupId>
-      <artifactId>storageprovider</artifactId>
-      <version>${duracloud.version}</version>
+        <!-- NOTE: For 'dspace-replicate' to be compatible with XMLUI / Cocoon Logging, 
+             we need to exclude all SLF4J and Logback dependencies of DuraCloud. 
+             Currently, DuraCloud's Logging dependencies conflict with XMLUI's logging,
+             and cause 'NoSuchMethodError' messages relating to SLF4J.-->
+        <exclusions>
+            <exclusion>
+             <groupId>org.slf4j</groupId>
+             <artifactId>slf4j-api</artifactId>
+            </exclusion>
+            <exclusion>
+             <groupId>org.slf4j</groupId>
+             <artifactId>slf4j-parent</artifactId>
+            </exclusion>
+            <exclusion>
+             <groupId>org.slf4j</groupId>
+             <artifactId>jcl-over-slf4j</artifactId>
+            </exclusion>
+            <exclusion>
+             <groupId>org.slf4j</groupId>
+             <artifactId>log4j-over-slf4j</artifactId>
+            </exclusion>
+            <exclusion>
+             <groupId>ch.qos.logback</groupId>
+             <artifactId>logback-classic</artifactId>
+            </exclusion>
+        </exclusions>
     </dependency>
   </dependencies>
 </project>
