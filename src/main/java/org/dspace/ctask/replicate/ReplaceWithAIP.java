@@ -57,11 +57,14 @@ public class ReplaceWithAIP extends AbstractCurationTask {
         
         // overwrite with AIP data
         Packer packer = PackerFactory.instance(dso);
-        try {
+        try 
+        {
             int status = Curator.CURATE_FAIL;
+            String result = null;
             String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
             File archive = repMan.fetchObject(storeGroupName, objId);
-            if (archive != null) {
+            if (archive != null) 
+            {
                 // clear object where necessary
                 if (dso.getType() == Constants.ITEM) {
                     Item item = (Item)dso;
@@ -81,12 +84,22 @@ public class ReplaceWithAIP extends AbstractCurationTask {
                     ((Community)dso).update();
                 }
                 status = Curator.CURATE_SUCCESS;
-                report("Object: " + dso.getHandle() + "replaced from AIP");
+                result = "Object: " + dso.getHandle() + " replaced from AIP";
             }
+            else
+            {
+                result = "Failed to replace Object. AIP could not be found in Replica Store.";
+            }
+            report(result);
+            setResult(result);
             return status;
-        } catch (AuthorizeException authE) {
+        } 
+        catch (AuthorizeException authE) 
+        {
             throw new IOException(authE);
-        } catch (SQLException sqlE) {
+        } 
+        catch (SQLException sqlE) 
+        {
             throw new IOException(sqlE);
         }
     }

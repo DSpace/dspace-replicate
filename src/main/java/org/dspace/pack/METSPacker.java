@@ -121,7 +121,10 @@ public class METSPacker implements Packer
         PackageParameters pkgParams = new PackageParameters();
         try
         {
-            dso = sip.ingest(context, parent, archive, pkgParams, null);
+            // We will always run a replaceAll() in order to perform a recursive replace/recovery. 
+            // If the object doesn't exist, this will automatically call sip.ingest() to recover it. 
+            // If the object does exist, it will try to replace it with contents of AIP.
+            sip.replaceAll(context, dso, archive, pkgParams);
         }
         catch (PackageException pkgE)
         {
