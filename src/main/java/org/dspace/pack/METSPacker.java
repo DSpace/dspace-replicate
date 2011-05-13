@@ -117,7 +117,6 @@ public class METSPacker implements Packer
         }
 
         Context context = new Context();
-        DSpaceObject parent = null;
         PackageParameters pkgParams = new PackageParameters();
         try
         {
