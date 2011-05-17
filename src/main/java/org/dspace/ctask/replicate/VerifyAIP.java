@@ -12,6 +12,7 @@ import java.io.IOException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.ConfigurationManager;
+import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 
@@ -30,6 +31,7 @@ public class VerifyAIP extends AbstractCurationTask
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
 
+    
     /**
      * Performs the "Verify AIP" task.
      * <p>
@@ -41,11 +43,39 @@ public class VerifyAIP extends AbstractCurationTask
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        if(dso!=null)
+        {
+            //NOTE: we can get away with passing in a 'null' Context because
+            // the context isn't actually used to verify whether an AIP exists
+            // (see below 'perform(ctx,id)' method)
+            return perform(null, dso.getHandle());
+        }
+        else
+        {
+            String result = "DSpace Object not found!";
+            report(result);
+            setResult(result);
+            return Curator.CURATE_FAIL;
+        }
+    }
+    
+    /**
+     * Performs the "Verify AIP" task.
+     * <p>
+     * Simply tests for presence of AIP in replica ObjectStore.
+     * @param ctx DSpace Context (this param is ignored for this task)
+     * @param id ID of object to verify
+     * @return integer which represents Curator return status
+     * @throws IOException 
+     */
+    @Override
+    public int perform(Context ctx, String id) throws IOException
+    {
         ReplicaManager repMan = ReplicaManager.instance();
         
-        String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
+        String objId = ReplicaManager.safeId(id) + "." + archFmt;
         boolean found = repMan.objectExists(storeGroupName, objId);
-        String result = "AIP for object: " + dso.getHandle() + " found: " + found;
+        String result = "AIP for object: " + id + " found: " + found;
         report(result);
         setResult(result);
         return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;
