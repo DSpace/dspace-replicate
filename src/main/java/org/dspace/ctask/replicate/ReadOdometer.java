@@ -41,9 +41,9 @@ public class ReadOdometer extends AbstractCurationTask
         ReplicaManager repMan = ReplicaManager.instance();
         Odometer odometer = repMan.getOdometer();
         StringBuilder sb = new StringBuilder();
-        sb.append("Objects:    ").append(odometer.getProperty("count")).append("\n");
-        sb.append("Size:       ").append(scaledSize(odometer.getProperty("storesize"), 0)).append("\n");
-        sb.append("Uploaded:   ").append(scaledSize(odometer.getProperty("uploaded"), 0)).append("\n");
+        sb.append("Objects:    ").append(odometer.getProperty("count")).append(", \n");
+        sb.append("Size:       ").append(scaledSize(odometer.getProperty("storesize"), 0)).append(", \n");
+        sb.append("Uploaded:   ").append(scaledSize(odometer.getProperty("uploaded"), 0)).append(", \n");
         sb.append("Downloaded: ").append(scaledSize(odometer.getProperty("downloaded"), 0)).append("\n");
         String msg = sb.toString();           
         report(msg);
