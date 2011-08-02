@@ -24,6 +24,7 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.content.ItemIterator;
 import org.dspace.content.crosswalk.CrosswalkException;
+import org.dspace.content.packager.AbstractPackageIngester;
 import org.dspace.content.packager.PackageDisseminator;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageIngester;
@@ -31,6 +32,9 @@ import org.dspace.content.packager.PackageParameters;
 import org.dspace.core.Context;
 import org.dspace.core.Constants;
 import org.dspace.core.PluginManager;
+import org.dspace.curate.Curator;
+
+import org.apache.log4j.Logger;
 
 /**
  * METSPacker packs and unpacks Item AIPs in METS compressed archives
@@ -39,15 +43,25 @@ import org.dspace.core.PluginManager;
  */
 public class METSPacker implements Packer
 {
+    private Logger log = Logger.getLogger(METSPacker.class);
+    
     private DSpaceObject dso = null;
     private String archFmt = null;
     private List<String> filterBundles = new ArrayList<String>();
     private boolean exclude = true;
     private List<RefFilter> refFilters = new ArrayList<RefFilter>();
     
+    private List<String> childPackageRefs = new ArrayList<String>();
+    
     private PackageDisseminator dip = null;
     private PackageIngester sip = null;
 
+    public METSPacker(String archFmt)
+    {
+        this.dso = null;
+        this.archFmt = archFmt;
+    }
+    
     public METSPacker(DSpaceObject dso, String archFmt)
     {
         this.dso = dso;
@@ -78,7 +92,8 @@ public class METSPacker implements Packer
             throw new IOException("Cannot obtain AIP disseminator. No dissemination plugin named 'AIP' is configured.");
         }
         
-        Context context = new Context();
+        //Retrieve a Context object, authenticated as the current Task performer.
+        Context context = Curator.authenticatedContext();
         //Initialize packaging params
         PackageParameters pkgParams = new PackageParameters();
         File archive = new File(packDir.getParentFile(), packDir.getName() + "." + archFmt);
@@ -89,12 +104,17 @@ public class METSPacker implements Packer
         }
         catch (PackageException pkgE)
         {
+            //abort context & undo any changes
+            context.abort();
             throw new IOException(pkgE.getMessage(), pkgE);
         }
         catch (CrosswalkException xwkE)
         {
+            //abort context & undo any changes
+            context.abort();
             throw new IOException(xwkE.getMessage(), xwkE);
         }
+        //complete & close context
         context.complete();
         
         return archive;
@@ -116,30 +136,74 @@ public class METSPacker implements Packer
             throw new IOException("Cannot obtain AIP ingester. No ingestion plugin named 'AIP' is configured.");
         }
 
-        Context context = new Context();
+        //Retrieve a Context object, authenticated as the current Task performer.
+        Context context = Curator.authenticatedContext();
         PackageParameters pkgParams = new PackageParameters();
+        
+        //--- Default settings/parameters for PackageIngester --
+        // @TODO - May want to make these configurable somehow in replicate.cfg or similar
+        // For more info, see: https://wiki.duraspace.org/display/DSDOC/AIP+Backup+and+Restore
+        //Always run in Replace mode (always replace existing objects & restore ones that are missing)
+        pkgParams.setReplaceModeEnabled(true);
+        //Always run in Recursive mode (also replace/restore all child objects)
+        pkgParams.setRecursiveModeEnabled(true);
+        //Always create Metadata Fields referenced in an AIP, which are found to be missing in DSpace
+        pkgParams.setProperty("createMetadataFields", "true");
+        //Always skip over an object if it's Parent Object is "missing". These errors will still be logged as warnings.
+        //(This setting is recommended for 'recursive' mode, as sometimes ingester will try to restore a child object
+        // before its parent. But, once parent is restored, the child object will then be restored immediately after)
+        pkgParams.setProperty("skipIfParentMissing", "true");
+        
         try
         {
-            // We will always run a replaceAll() in order to perform a recursive replace/recovery. 
-            // If the object doesn't exist, this will automatically call sip.ingest() to recover it. 
-            // If the object does exist, it will try to replace it with contents of AIP.
-            sip.replaceAll(context, dso, archive, pkgParams);
+            if(sip instanceof AbstractPackageIngester)
+            {
+                DSpaceObject replacedDso = sip.replace(context, dso, archive, pkgParams);
+               
+                //We can only recursively replace non-Items
+                //(NOTE: Items have no children, as Bitstreams/Bundles are created from Item packages)
+                if(replacedDso!=null && replacedDso.getType()!=Constants.ITEM)
+                {
+                    //Check if we found child package references when replacing this latest DSpaceObject
+                    this.childPackageRefs = ((AbstractPackageIngester) sip).getPackageReferences(replacedDso);
+                }//end if not an Item
+            }
+            else
+            {
+                // We will always run a replaceAll() in order to perform a recursive replace/recovery. 
+                // If the object doesn't exist, this will automatically call sip.ingest() to recover it. 
+                // If the object does exist, it will try to replace it with contents of AIP.
+                sip.replaceAll(context, dso, archive, pkgParams);
+            }
+            
         }
         catch (PackageException pkgE)
         {
+            //abort context & undo any changes
+            if(context!=null)
+                context.abort();
             throw new IOException(pkgE.getMessage(), pkgE);
         }
         catch (CrosswalkException xwkE)
         {
+            //abort context & undo any changes
+            if(context!=null)
+                context.abort();
             throw new IOException(xwkE.getMessage(), xwkE);
         }
+        //complete & close context
+        context.complete();
     }
 
     @Override
     public long size(String method) throws SQLException
     {
         int type = dso.getType();
-        if (Constants.COMMUNITY == type)
+        if (Constants.SITE == type)
+        {
+            return siteSize();
+        }
+        else if (Constants.COMMUNITY == type)
         {
             return communitySize((Community)dso);
         }
@@ -150,9 +214,50 @@ public class METSPacker implements Packer
         else
         {
             return itemSize((Item)dso);
-        }
+        }     
     }
     
+    /**
+     * Determine total estimated size of all AIPs 
+     * (Site AIP, Community AIPs, Collection AIPs, Item AIPs)
+     * <P>
+     * Estimated size is currently just based on size of content files.
+     * 
+     * @return estimated storage size
+     * @throws SQLException 
+     */
+    private long siteSize() throws SQLException
+    {
+        long size = 0L;
+        
+        //Retrieve a Context object, authenticated as the current Task performer.
+        Context ctx = Curator.authenticatedContext();
+        
+        //This Site AIP itself is very small, so as a "guess" we'll just total
+        // up the size of all Community, Collection & Item AIPs
+        //Then, perform this task for all Top-Level Communities in the Site
+        // (this will recursively perform task for all objects in DSpace)
+        for (Community subcomm : Community.findAllTop(ctx))
+        {
+            size += communitySize(subcomm);
+        }
+
+        //complete & close context.
+        ctx.complete();
+        
+        return size;
+    }
+    
+    /**
+     * Determine total estimated size of Community AIP and all child AIPs
+     * (Sub-Community AIPs, Collection AIPs, Item AIPs)
+     * <P>
+     * Estimated size is currently just based on size of content files.
+     * 
+     * @param community DSpace Community
+     * @return estimated storage size
+     * @throws SQLException 
+     */
     private long communitySize(Community community) throws SQLException
     {
         long size = 0L;
@@ -173,6 +278,16 @@ public class METSPacker implements Packer
         return size;
     }
     
+    /**
+     * Determine total estimated size of Collection AIP and all child AIPs
+     * (Item AIPs)
+     * <P>
+     * Estimated size is currently just based on size of content files.
+     * 
+     * @param collection DSpace Collection
+     * @return estimated storage size
+     * @throws SQLException 
+     */
     private long collectionSize(Collection collection) throws SQLException
     {
         long size = 0L;
@@ -190,6 +305,15 @@ public class METSPacker implements Packer
         return size; 
     }
     
+   /**
+     * Determine total estimated size of Item AIP
+     * <P>
+     * Estimated size is currently just based on size of content files.
+     * 
+     * @param item DSpace Item
+     * @return estimated storage size
+     * @throws SQLException 
+     */
     private long itemSize(Item item) throws SQLException
     {
         long size = 0L;
@@ -263,5 +387,10 @@ public class METSPacker implements Packer
             size = Long.valueOf(parts[1]);
             url = parts[2];
         }
+    }
+    
+    public List<String> getChildPackageRefs()
+    {
+        return childPackageRefs;
     }
 }
