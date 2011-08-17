@@ -8,6 +8,12 @@
 
 package org.dspace.ctask.replicate;
 
+import java.sql.SQLException;
+
+import org.dspace.content.DSpaceObject;
+import org.dspace.core.Constants;
+import org.dspace.core.Context;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -15,6 +21,7 @@ import org.apache.log4j.Logger;
 
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.PluginManager;
+import org.dspace.handle.HandleManager;
 
 import static org.dspace.ctask.replicate.Odometer.*;
 
@@ -86,12 +93,45 @@ public class ReplicaManager {
     
     public static String safeId(String id)
     {
+        String typePrefix = null;
+        
+        //If 'packer.typeprefix' setting is 'true', 
+        // then prefix the package file name with the DSpace Type
+        if(ConfigurationManager.getBooleanProperty("replicate", "packer.typeprefix", true))
+        {    
+            try
+            {    
+                Context ctx = new Context();
+                //Get object associated with this handle
+                DSpaceObject dso = HandleManager.resolveToObject(ctx, id);
+                ctx.complete();
+
+                //typePrefix format = 'TYPE@'
+                if(dso!=null)
+                    typePrefix = Constants.typeText[dso.getType()] + "@";
+            }
+            catch(SQLException sqle)
+            {
+                //do nothing, just ignore
+            }
+        }
+        
         // canonical handle notation bedevils file system semantics
-        return id.replaceAll("/", "-");
+        id = id.replaceAll("/", "-");
+        
+        if(typePrefix!=null)
+            return typePrefix + id;
+        else
+            return id;
     }
     
     public static String canonicalId(String safeId)
     {
+        //If this 'safeId' includes a TYPE prefix (see 'safeId()' method),
+        // then remove it, before returning the reformatted ID.
+        if(safeId.contains("@"))
+            safeId = safeId.substring(safeId.indexOf("@")+1);
+        
         return safeId.replaceAll("-", "/");
     }
 
