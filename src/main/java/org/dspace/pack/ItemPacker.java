@@ -261,16 +261,17 @@ public class ItemPacker implements Packer
     @Override
     public void setContentFilter(String filter) 
     {
-        // filters currently just lists of bundle names
-        // if first list element is "+", the list
-        // is inclusive, otherwise all bundles *except*
-        // the listed ones are included
-        filterBundles = Arrays.asList(filter.split(","));
-        if ("+".equals(filterBundles.get(0)))
+        //If our filter list of bundles begins with a '+', then this list
+        // specifies all the bundles to *include*. Otherwise all 
+        // bundles *except* the listed ones are included
+        if(filter.startsWith("+"))
         {
             exclude = false;
-            filterBundles.remove(0);
+            //remove the preceding '+' from our bundle list
+            filter = filter.substring(1);
         }
+        
+        filterBundles = Arrays.asList(filter.split(","));
     }
 
     private boolean accept(String name)

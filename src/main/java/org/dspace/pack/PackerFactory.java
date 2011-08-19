@@ -63,6 +63,10 @@ public class PackerFactory
                 metsPacker.setDSO(dso);
             }
             packer = metsPacker;
+            if (cfgFilter != null)
+            {
+                packer.setContentFilter(cfgFilter);
+            }
         }
         else if (Constants.ITEM == type)
         {

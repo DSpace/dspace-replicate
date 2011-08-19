@@ -45,14 +45,21 @@ public class METSPacker implements Packer
 {
     private Logger log = Logger.getLogger(METSPacker.class);
     
+    /** Related DSpace Object **/
     private DSpaceObject dso = null;
+    /** Exported archive format (e.g. zip) **/
     private String archFmt = null;
+    /** Specified content filter string for exported AIP (e.g. 'packer.cfilter' in replication.cfg) **/
+    private String contentFilter = null;
+    /** Bundles which will be filtered in exported AIP **/
     private List<String> filterBundles = new ArrayList<String>();
+    /** Whether bundles in 'filterBundles' will be included or excluded from exported AIP **/
     private boolean exclude = true;
-    private List<RefFilter> refFilters = new ArrayList<RefFilter>();
     
+    /** List of all referenced child packages **/
     private List<String> childPackageRefs = new ArrayList<String>();
     
+    /** DSpace PackageDisseminator & PackageIngester to utilize for AIP pack() & unpack() **/
     private PackageDisseminator dip = null;
     private PackageIngester sip = null;
 
@@ -68,16 +75,33 @@ public class METSPacker implements Packer
         this.archFmt = archFmt;
     }
 
+    /**
+     * Get DSpaceObject we are working with
+     * @return dso DSpaceObject
+     */
     public DSpaceObject getDSO()
     {
         return dso;
     }
 
+    /**
+     * Set DSpaceObject we are working with
+     * @param dso DSpaceObject
+     */
     public void setDSO(DSpaceObject dso)
     {
         this.dso = dso;
     }
 
+    /**
+     * Create a METS AIP Package, using the configured AIP PackageDisseminator (in dspace.cfg)
+     * 
+     * @param packDir the directory where this package should be created
+     * @return the created package file
+     * @throws AuthorizeException
+     * @throws IOException
+     * @throws SQLException 
+     */
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException
     {
@@ -96,6 +120,14 @@ public class METSPacker implements Packer
         Context context = Curator.authenticatedContext();
         //Initialize packaging params
         PackageParameters pkgParams = new PackageParameters();
+        
+        //If a content (Bundle) filter is specified
+        if(this.contentFilter!=null && !this.contentFilter.isEmpty())
+        {
+            //Pass that on to the 'filterBundles' package parameter (which uses the same syntax)
+            pkgParams.addProperty("filterBundles", contentFilter);
+        }    
+        
         File archive = new File(packDir.getParentFile(), packDir.getName() + "." + archFmt);
         //disseminate the requested object
         try
@@ -120,6 +152,15 @@ public class METSPacker implements Packer
         return archive;
     }
 
+    /**
+     * Restore/Replace a DSpaceObject based on the contents of a METS AIP Package, 
+     * using the configured AIP PackageIngester (in dspace.cfg)
+     * 
+     * @param archive the METS AIP package
+     * @throws AuthorizeException
+     * @throws IOException
+     * @throws SQLException 
+     */
     @Override
     public void unpack(File archive) throws AuthorizeException, IOException, SQLException
     {
@@ -320,7 +361,7 @@ public class METSPacker implements Packer
         // just total bitstream sizes, respecting filters
         for (Bundle bundle : item.getBundles())
         {
-            if (accept(bundle.getName()))
+            if (includedBundle(bundle.getName()))
             {
                 for (Bitstream bs : bundle.getBitstreams())
                 {
@@ -333,20 +374,22 @@ public class METSPacker implements Packer
     
     @Override
     public void setContentFilter(String filter)
-    {
-        // filters currently just lists of bundle names
-        // if first list element is "+", the list
-        // is inclusive, otherwise all bundles *except*
-        // the listed ones are included
-        filterBundles = Arrays.asList(filter.split(","));
-        if ("+".equals(filterBundles.get(0)))
+    { 
+        //If our filter list of bundles begins with a '+', then this list
+        // specifies all the bundles to *include*. Otherwise all 
+        // bundles *except* the listed ones are included
+        if(filter.startsWith("+"))
         {
             exclude = false;
-            filterBundles.remove(0);
+            //remove the preceding '+' from our bundle list
+            filter = filter.substring(1);
         }
+        
+        contentFilter = filter;
+        filterBundles = Arrays.asList(filter.split(",")); 
     }
 
-    private boolean accept(String name)
+    private boolean includedBundle(String name)
     {
         boolean onList = filterBundles.contains(name);
         return exclude ? ! onList : onList;
@@ -355,40 +398,18 @@ public class METSPacker implements Packer
     @Override
     public void setReferenceFilter(String filterSet)
     {
-        // parse ref filter list
-        for (String filter : filterSet.split(","))
-        {
-            refFilters.add(new RefFilter(filter));
-        }
-    }
-
-    private String byReference(Bundle bundle, Bitstream bs)
-    {
-        for (RefFilter filter : refFilters) {
-            if (filter.bundle.equals(bundle.getName()) &&
-                filter.size == bs.getSize())
-            {
-                return filter.url;
-            }
-        }
-        return null;
-    }
-
-    private class RefFilter
-    {
-        public String bundle;
-        public long size;
-        public String url;
-
-        public RefFilter(String filter)
-        {
-            String[] parts = filter.split(" ");
-            bundle = parts[0];
-            size = Long.valueOf(parts[1]);
-            url = parts[2];
-        }
+        throw new UnsupportedOperationException("Not supported yet.");
     }
     
+    /**
+     * Return list of referenced child packages (AIPs) which were
+     * located during the unpacking of an AIP (see unpack()). 
+     * <P>
+     * This may be used by tasks so that they can recursively unpack()
+     * additional referenced child packages as needed.
+     *
+     * @return List of references to child AIPs
+     */
     public List<String> getChildPackageRefs()
     {
         return childPackageRefs;
