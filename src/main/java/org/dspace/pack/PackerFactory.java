@@ -14,6 +14,8 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
+import org.dspace.pack.bagit.*;
+import org.dspace.pack.mets.*;
 
 /**
  * PackerFactory mints packers for specified object types. Packer implementation

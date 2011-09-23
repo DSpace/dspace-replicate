@@ -34,8 +34,8 @@ import org.dspace.curate.TaskQueueEntry;
 import org.dspace.eperson.EPerson;
 import org.dspace.event.Consumer;
 import org.dspace.event.Event;
-import org.dspace.pack.CatalogPacker;
 import org.dspace.pack.Packer;
+import org.dspace.pack.bagit.CatalogPacker;
 
 // for readability
 import static org.dspace.event.Event.*;

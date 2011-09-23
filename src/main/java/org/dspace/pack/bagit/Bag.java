@@ -6,7 +6,7 @@
  *     http://dspace.org/license/
  */
 
-package org.dspace.pack;
+package org.dspace.pack.bagit;
 
 import java.util.Arrays;
 import java.io.BufferedOutputStream;

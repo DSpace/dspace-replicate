@@ -6,7 +6,7 @@
  *     http://dspace.org/license/
  */
 
-package org.dspace.pack;
+package org.dspace.pack.bagit;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.dspace.pack.Packer;
 import static org.dspace.pack.PackerFactory.*;
 
 /**

@@ -15,7 +15,7 @@
     <!--Force UTF-8 encoding during build on all platforms-->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- DSpace Version Information (supported version of DSpace) -->
-    <dspace.version>1.7.1</dspace.version>
+    <dspace.version>1.8.0-rc2-SNAPSHOT</dspace.version>
     <!-- DuraCloud Version Information (supported version of DuraCloud) -->
     <duracloud.version>0.9.0</duracloud.version>
   </properties>

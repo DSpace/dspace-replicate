@@ -30,10 +30,10 @@ import org.dspace.curate.Distributive;
 import org.dspace.curate.Mutative;
 import org.dspace.embargo.EmbargoManager;
 import org.dspace.handle.HandleManager;
-import org.dspace.pack.Bag;
-import org.dspace.pack.CatalogPacker;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.Bag;
+import org.dspace.pack.bagit.CatalogPacker;
 
 import static org.dspace.pack.PackerFactory.*;
 

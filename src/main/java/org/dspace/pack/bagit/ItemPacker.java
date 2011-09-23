@@ -6,7 +6,7 @@
  *     http://dspace.org/license/
  */
 
-package org.dspace.pack;
+package org.dspace.pack.bagit;
 
 import java.io.FileFilter;
 import java.io.File;
@@ -24,6 +24,7 @@ import org.dspace.content.Collection;
 import org.dspace.content.DCValue;
 import org.dspace.content.Item;
 
+import org.dspace.pack.Packer;
 import static org.dspace.pack.PackerFactory.*;
 
 /**

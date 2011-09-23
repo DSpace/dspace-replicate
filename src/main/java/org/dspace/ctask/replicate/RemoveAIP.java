@@ -21,7 +21,8 @@ import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
-import org.dspace.pack.CatalogPacker;
+
+import org.dspace.pack.bagit.CatalogPacker;
 
 /**
  * RemoveAIP task will remove requested objects from the replica store. If the

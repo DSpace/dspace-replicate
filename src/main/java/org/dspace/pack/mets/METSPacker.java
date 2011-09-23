@@ -117,7 +117,7 @@ public class METSPacker implements Packer
         }
         
         //Retrieve a Context object, authenticated as the current Task performer.
-        Context context = Curator.authenticatedContext();
+        Context context = Curator.curationContext();
         //Initialize packaging params
         PackageParameters pkgParams = new PackageParameters();
         
@@ -178,7 +178,7 @@ public class METSPacker implements Packer
         }
 
         //Retrieve a Context object, authenticated as the current Task performer.
-        Context context = Curator.authenticatedContext();
+        Context context = Curator.curationContext();
         PackageParameters pkgParams = new PackageParameters();
         
         //--- Default settings/parameters for PackageIngester --
@@ -272,7 +272,7 @@ public class METSPacker implements Packer
         long size = 0L;
         
         //Retrieve a Context object, authenticated as the current Task performer.
-        Context ctx = Curator.authenticatedContext();
+        Context ctx = Curator.curationContext();
         
         //This Site AIP itself is very small, so as a "guess" we'll just total
         // up the size of all Community, Collection & Item AIPs

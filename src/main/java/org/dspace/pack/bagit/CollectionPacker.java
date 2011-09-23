@@ -6,7 +6,7 @@
  *     http://dspace.org/license/
  */
 
-package org.dspace.pack;
+package org.dspace.pack.bagit;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,75 +16,82 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.ItemIterator;
+
+import org.dspace.pack.Packer;
+import org.dspace.pack.PackerFactory;
 
 import static org.dspace.pack.PackerFactory.*;
 
 /**
- * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
+ * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
  *
  * @author richardrodgers
  */
-public class CommunityPacker implements Packer
+public class CollectionPacker implements Packer
 {
-    // NB - these values must remain synchronized with DB schema -
+    // NB - these values must remain synchronized with DB schema
     // they represent the peristent object state
-    private static final String[] fields = {
+    private static final String[] fields =
+    {
         "name",
         "short_description",
         "introductory_text",
+        "provenance_description",
+        "license",
         "copyright_text",
         "side_bar_text"
     };
 
-    private Community community = null;
+    private Collection collection = null;
     private String archFmt = null;
-    
-    public CommunityPacker(Community community, String archFmt)
+
+    public CollectionPacker(Collection collection, String archFmt)
     {
-        this.community = community;
+        this.collection = collection;
         this.archFmt = archFmt;
     }
 
-    public Community getCommunity()
+    public Collection getCollection()
     {
-        return community;
+        return collection;
     }
 
-    public void setCommunity(Community community)
+    public void setCollection(Collection collection)
     {
-        this.community = community;
+        this.collection = collection;
     }
 
     @Override
-    public File pack(File packDir) throws AuthorizeException, SQLException, IOException
+    public File pack(File packDir) throws AuthorizeException, IOException, SQLException
     {
         Bag bag = new Bag(packDir);
         // set base object properties
         Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
         fwriter.writeProperty(BAG_TYPE, "AIP");
-        fwriter.writeProperty(OBJECT_TYPE, "community");
-        fwriter.writeProperty(OBJECT_ID, community.getHandle());
-        Community parent = community.getParentCommunity();
+        fwriter.writeProperty(OBJECT_TYPE, "collection");
+        fwriter.writeProperty(OBJECT_ID, collection.getHandle());
+        Community parent = collection.getCommunities()[0];
         if (parent != null)
         {
             fwriter.writeProperty(OWNER_ID, parent.getHandle());
         }
         fwriter.close();
         // then metadata
-        Bag.XmlWriter xwriter = bag.xmlWriter("metadata.xml");
-        xwriter.startStanza("metadata");
+        Bag.XmlWriter writer = bag.xmlWriter("metadata.xml");
+        writer.startStanza("metadata");
         for (String field : fields)
         {
-            String val = community.getMetadata(field);
+            String val = collection.getMetadata(field);
             if (val != null)
             {
-                xwriter.writeValue(field, val);
+                writer.writeValue(field, val);
             }
         }
-        xwriter.endStanza();
-        xwriter.close();
+        writer.endStanza();
+        writer.close();
         // also add logo if it exists
-        Bitstream logo = community.getLogo();
+        Bitstream logo = collection.getLogo();
         if (logo != null)
         {
             bag.addData("logo", logo.getSize(), logo.retrieve());
@@ -101,47 +108,54 @@ public class CommunityPacker implements Packer
     {
         if (archive == null)
         {
-            throw new IOException("Missing archive for community: " + community.getHandle());
+            throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
         Bag bag = new Bag(archive);
         // add the metadata
         Bag.XmlReader reader = bag.xmlReader("metadata.xml");
-        if (reader != null && reader.findStanza("metadata")) {
+        if (reader != null && reader.findStanza("metadata"))
+        {
             Bag.Value value = null;
             while((value = reader.nextValue()) != null)
             {
-                community.setMetadata(value.name, value.val);
+                collection.setMetadata(value.name, value.val);
             }
             reader.close();
         }
-        // also install logo or set to null
-        community.setLogo(bag.dataStream("logo"));
+          // also install logo or set to null
+        collection.setLogo(bag.dataStream("logo"));
         // now write data back to DB
-        community.update();
-        // clean up bag
+        collection.update();
+         // clean up bag
         bag.empty();
     }
 
     @Override
-    public long size(String method) throws SQLException
+    public long size(String method) throws SQLException 
     {
         long size = 0L;
-        // logo size, if present
-        Bitstream logo = community.getLogo();
+        // start with logo size, if present
+        Bitstream logo = collection.getLogo();
         if (logo != null)
         {
             size += logo.getSize();
         }
-        // proceed to children, unless 'norecurse' set
+        // proceed to items, unless 'norecurse' set
         if (! "norecurse".equals(method))
         {
-            for (Community comm : community.getSubcommunities())
+            ItemIterator itemIter = collection.getItems();
+            ItemPacker iPup = null;
+            while (itemIter.hasNext())
             {
-                size += PackerFactory.instance(comm).size(method);
-            }
-            for (Collection coll : community.getCollections())
-            {
-                size += PackerFactory.instance(coll).size(method);
+                if (iPup == null)
+                {
+                    iPup = (ItemPacker)PackerFactory.instance(itemIter.next());
+                }
+                else
+                {
+                    iPup.setItem(itemIter.next());
+                }
+                size += iPup.size(method);
             }
         }
         return size;
