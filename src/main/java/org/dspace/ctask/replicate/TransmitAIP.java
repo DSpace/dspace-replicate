@@ -1,9 +1,9 @@
-/*
+/**
  * The contents of this file are subject to the license and copyright
  * detailed in the LICENSE and NOTICE files at the root of the source
  * tree and available online at
  *
- *     http://dspace.org/license/
+ * http://www.dspace.org/license/
  */
 
 package org.dspace.ctask.replicate;
@@ -51,7 +51,6 @@ public class TransmitAIP extends AbstractCurationTask
         Packer packer = PackerFactory.instance(dso);
         try
         {
-            // get location for staging our replica archive file
             File archive = packer.pack(repMan.stage(storeGroupName, dso.getHandle()));
             String msg = "Created AIP: '" + archive.getName() + 
                          "' size: " + archive.length();
