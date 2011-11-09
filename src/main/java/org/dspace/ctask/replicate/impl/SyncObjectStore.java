@@ -80,7 +80,7 @@ public class SyncObjectStore implements ObjectStore {
             // check remote store
             try {
                 Content content = dcStore.getContent(group, id);
-                size = Long.valueOf(content.getMetadata().get(ContentStore.CONTENT_SIZE));
+                size = Long.valueOf(content.getProperties().get(ContentStore.CONTENT_SIZE));
                 FileOutputStream out = new FileOutputStream(file);
                 InputStream in = content.getStream();
                 Utils.copy(in, out);
@@ -124,7 +124,7 @@ public class SyncObjectStore implements ObjectStore {
         // get metadata before blowing away
         long size = 0L;
         try {
-            Map<String, String> attrs = dcStore.getContentMetadata(group, id);
+            Map<String, String> attrs = dcStore.getContentProperties(group, id);
             size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
             dcStore.deleteContent(group, id);
         } catch (NotFoundException nfE) {

@@ -77,7 +77,7 @@ public class DuraCloudObjectStore implements ObjectStore
             // DEBUG REMOVE
             long elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC fetch content: " + elapsed);
-            size = Long.valueOf(content.getMetadata().get(ContentStore.CONTENT_SIZE));
+            size = Long.valueOf(content.getProperties().get(ContentStore.CONTENT_SIZE));
             FileOutputStream out = new FileOutputStream(file);
             // DEBUG remove
             start = System.currentTimeMillis();
@@ -105,7 +105,7 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         try
         {
-            return dcStore.getContentMetadata(group, id) != null;
+            return dcStore.getContentProperties(group, id) != null;
         }
         catch (NotFoundException nfE)
         {
@@ -124,7 +124,7 @@ public class DuraCloudObjectStore implements ObjectStore
         long size = 0L;
         try
         {
-            Map<String, String> attrs = dcStore.getContentMetadata(group, id);
+            Map<String, String> attrs = dcStore.getContentProperties(group, id);
             size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
             dcStore.deleteContent(group, id);
         }
@@ -148,7 +148,7 @@ public class DuraCloudObjectStore implements ObjectStore
         // to avoid network I/O tax
         try
         {
-            Map<String, String> attrs = dcStore.getContentMetadata(group, file.getName());
+            Map<String, String> attrs = dcStore.getContentProperties(group, file.getName());
             if (! chkSum.equals(attrs.get(ContentStore.CONTENT_CHECKSUM)))
             {
                 size = uploadReplica(group, file, chkSum);
@@ -196,7 +196,7 @@ public class DuraCloudObjectStore implements ObjectStore
         {
               // DEBUG REMOVE
             long start = System.currentTimeMillis();
-            Map<String, String> attrs = dcStore.getContentMetadata(group, id);
+            Map<String, String> attrs = dcStore.getContentProperties(group, id);
             // DEBUG REMOVE
             long elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC metadata: " + elapsed);

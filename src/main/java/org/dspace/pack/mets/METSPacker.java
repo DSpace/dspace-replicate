@@ -6,7 +6,7 @@
  *     http://dspace.org/license/
  */
 
-package org.dspace.pack;
+package org.dspace.pack.mets;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +33,7 @@ import org.dspace.core.Context;
 import org.dspace.core.Constants;
 import org.dspace.core.PluginManager;
 import org.dspace.curate.Curator;
+import org.dspace.pack.Packer;
 
 import org.apache.log4j.Logger;
 
