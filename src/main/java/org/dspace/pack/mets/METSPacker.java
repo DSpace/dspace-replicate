@@ -117,8 +117,9 @@ public class METSPacker implements Packer
             throw new IOException("Cannot obtain AIP disseminator. No dissemination plugin named 'AIP' is configured.");
         }
         
-        //Retrieve a Context object, authenticated as the current Task performer.
+        //Retrieve curation thread's context object
         Context context = Curator.curationContext();
+        
         //Initialize packaging params
         PackageParameters pkgParams = new PackageParameters();
         
@@ -137,18 +138,12 @@ public class METSPacker implements Packer
         }
         catch (PackageException pkgE)
         {
-            //abort context & undo any changes
-            context.abort();
             throw new IOException(pkgE.getMessage(), pkgE);
         }
         catch (CrosswalkException xwkE)
         {
-            //abort context & undo any changes
-            context.abort();
             throw new IOException(xwkE.getMessage(), xwkE);
         }
-        //complete & close context
-        context.complete();
         
         return archive;
     }
@@ -221,20 +216,13 @@ public class METSPacker implements Packer
         }
         catch (PackageException pkgE)
         {
-            //abort context & undo any changes
-            if(context!=null)
-                context.abort();
             throw new IOException(pkgE.getMessage(), pkgE);
         }
         catch (CrosswalkException xwkE)
         {
-            //abort context & undo any changes
-            if(context!=null)
-                context.abort();
             throw new IOException(xwkE.getMessage(), xwkE);
         }
-        //complete & close context
-        context.complete();
+        //NOTE: Context is handled by Curator -- it will commit or close when needed.
     }
 
     @Override
@@ -272,7 +260,7 @@ public class METSPacker implements Packer
     {
         long size = 0L;
         
-        //Retrieve a Context object, authenticated as the current Task performer.
+        //Retrieve curation thread's Context object
         Context ctx = Curator.curationContext();
         
         //This Site AIP itself is very small, so as a "guess" we'll just total
@@ -283,9 +271,6 @@ public class METSPacker implements Packer
         {
             size += communitySize(subcomm);
         }
-
-        //complete & close context.
-        ctx.complete();
         
         return size;
     }
