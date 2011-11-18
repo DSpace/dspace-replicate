@@ -27,14 +27,14 @@ import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 
 /**
- * ReplaceWithAIP task will instate the replica representation of the object in
+ * BagItReplaceWithAIP task will instate the replica representation of the object in
  * place of the current (repository) one.
  * 
  * @author richardrodgers
  * @see TransmitAIP
  */
 @Mutative
-public class ReplaceWithAIP extends AbstractCurationTask {
+public class BagItReplaceWithAIP extends AbstractCurationTask {
 
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 

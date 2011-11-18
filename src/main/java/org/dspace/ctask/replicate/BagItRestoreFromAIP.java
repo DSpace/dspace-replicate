@@ -38,7 +38,7 @@ import org.dspace.pack.bagit.CatalogPacker;
 import static org.dspace.pack.PackerFactory.*;
 
 /**
- * RecoverFromAIP task performs essentially an 'undelete' on an object that
+ * BagItRestoreFromAIP task performs essentially an 'undelete' on an object that
  * has been deleted from the repository, using the replica copy.
  * If the object is a container, it recovers all its children/members.
  *
@@ -47,9 +47,9 @@ import static org.dspace.pack.PackerFactory.*;
  */
 @Distributive
 @Mutative
-public class RecoverFromAIP extends AbstractCurationTask {
+public class BagItRestoreFromAIP extends AbstractCurationTask {
 
-    private static Logger log = Logger.getLogger(RecoverFromAIP.class);
+    private static Logger log = Logger.getLogger(BagItRestoreFromAIP.class);
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
     // Group where all AIPs are stored
