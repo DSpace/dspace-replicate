@@ -21,6 +21,7 @@ import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
+import org.dspace.curate.Suspendable;
 import org.dspace.curate.Utils;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
@@ -31,9 +32,16 @@ import org.dspace.pack.PackerFactory;
  * which compares the checksums of the local and remote zipped AIPs; second, a 
  * 'count' or enumerative audit that verifies that all objects in a local 
  * container have corresponding replicas in the remote store.
- *
+ * <P>
+ * This task is "suspendable" when invoked from the UI.  This means that if
+ * you run an Audit from the UI, this task will return an immediate failure
+ * once a single object fails the audit. However, when run from the Command-Line
+ * this task will run to completion (i.e. even if an object fails it will continue
+ * processing to completion).
+ * 
  * @author richardrodgers
  */
+@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
 public class CompareWithAIP extends AbstractCurationTask
 {
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
@@ -152,7 +160,9 @@ public class CompareWithAIP extends AbstractCurationTask
      */
     private void checkReplica(ReplicaManager repMan, DSpaceObject dso) throws IOException
     {
-       if (! repMan.objectExists(storeGroupName, dso.getHandle()))
+       String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt; 
+        
+       if (! repMan.objectExists(storeGroupName, objId))
        {
            String msg = "Missing replica for: " + dso.getHandle();
            report(msg);
