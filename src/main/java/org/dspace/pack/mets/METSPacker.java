@@ -36,6 +36,7 @@ import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 
 import org.apache.log4j.Logger;
+import org.dspace.core.LogManager;
 
 /**
  * METSPacker packs and unpacks Item AIPs in METS compressed archives
@@ -160,6 +161,29 @@ public class METSPacker implements Packer
     @Override
     public void unpack(File archive) throws AuthorizeException, IOException, SQLException
     {
+        //unpack with default PackageParameter settings
+        unpack(archive, null);
+    }
+    
+    
+    /**
+     * Restore/Replace a *single* DSpaceObject based on the contents of a METS AIP Package, 
+     * and the given PackageParameters. This uses the configured AIP PackageIngester 
+     * (in dspace.cfg). 
+     * <p>
+     * Please note that it is up to the calling Curation Task
+     * to perform any recursive restores/replaces of child objects.  
+     * If recursiveMode is enabled, this method will attempt to save all referenced
+     * child packages for access via getChildPackageRefs().
+     * 
+     * @param archive the METS AIP package
+     * @param pkgParams the PackageParameters (if null, defaults to Recursive Replace settings)
+     * @throws AuthorizeException
+     * @throws IOException
+     * @throws SQLException 
+     */
+    public void unpack(File archive, PackageParameters pkgParams) throws AuthorizeException, IOException, SQLException
+    {
         if (archive == null || ! archive.exists()) {
             throw new IOException("Missing archive for object: " + dso.getHandle());
         }
@@ -175,44 +199,54 @@ public class METSPacker implements Packer
 
         //Retrieve a Context object, authenticated as the current Task performer.
         Context context = Curator.curationContext();
-        PackageParameters pkgParams = new PackageParameters();
         
-        //--- Default settings/parameters for PackageIngester --
-        // @TODO - May want to make these configurable somehow in replicate.cfg or similar
-        // For more info, see: https://wiki.duraspace.org/display/DSDOC/AIP+Backup+and+Restore
-        //Always run in Replace mode (always replace existing objects & restore ones that are missing)
-        pkgParams.setReplaceModeEnabled(true);
-        //Always run in Recursive mode (also replace/restore all child objects)
-        pkgParams.setRecursiveModeEnabled(true);
-        //Always create Metadata Fields referenced in an AIP, which are found to be missing in DSpace
-        pkgParams.setProperty("createMetadataFields", "true");
-        //Always skip over an object if it's Parent Object is "missing". These errors will still be logged as warnings.
-        //(This setting is recommended for 'recursive' mode, as sometimes ingester will try to restore a child object
-        // before its parent. But, once parent is restored, the child object will then be restored immediately after)
-        pkgParams.setProperty("skipIfParentMissing", "true");
+        if(pkgParams==null || pkgParams.isEmpty())
+        {
+            pkgParams = new PackageParameters();
         
+            //--- Default settings/parameters for PackageIngester --
+            // These default settings should work for a wide variety of replace/restore actions.
+            // For more info, see: https://wiki.duraspace.org/display/DSDOC18/AIP+Backup+and+Restore
+            //Always run in Replace mode (always replace existing objects & restore ones that are missing)
+            pkgParams.setReplaceModeEnabled(true);
+            //Always run in Recursive mode (also replace/restore all child objects)
+            pkgParams.setRecursiveModeEnabled(true);
+            //Always create Metadata Fields referenced in an AIP, which are found to be missing in DSpace
+            pkgParams.setProperty("createMetadataFields", "true");
+            //Always skip over an object if it's Parent Object is "missing". These errors will still be logged as warnings.
+            //(This setting is recommended for 'recursive' mode, as sometimes ingester will try to restore a child object
+            // before its parent. But, once parent is restored, the child object will then be restored immediately after)
+            pkgParams.setProperty("skipIfParentMissing", "true");
+        }
+        
+        DSpaceObject updatedDso = null;
         try
         {
-            if(sip instanceof AbstractPackageIngester)
-            {
-                DSpaceObject replacedDso = sip.replace(context, dso, archive, pkgParams);
-               
-                //We can only recursively replace non-Items
-                //(NOTE: Items have no children, as Bitstreams/Bundles are created from Item packages)
-                if(replacedDso!=null && replacedDso.getType()!=Constants.ITEM)
-                {
-                    //Check if we found child package references when replacing this latest DSpaceObject
-                    this.childPackageRefs = ((AbstractPackageIngester) sip).getPackageReferences(replacedDso);
-                }//end if not an Item
-            }
-            else
-            {
-                // We will always run a replaceAll() in order to perform a recursive replace/recovery. 
-                // If the object doesn't exist, this will automatically call sip.ingest() to recover it. 
-                // If the object does exist, it will try to replace it with contents of AIP.
-                sip.replaceAll(context, dso, archive, pkgParams);
-            }
+            // Because we may be unpacking AIPs from an external storage location (e.g. DuraCloud or mapped drive)
+            // we will only ever replace/restore a SINGLE OBJECT at a time.
+            // It is up to the Replication Task to ensure each item is downloaded as needed and its
+            // children are also replaced/restored recursively as needed.
+            if(pkgParams.replaceModeEnabled()) //run object replace
+                updatedDso = sip.replace(context, dso, archive, pkgParams);
+            else //else run a 'restore' (special form of ingest) with a null parent object (parent obj will be determined from package manifest)
+                updatedDso = sip.ingest(context, null, archive, pkgParams, null);
+        }
+        catch(IllegalStateException ie)
+        {
+            // NOTE: we should only encounter an IllegalStateException, when
+            // attempting to ingest an object that already exists in the system.
+            // (i.e. this is a "handle already in use" exception)
             
+            //if we are skipping over (i.e. keeping) existing objects
+            if(pkgParams.keepExistingModeEnabled())
+            {
+                //just log a warning
+                log.warn("Skipping over object which already exists.");
+            }
+            else // Pass this exception on -- which essentially causes a full rollback of all changes (this is the default)
+            {
+                throw ie;
+            }    
         }
         catch (PackageException pkgE)
         {
@@ -222,6 +256,22 @@ public class METSPacker implements Packer
         {
             throw new IOException(xwkE.getMessage(), xwkE);
         }
+        
+        //If we are using a class that extends AbstractPackageIngester, 
+        //then we can save the child AIP references for later processing.
+        //(When recursion is enabled, this step ensures the calling curation task 
+        // knows which child AIPs to next restore/replace)
+        if(sip instanceof AbstractPackageIngester)
+        {
+            //Only non-Items reference other child AIPs
+            //(NOTE: Items have no children, as Bitstreams/Bundles are contained in Item packages)
+            if(updatedDso!=null && updatedDso.getType()!=Constants.ITEM)
+            {
+                //Check if we found child package references when unpacking this latest package into a DSpaceObject
+                this.childPackageRefs = ((AbstractPackageIngester) sip).getPackageReferences(updatedDso);
+            }//end if not an Item
+        } 
+        
         //NOTE: Context is handled by Curator -- it will commit or close when needed.
     }
 
