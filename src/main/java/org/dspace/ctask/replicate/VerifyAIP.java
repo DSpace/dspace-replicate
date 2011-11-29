@@ -15,15 +15,22 @@ import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
+import org.dspace.curate.Suspendable;
 
 /**
  * VerifyAIP task will simply test for the presence of a replica representation
  * of the object in the remote store. It succeeds if found, otherwise fails.
+ * <P>
+ * This task is "suspendable" when invoked from the UI.  This means that if
+ * you run a verification from the UI, this task will return an immediate failure
+ * once a single object fails the verification. However, when run from the Command-Line
+ * this task will run to completion (i.e. even if an object fails it will continue
+ * processing to completion).
  * 
  * @author richardrodgers
  * @see TransmitAIP
  */
-
+@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
 public class VerifyAIP extends AbstractCurationTask
 {
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
