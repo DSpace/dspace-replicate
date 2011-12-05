@@ -75,7 +75,7 @@ public class RemoveManifest extends AbstractCurationTask {
      */
     private void remove(ReplicaManager repMan, DSpaceObject dso) throws IOException 
     {    
-        String objId = ReplicaManager.safeId(dso.getHandle());
+        String objId = repMan.storageId(dso.getHandle(), null);
         repMan.removeObject(manifestGroupName, objId);
         report("Removing manifest for: " + objId);
         if (dso instanceof Collection) {
@@ -124,7 +124,7 @@ public class RemoveManifest extends AbstractCurationTask {
             return perform(dso);
         }
         ReplicaManager repMan = ReplicaManager.instance();
-        deleteManifest(repMan, ReplicaManager.safeId(id));
+        deleteManifest(repMan, repMan.storageId(id, null));
         setResult("Manifest for '" + id + "' has been removed");
         return Curator.CURATE_SUCCESS;
     }

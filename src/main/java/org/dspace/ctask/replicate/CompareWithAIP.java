@@ -65,7 +65,7 @@ public class CompareWithAIP extends AbstractCurationTask
         String id = dso.getHandle();
         status = Curator.CURATE_SUCCESS;
         result = "Checksums of local and remote agree";
-        String objId = ReplicaManager.safeId(id) + "." + archFmt;
+        String objId = repMan.storageId(id, archFmt);
         try
         {
             // generate an archive and calculate it's checksum
@@ -160,7 +160,7 @@ public class CompareWithAIP extends AbstractCurationTask
      */
     private void checkReplica(ReplicaManager repMan, DSpaceObject dso) throws IOException
     {
-       String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt; 
+       String objId = repMan.storageId(dso.getHandle(), archFmt); 
         
        if (! repMan.objectExists(storeGroupName, objId))
        {

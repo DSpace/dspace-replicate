@@ -71,7 +71,7 @@ public class RemoveAIP extends AbstractCurationTask {
     private void remove(ReplicaManager repMan, DSpaceObject dso) throws IOException 
     {
         //Remove object from AIP storage
-        String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
+        String objId = repMan.storageId(dso.getHandle(), archFmt);
         repMan.removeObject(storeGroupName, objId);
         report("Removing AIP for: " + objId);
         
@@ -124,7 +124,7 @@ public class RemoveAIP extends AbstractCurationTask {
             return perform(dso);
         }
         // treat as a deletion GC
-        String objId = ReplicaManager.safeId(id) + "." + archFmt;
+        String objId = repMan.storageId(id, archFmt);
         int status = Curator.CURATE_FAIL;
         File catFile = repMan.fetchObject(deleteGroupName, objId);
         if (catFile != null) {
@@ -133,7 +133,7 @@ public class RemoveAIP extends AbstractCurationTask {
             // remove the object, then all members, last of all the deletion catalog
             repMan.removeObject(storeGroupName, objId);
             for (String mem : cpack.getMembers()) {
-                String memId = ReplicaManager.safeId(mem) + "." + archFmt;
+                String memId = repMan.storageId(mem, archFmt);
                 repMan.removeObject(storeGroupName, memId);
             }
             repMan.removeObject(deleteGroupName, objId);

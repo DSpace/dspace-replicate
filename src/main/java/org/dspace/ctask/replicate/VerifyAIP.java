@@ -80,7 +80,7 @@ public class VerifyAIP extends AbstractCurationTask
     {
         ReplicaManager repMan = ReplicaManager.instance();
         
-        String objId = ReplicaManager.safeId(id) + "." + archFmt;
+        String objId = repMan.storageId(id, archFmt);
         boolean found = repMan.objectExists(storeGroupName, objId);
         String result = "AIP for object: " + id + " found: " + found;
         report(result);

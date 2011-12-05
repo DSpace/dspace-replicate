@@ -55,7 +55,7 @@ public class CompareWithManifest extends AbstractCurationTask
     {
         ReplicaManager repMan = ReplicaManager.instance();
         
-        String objId = ReplicaManager.safeId(dso.getHandle());
+        String objId = repMan.storageId(dso.getHandle(), null);
         try
         {
             Context context = new Context();

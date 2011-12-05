@@ -61,7 +61,7 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
         {
             int status = Curator.CURATE_FAIL;
             String result = null;
-            String objId = ReplicaManager.safeId(dso.getHandle()) + "." + archFmt;
+            String objId = repMan.storageId(dso.getHandle(), archFmt);
             File archive = repMan.fetchObject(storeGroupName, objId);
             if (archive != null) 
             {

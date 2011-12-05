@@ -71,7 +71,7 @@ public class FetchAIP extends AbstractCurationTask
     public int perform(Context ctx, String id) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        String objId = ReplicaManager.safeId(id) + "." + archFmt;
+        String objId = repMan.storageId(id, archFmt);
         File archive = repMan.fetchObject(storeGroupName, objId);
         boolean found = archive != null;
         String result = "AIP for object: " + id + " located : " + found + ".";

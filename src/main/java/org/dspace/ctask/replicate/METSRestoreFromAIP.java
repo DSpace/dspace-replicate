@@ -65,7 +65,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         ReplicaManager repMan = ReplicaManager.instance();
         
         //Look for object in Replica Store
-        String objId = ReplicaManager.safeId(id) + "." + archFmt;
+        String objId = repMan.storageId(id, archFmt);
         File archive = repMan.fetchObject(storeGroupName, objId);
           
         if (archive != null) 
