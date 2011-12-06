@@ -59,7 +59,7 @@ public interface ObjectStore {
      * Transfers a copy of this file to the object store
      * 
      * @param group
-     * @param bag the bag whose representation to transfer to store
+     * @param file the file to transfer to store
      * @return number of bytes transferred to store or 0 if transfer failed.
      * @throws IOException
      */
@@ -68,7 +68,7 @@ public interface ObjectStore {
     /**
      * Removes the passed object from the store.
      * 
-     * @paran group
+     * @param group
      * @param id the id of the object to remove
      * @return number of bytes the object was using, or 0 if
      *         object did not exist.

@@ -47,11 +47,12 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
     
     
     /**
-     * Perform the 'Replace with AIP' task.
+     * Perform the Restore/Replace task.
      * <P>
-     * Actually overwrite any existing object data in the repository with
+     * Actually restore/replace an object in the repository with
      * whatever information is contained in the AIP.
-     * @param dso the DSpace object to replace
+     * @param ctx current DSpace Context
+     * @param id the ID of DSpace object to restore/replace
      * @return integer which represents Curator return status
      * @throws IOException 
      */
@@ -172,7 +173,12 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
     
     
     /**
+     * Return a human-friendly 'start processing' message based on the 
+     * actions performed (determined via PackageParameters).
      * 
+     * @param objId Object ID
+     * @param pkgParams PackageParameters (used to determine actions)
+     * @return human-friendly start message
      */
     private String getStartMsg(String objId, PackageParameters pkgParams)
     {

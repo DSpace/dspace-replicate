@@ -23,7 +23,7 @@ public interface Packer
     /**
      * Packs (maps) the contents of this object into an archive file.
      *
-     * @param baseDir the locus of the packing
+     * @param packDir the locus of the packing
      * @return the packed archive file
      * @throws AuthorizeException
      * @throws IOException
