@@ -3,7 +3,7 @@
 
   <groupId>org.dspace</groupId>
   <artifactId>dspace-replicate</artifactId>
-  <version>1.0-EA</version>
+  <version>1.0-EA2-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>DSpace Replication Task Suite</name>
   <url>https://wiki.duraspace.org/display/DSPACE/ReplicationTaskSuite</url>
@@ -64,9 +64,9 @@
         below.
     -->
   <scm>
-    <connection>scm:svn:http://scm.dspace.org/svn/repo/modules/dspace-replicate/tags/dspace-replicate-1.0-EA</connection>
-    <developerConnection>scm:svn:https://scm.dspace.org/svn/repo/modules/dspace-replicate/tags/dspace-replicate-1.0-EA</developerConnection>
-    <url>http://scm.dspace.org/svn/repo/modules/dspace-replicate/tags/dspace-replicate-1.0-EA</url>
+    <connection>scm:svn:http://scm.dspace.org/svn/repo/modules/dspace-replicate/trunk</connection>
+    <developerConnection>scm:svn:https://scm.dspace.org/svn/repo/modules/dspace-replicate/trunk</developerConnection>
+    <url>http://scm.dspace.org/svn/repo/modules/dspace-replicate/trunk</url>
   </scm>
   
   <dependencies>
