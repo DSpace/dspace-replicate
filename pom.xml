@@ -17,9 +17,9 @@
   
   <properties>
     <!-- DSpace Version Information (supported version of DSpace) -->
-    <dspace.version>1.8.0</dspace.version>
+    <dspace.version>1.8.1</dspace.version>
     <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-    <duracloud.version>1.2.0</duracloud.version>
+    <duracloud.version>1.3.0</duracloud.version>
   </properties>
   
   <build>
