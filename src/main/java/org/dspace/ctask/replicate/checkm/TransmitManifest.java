@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.sql.SQLException;
 import java.util.Arrays;
+import org.apache.log4j.Logger;
 
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
@@ -46,6 +47,9 @@ public class TransmitManifest extends AbstractCurationTask {
 
     //Version of CDL Checkm spec that this manifest conforms to
     private static final String CKM_VSN = "0.7";
+    
+    //Format extension for manifest files
+    protected static final String MANIFEST_EXTENSION = "txt";
 
     private static String template = null;
     
@@ -56,6 +60,8 @@ public class TransmitManifest extends AbstractCurationTask {
         template = ConfigurationManager.getProperty("replicate", "checkm.template");
     }
 
+    private static Logger log = Logger.getLogger(TransmitManifest.class);
+    
     /**
      * Perform 'Transmit Manifest' task
      * <p>
@@ -93,6 +99,7 @@ public class TransmitManifest extends AbstractCurationTask {
             throw new IOException(sqlE);
         }
         setResult("Created manifest for: " + dso.getHandle());
+        report("Created manifest for: " + dso.getHandle());
         return Curator.CURATE_SUCCESS;
     }
 
@@ -108,8 +115,13 @@ public class TransmitManifest extends AbstractCurationTask {
      */
     private File communityManifest(ReplicaManager repMan, Community comm) throws IOException, SQLException
     {
+        //Manifests stored as text files
+        String filename = repMan.storageId(comm.getHandle(), MANIFEST_EXTENSION);
+        
+        log.debug("Creating manifest for: " + comm.getHandle());
+        
         //Create community manifest
-        File manFile = repMan.stage(manifestGroupName, comm.getHandle());
+        File manFile = repMan.stage(manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
         //Create sub-community manifests & transfer each
@@ -134,6 +146,7 @@ public class TransmitManifest extends AbstractCurationTask {
             writer.write("#%eof" + "\n");
         }
         writer.close();
+        report("Created manifest for: " + comm.getHandle());
         return manFile;
     }
 
@@ -149,8 +162,13 @@ public class TransmitManifest extends AbstractCurationTask {
      */
     private File collectionManifest(ReplicaManager repMan, Collection coll) throws IOException, SQLException
     {
+         //Manifests stored as text files
+        String filename = repMan.storageId(coll.getHandle(), MANIFEST_EXTENSION);
+       
+        log.debug("Creating manifest for: " + coll.getHandle());
+        
         //Create Collection manifest
-        File manFile = repMan.stage(manifestGroupName, coll.getHandle());
+        File manFile = repMan.stage(manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
         
@@ -169,6 +187,7 @@ public class TransmitManifest extends AbstractCurationTask {
             writer.write("#%eof" + "\n");
         }
         writer.close();
+        report("Created manifest for: " + coll.getHandle());
         return manFile;
     }
 
@@ -182,55 +201,76 @@ public class TransmitManifest extends AbstractCurationTask {
      */
     private File itemManifest(ReplicaManager repMan, Item item) throws IOException, SQLException
     {
+        String filename = repMan.storageId(item.getHandle(), MANIFEST_EXTENSION);
+        
+        log.debug("Creating manifest for: " + item.getHandle());
+        
         //Create Item manifest
-        File manFile = repMan.stage(manifestGroupName, item.getHandle());
+        File manFile = repMan.stage(manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
-        // look through all ORIGINAL bitstreams, comparing
-        // stored to recalculated checksums - report disagreements
-        Bundle bundle = item.getBundles("ORIGINAL")[0];
-        for (Bitstream bs : bundle.getBitstreams())
-        {
-            int i = 0;
-            StringBuilder sb = new StringBuilder();
-            for (String token : Arrays.asList(template.split("\\|")))
+       
+        // look through all ORIGINAL bitstreams, and add
+        // information about each (e.g. checksum) to manifest
+        int count = 0;
+        Bundle[] bundles = item.getBundles("ORIGINAL");
+        if(bundles!=null && bundles.length>0)
+        {    
+            //there should be only one ORIGINAL bundle
+            Bundle bundle = bundles[0];
+            for (Bitstream bs : bundle.getBitstreams())
             {
-                if (! token.startsWith("x"))
+                int i = 0;
+                StringBuilder sb = new StringBuilder();
+                for (String token : Arrays.asList(template.split("\\|")))
                 {
-                    // tokens are positionally defined
-                    switch (i)
+                    if (! token.startsWith("x"))
                     {
-                        case 0:
-                            // what URL/name format?
-                            sb.append(item.getHandle()).append("/").append(bs.getSequenceID());
-                            break;
-                        case 1:
-                            // Checksum algorithm
-                            sb.append(bs.getChecksumAlgorithm().toLowerCase());
-                            break;
-                        case 2:
-                            // Checksum
-                            sb.append(bs.getChecksum());
-                            break;
-                        case 3:
-                            // length
-                            sb.append(bs.getSize());
-                            break;
-                        case 4:
-                            // modified - use item level data?
-                            sb.append(item.getLastModified());
-                            break;
-                        case 5:
-                             // target name - skip for now
-                        default:
-                             break;
+                        // tokens are positionally defined
+                        switch (i)
+                        {
+                            case 0:
+                                // what URL/name format?
+                                sb.append(item.getHandle()).append("/").append(bs.getSequenceID());
+                                break;
+                            case 1:
+                                // Checksum algorithm
+                                sb.append(bs.getChecksumAlgorithm().toLowerCase());
+                                break;
+                            case 2:
+                                // Checksum
+                                sb.append(bs.getChecksum());
+                                break;
+                            case 3:
+                                // length
+                                sb.append(bs.getSize());
+                                break;
+                            case 4:
+                                // modified - use item level data?
+                                sb.append(item.getLastModified());
+                                break;
+                            case 5:
+                                // target name - skip for now
+                            default:
+                                break;
+                        }
                     }
+                    sb.append("|");
+                    i++;
                 }
-                sb.append("|");
-                i++;
-            }
-            writer.write(sb.substring(0, sb.length() - 1) + "\n");
+                count++;
+                writer.write(sb.substring(0, sb.length() - 1) + "\n");
+            } //end for each bitstream
+        }//end if ORIGINAL bundle
+        
+        //If no bitstreams found, then this is an empty manifest
+        if (count == 0)
+        {
+            // write EOF marker to prevent confusion if container empty
+            writer.write("#%eof" + "\n");
         }
+        
         writer.close();
+        report("Created manifest for: " + item.getHandle());
         return manFile;
     }
 

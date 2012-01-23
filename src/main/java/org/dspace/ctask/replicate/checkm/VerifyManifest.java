@@ -44,7 +44,7 @@ public class VerifyManifest extends AbstractCurationTask {
     public int perform(DSpaceObject dso) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        String objId = repMan.storageId(dso.getHandle(), null);
+        String objId = repMan.storageId(dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
         boolean found = repMan.objectExists(manifestGroupName, objId);
         String result = "Manifest for object: " + dso.getHandle() + " found: " + found;
         report(result);
