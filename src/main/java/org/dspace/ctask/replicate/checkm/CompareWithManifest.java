@@ -25,18 +25,26 @@ import org.dspace.core.Context;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
+import org.dspace.curate.Suspendable;
 import org.dspace.handle.HandleManager;
 
 /**
  * CompareWithManifest task compares local repository content against the
  * representation contained in the replica store manifest.
- * <p>
+ * <P>
  * Manifests conform to the CDL Checkm v0.7 manifest format spec.
  * http://www.cdlib.org/uc3/docs/checkmspec.html
+ * <P>
+ * This task is "suspendable" when invoked from the UI.  This means that if
+ * you run an Audit from the UI, this task will return an immediate failure
+ * once a single object fails the audit. However, when run from the Command-Line
+ * this task will run to completion (i.e. even if an object fails it will continue
+ * processing to completion).
  *
  * @author richardrodgers
  * @see TransmitManifest
  */
+@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
 public class CompareWithManifest extends AbstractCurationTask
 {
     private int status = Curator.CURATE_SUCCESS;
@@ -69,7 +77,21 @@ public class CompareWithManifest extends AbstractCurationTask
         return status;
     }
     
-    // recursive manifest checking
+    /**
+     * This method recursively checks Manifests.
+     * <P>
+     * In a sense, all this is checking is that Bitstreams (files) have not changed within 
+     * the current DSpace object.  So, if the current object is a Site, Community or Collection,
+     * its manifest is not validated (as those manifests just point at other sub-manifests). Rather,
+     * this method recursively loads manifests until it locates all Item-level manifests. Then it
+     * validates that all bitstream information (and checksums) are unchanged.
+     * 
+     * @param repMan Replication Manager
+     * @param id Identifier of current DSpace object
+     * @param context current DSpace context
+     * @throws IOException
+     * @throws SQLException 
+     */
     private void checkManifest(ReplicaManager repMan, String id, Context context) throws IOException, SQLException
     {
         File manFile = repMan.fetchObject(manifestGroupName, id);
@@ -84,6 +106,8 @@ public class CompareWithManifest extends AbstractCurationTask
                 if (! line.startsWith("#"))  // skip comments
                 {
                     String entry = line.substring(0, line.indexOf("|"));
+                    // if there's a dash in the first entry, then it just
+                    // refers to a sub manifest
                     if (entry.indexOf("-") > 0)
                     {
                         // it's another manifest - fetch & check it
@@ -93,7 +117,7 @@ public class CompareWithManifest extends AbstractCurationTask
                     }
                     else
                     {
-                        // it's a bitstream ref check it
+                        // first entry is a bitstream reference. So, check it
                         int cut = entry.lastIndexOf("/");
                         if (item == null)
                         {
