@@ -16,13 +16,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import org.apache.log4j.Logger;
 
-import org.dspace.content.Bitstream;
-import org.dspace.content.Bundle;
-import org.dspace.content.Collection;
-import org.dspace.content.Community;
-import org.dspace.content.DSpaceObject;
-import org.dspace.content.Item;
-import org.dspace.content.ItemIterator;
+import org.dspace.content.*;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
 import org.dspace.ctask.replicate.ReplicaManager;
@@ -89,9 +83,15 @@ public class TransmitManifest extends AbstractCurationTask {
             }
             else if (Constants.COMMUNITY == type)
             {
-                // create manifests on down
+                // create manifests for Community on down
                 manFile = communityManifest(repMan, (Community)dso);
             }
+            else if (Constants.SITE == type)
+            {
+                // create manifests for all objects in DSpace
+                manFile = siteManifest(repMan, (Site)dso);
+            }
+            
             repMan.transferObject(manifestGroupName, manFile);
         }
         catch (SQLException sqlE)
@@ -99,10 +99,51 @@ public class TransmitManifest extends AbstractCurationTask {
             throw new IOException(sqlE);
         }
         setResult("Created manifest for: " + dso.getHandle());
-        report("Created manifest for: " + dso.getHandle());
         return Curator.CURATE_SUCCESS;
     }
-
+    
+    
+    /**
+     * Generate a manifest for the DSpace Site. Also
+     * generate & transfer to replica ObjectStore the manifests for all
+     * objects in DSpace, starting with the top-level Communities.
+     * @param repMan ReplicaManager (used to access ObjectStore)
+     * @param site the DSpace Site object
+     * @return reference to manifest file generated for Community
+     * @throws IOException
+     * @throws SQLException 
+     */
+    private File siteManifest(ReplicaManager repMan, Site site) throws IOException, SQLException
+    {
+        //Manifests stored as text files
+        String filename = repMan.storageId(site.getHandle(), MANIFEST_EXTENSION);
+        
+        log.debug("Creating manifest for: " + site.getHandle());
+        
+        //Create site manifest
+        File manFile = repMan.stage(manifestGroupName, filename);
+        Writer writer = manifestWriter(manFile);
+        int count = 0;
+        
+        Community[] topCommunities = Community.findAllTop(Curator.curationContext());
+        //Create top-level community manifests & transfer each
+        for (Community comm : topCommunities)
+        {
+            File scFile = communityManifest(repMan, comm);
+            writer.write(tokenized(scFile) + "\n");
+            count++;
+            repMan.transferObject(manifestGroupName, scFile);
+        }
+        if (count == 0)
+        {
+            // write EOF marker to prevent confusion if container empty
+            writer.write("#%eof" + "\n");
+        }
+        writer.close();
+        report("Created manifest for: " + site.getHandle());
+        return manFile;
+    }
+    
     /**
      * Generate a manifest for the specified DSpace Community. Also
      * generate & transfer to replica ObjectStore the manifests for any child 
