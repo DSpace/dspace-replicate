@@ -15,22 +15,27 @@ import org.dspace.core.ConfigurationManager;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
+import org.dspace.curate.Suspendable;
 
 /**
  * VerifyManifest task will simply test for the presence of a manifest
  * of the object in the remote store. It succeeds if found, otherwise fails.
- * <p>
+ * <P>
  * Manifests conform to the CDL Checkm v0.7 manifest format spec.
  * http://www.cdlib.org/uc3/docs/checkmspec.html
+ * <P>
+ * This task is "suspendable" when invoked from the UI.  This means that if
+ * you run a verification from the UI, this task will return an immediate failure
+ * once a single object fails the verification. However, when run from the Command-Line
+ * this task will run to completion (i.e. even if an object fails it will continue
+ * processing to completion).
  * 
  * @author richardrodgers
  * @see TransmitManifest
  */
-
+@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
 public class VerifyManifest extends AbstractCurationTask {
 
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
-    
     // Group where all Manifests are stored
     private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
 
@@ -44,7 +49,7 @@ public class VerifyManifest extends AbstractCurationTask {
     public int perform(DSpaceObject dso) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        String objId = repMan.storageId(dso.getHandle(), null);
+        String objId = repMan.storageId(dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
         boolean found = repMan.objectExists(manifestGroupName, objId);
         String result = "Manifest for object: " + dso.getHandle() + " found: " + found;
         report(result);

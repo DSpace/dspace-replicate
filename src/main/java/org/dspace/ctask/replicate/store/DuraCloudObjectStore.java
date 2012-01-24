@@ -167,20 +167,26 @@ public class DuraCloudObjectStore implements ObjectStore
         return size;
     }
 
-    private long uploadReplica(String group, File zipFile, String chkSum) throws IOException
+    private long uploadReplica(String group, File file, String chkSum) throws IOException
     {
         try
         {
-            // DEBUG REMOVE
-            long start = System.currentTimeMillis();
-            dcStore.addContent(group, zipFile.getName(),
-                               new FileInputStream(zipFile), zipFile.length(),
-                               "application/zip", chkSum,
+            //@TODO: We shouldn't need to pass a hardcoded MIME Type. Unfortunately, DuraCloud, 
+            // as of 1.3, doesn't properly determine a file's MIME Type. In future it should.
+            String mimeType = "application/octet-stream";
+            if(file.getName().endsWith(".zip"))
+                mimeType = "application/zip";
+            else if (file.getName().endsWith(".tgz"))
+                mimeType = "application/x-gzip";
+            else if(file.getName().endsWith(".txt"))
+                mimeType = "text/plain";
+            
+            dcStore.addContent(group, file.getName(),
+                               new FileInputStream(file), file.length(),
+                               mimeType, chkSum,
                                new HashMap<String, String>());
-            // DEBUG REMOVE
-            long elapsed = System.currentTimeMillis() - start;
-            //System.out.println("DC upload: " + elapsed);
-            return zipFile.length();
+        
+            return file.length();
         }
         catch (ContentStoreException csE)
         {
@@ -193,12 +199,8 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         try
         {
-              // DEBUG REMOVE
-            long start = System.currentTimeMillis();
             Map<String, String> attrs = dcStore.getContentProperties(group, id);
-            // DEBUG REMOVE
-            long elapsed = System.currentTimeMillis() - start;
-            //System.out.println("DC metadata: " + elapsed);
+            
             if ("checksum".equals(attrName))
             {
                 return attrs.get(ContentStore.CONTENT_CHECKSUM);
