@@ -63,11 +63,10 @@ public class CompareWithManifest extends AbstractCurationTask
     {
         ReplicaManager repMan = ReplicaManager.instance();
         
-        String objId = repMan.storageId(dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
         try
         {
             Context context = new Context();
-            checkManifest(repMan, objId, context);
+            checkManifest(repMan, dso.getHandle(), context);
             context.complete();
         }
         catch (SQLException sqlE)
@@ -94,9 +93,12 @@ public class CompareWithManifest extends AbstractCurationTask
      */
     private void checkManifest(ReplicaManager repMan, String id, Context context) throws IOException, SQLException
     {
-        File manFile = repMan.fetchObject(manifestGroupName, id);
+        String filename = repMan.storageId(id, TransmitManifest.MANIFEST_EXTENSION);
+        
+        File manFile = repMan.fetchObject(manifestGroupName, filename);
         if (manFile != null)
         {
+            String result = "Manifest and repository content agree";
             Item item = null;
             Map<String, Bitstream> bsMap = new HashMap<String, Bitstream>();
             BufferedReader reader = new BufferedReader(new FileReader(manFile));
@@ -137,7 +139,7 @@ public class CompareWithManifest extends AbstractCurationTask
                             }
                             else
                             {
-                                report("No item found for manifest entry: " + handle);
+                                result = "No item found for manifest entry: " + handle;
                                 status = Curator.CURATE_FAIL;
                             }
                         }
@@ -149,23 +151,25 @@ public class CompareWithManifest extends AbstractCurationTask
                             // compare checksums
                             if (! bs.getChecksum().equals(parts[2]))
                             {
-                                report("Bitstream: " + seqId + " differs from manifest: " + entry);
+                                result = "Bitstream: " + seqId + " differs from manifest: " + entry;
                                 status = Curator.CURATE_FAIL;
                             }
                         }
                         else
                         {
-                            report("No bitstream: " + seqId + " found for manifest entry: " + entry);
+                            result = "No bitstream: " + seqId + " found for manifest entry: " + entry;
                             status = Curator.CURATE_FAIL;
                         }
                     }
                 }
             }
             reader.close();
-            report("Checked manifest for: " + id);
+            report(result);
+            setResult(result);
         }
         else
         {
+            report("No manifest found for: " + id);
             setResult("No manifest found for: " + id);
             status = Curator.CURATE_FAIL; 
         }
