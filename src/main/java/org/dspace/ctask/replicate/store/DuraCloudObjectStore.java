@@ -171,15 +171,13 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         try
         {
-            // DEBUG REMOVE
-            long start = System.currentTimeMillis();
+            //@TODO: This shouldn't have hardcoded MIME Type. Unfortunately, DuraCloud 
+            // currently (as of 1.3) doesn't properly determine MIME Type. In future it should.
             dcStore.addContent(group, zipFile.getName(),
                                new FileInputStream(zipFile), zipFile.length(),
                                "application/zip", chkSum,
                                new HashMap<String, String>());
-            // DEBUG REMOVE
-            long elapsed = System.currentTimeMillis() - start;
-            //System.out.println("DC upload: " + elapsed);
+        
             return zipFile.length();
         }
         catch (ContentStoreException csE)
@@ -193,12 +191,8 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         try
         {
-              // DEBUG REMOVE
-            long start = System.currentTimeMillis();
             Map<String, String> attrs = dcStore.getContentProperties(group, id);
-            // DEBUG REMOVE
-            long elapsed = System.currentTimeMillis() - start;
-            //System.out.println("DC metadata: " + elapsed);
+            
             if ("checksum".equals(attrName))
             {
                 return attrs.get(ContentStore.CONTENT_CHECKSUM);
