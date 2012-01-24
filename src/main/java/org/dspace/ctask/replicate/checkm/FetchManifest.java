@@ -46,7 +46,7 @@ public class FetchManifest extends AbstractCurationTask
     public int perform(DSpaceObject dso) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        String objId = repMan.storageId(dso.getHandle(), null);
+        String objId = repMan.storageId(dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
         File archive = repMan.fetchObject(manifestGroupName, objId);
         boolean found = archive != null;
         setResult("Manifest for object: " + dso.getHandle() + " found: " + found);
