@@ -12,11 +12,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.SQLException;
-import org.dspace.content.Collection;
-import org.dspace.content.Community;
-
-import org.dspace.content.DSpaceObject;
-import org.dspace.content.ItemIterator;
+import org.dspace.content.*;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.ctask.replicate.ReplicaManager;
@@ -95,6 +91,16 @@ public class RemoveManifest extends AbstractCurationTask {
                 }
                 for (Collection coll : comm.getCollections()) {
                     remove(repMan, coll);
+                }
+            } catch (SQLException sqlE) {
+                throw new IOException(sqlE);
+            }
+        } else if (dso instanceof Site) {
+            try {
+                Community[] topCommunities = Community.findAllTop(Curator.curationContext());
+                
+                for (Community subcomm : topCommunities) {
+                    remove(repMan, subcomm);
                 }
             } catch (SQLException sqlE) {
                 throw new IOException(sqlE);
