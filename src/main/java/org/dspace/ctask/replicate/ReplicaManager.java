@@ -252,6 +252,16 @@ public class ReplicaManager {
         }
     }
     
+    public boolean moveObject(String srcGroup, String destGroup, String objId) throws IOException {
+        long size = objStore.moveObject(srcGroup, destGroup, objId);
+        
+        // NOTE: no need to adjust the odometer. In this case we haven't 
+        // actually uploaded or downloaded any content. 
+        if (size > 0L)
+            return true;
+        else
+            return false;
+    }
     
     /**
      * This method is only called if we cannot determine an object's type prefix

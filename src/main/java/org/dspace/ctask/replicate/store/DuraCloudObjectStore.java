@@ -195,6 +195,28 @@ public class DuraCloudObjectStore implements ObjectStore
     }
 
     @Override
+    public long moveObject(String srcGroup, String destGroup, String id) throws IOException
+    {
+        // get file-size metadata before moving the content
+        long size = 0L;
+        try
+        {
+            Map<String, String> attrs = dcStore.getContentProperties(srcGroup, id);
+            size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
+            dcStore.moveContent(srcGroup, id, destGroup, id);
+        }
+        catch (NotFoundException nfE)
+        {
+            // no replica - no-op
+        }
+        catch (ContentStoreException csE)
+        {
+            throw new IOException(csE);
+        }
+        return size;
+    }
+    
+    @Override
     public String objectAttribute(String group, String id, String attrName) throws IOException
     {
         try
