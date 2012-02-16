@@ -103,7 +103,7 @@ public class LocalObjectStore implements ObjectStore {
         {
             throw new UnsupportedOperationException("Store does not support rename");
         }
-        return file.length();
+        return archFile.length();
     }
 
     @Override
