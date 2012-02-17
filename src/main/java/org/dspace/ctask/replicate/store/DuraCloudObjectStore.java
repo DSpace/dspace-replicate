@@ -72,7 +72,7 @@ public class DuraCloudObjectStore implements ObjectStore
         {
              // DEBUG REMOVE
             long start = System.currentTimeMillis();
-            Content content = dcStore.getContent(group, id);
+            Content content = dcStore.getContent(getSpaceID(group), getContentPrefix(group) + id);
             // DEBUG REMOVE
             long elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC fetch content: " + elapsed);
@@ -104,7 +104,7 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         try
         {
-            return dcStore.getContentProperties(group, id) != null;
+            return dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id) != null;
         }
         catch (NotFoundException nfE)
         {
@@ -123,9 +123,9 @@ public class DuraCloudObjectStore implements ObjectStore
         long size = 0L;
         try
         {
-            Map<String, String> attrs = dcStore.getContentProperties(group, id);
+            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id);
             size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
-            dcStore.deleteContent(group, id);
+            dcStore.deleteContent(getSpaceID(group), getContentPrefix(group) + id);
         }
         catch (NotFoundException nfE)
         {
@@ -147,7 +147,7 @@ public class DuraCloudObjectStore implements ObjectStore
         // to avoid network I/O tax
         try
         {
-            Map<String, String> attrs = dcStore.getContentProperties(group, file.getName());
+            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + file.getName());
             if (! chkSum.equals(attrs.get(ContentStore.CONTENT_CHECKSUM)))
             {
                 size = uploadReplica(group, file, chkSum);
@@ -181,7 +181,7 @@ public class DuraCloudObjectStore implements ObjectStore
             else if(file.getName().endsWith(".txt"))
                 mimeType = "text/plain";
             
-            dcStore.addContent(group, file.getName(),
+            dcStore.addContent(getSpaceID(group), getContentPrefix(group) + file.getName(),
                                new FileInputStream(file), file.length(),
                                mimeType, chkSum,
                                new HashMap<String, String>());
@@ -201,9 +201,10 @@ public class DuraCloudObjectStore implements ObjectStore
         long size = 0L;
         try
         {
-            Map<String, String> attrs = dcStore.getContentProperties(srcGroup, id);
+            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id);
             size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
-            dcStore.moveContent(srcGroup, id, destGroup, id);
+            dcStore.moveContent(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id, 
+                                getSpaceID(destGroup), getContentPrefix(destGroup) + id);
         }
         catch (NotFoundException nfE)
         {
@@ -221,7 +222,7 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         try
         {
-            Map<String, String> attrs = dcStore.getContentProperties(group, id);
+            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id);
             
             if ("checksum".equals(attrName))
             {
@@ -250,5 +251,45 @@ public class DuraCloudObjectStore implements ObjectStore
     private static String localProperty(String name)
     {
         return ConfigurationManager.getProperty("duracloud", name);
+    }
+    
+    /**
+     * Returns the Space ID where content should be stored in DuraCloud,
+     * based on the passed in Group.
+     * <P>
+     * If the group contains a forward slash ('/'), then the substring
+     * before the first slash is assumed to be the Space ID.
+     * Otherwise, the entire group name is assumed to be the Space ID.
+     * @param String group name
+     * @return DuraCloud Space ID
+     */
+    private String getSpaceID(String group)
+    {
+        //If group contains a forward or backslash, then the
+        //Space ID is whatever is before that slash
+        if(group!=null && group.contains("/"))
+            return group.substring(0, group.indexOf("/"));
+        else // otherwise, the passed in group is the Space ID
+            return group;
+    }
+    
+    /**
+     * Returns the Content prefix that should be used when saving a file
+     * to a DuraCloud space.
+     * <P>
+     * If the group contains a forward slash ('/'), then the substring
+     * after the first slash is assumed to be the content naming prefix.
+     * Otherwise, there is no content naming prefix.
+     * @param String group name
+     * @return content prefix (ending with a forward slash)
+     */
+    private String getContentPrefix(String group)
+    {
+        //If group contains a forward or backslash, then the
+        // content prefix is whatever is after that slash
+        if(group!=null && group.contains("/"))
+            return group.substring(group.indexOf("/")+1) + "/";
+        else // otherwise, no content prefix is specified
+            return "";
     }
 }
