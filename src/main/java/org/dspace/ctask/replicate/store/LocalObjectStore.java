@@ -103,7 +103,7 @@ public class LocalObjectStore implements ObjectStore {
         {
             throw new UnsupportedOperationException("Store does not support rename");
         }
-        return file.length();
+        return archFile.length();
     }
 
     @Override
@@ -123,5 +123,22 @@ public class LocalObjectStore implements ObjectStore {
             return String.valueOf(archFile.lastModified());
         }
         return null;
+    }
+    
+    @Override
+    public long moveObject(String srcGroup, String destGroup, String id) throws IOException
+    {
+        long size = 0L;
+        
+        //Find the file
+        File file = new File(storeDir + File.separator + srcGroup, id);
+        if (file.exists())
+        {
+            //If file is found, just transfer it to destination,
+            // as transferObject() just does a file rename
+            size = transferObject(destGroup, file);
+        }
+        
+        return size;
     }
 }

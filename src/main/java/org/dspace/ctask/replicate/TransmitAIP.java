@@ -17,6 +17,7 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.core.ConfigurationManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
+import org.dspace.curate.Suspendable;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 
@@ -26,10 +27,16 @@ import org.dspace.pack.PackerFactory;
  * <P>
  * The type of AIP produced is based on the 'packer.pkgtype' setting
  * in 'replicate.cfg'. See the org.dspace.pack.PackerFactory for more info.
+ * <P>
+ * This task is "suspendable" when invoked from the UI. If a single AIP fails
+ * to be generated & transmitted to storage, we should inform the user ASAP.
+ * We wouldn't want them to assume everything was transferred successfully, 
+ * if there were actually underlying errors.
  * 
  * @author richardrodgers
  * @see PackerFactory
  */
+@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
 public class TransmitAIP extends AbstractCurationTask
 {
     // Group where all AIPs will be stored
