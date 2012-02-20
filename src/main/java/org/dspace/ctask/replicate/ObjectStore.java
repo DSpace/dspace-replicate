@@ -74,4 +74,14 @@ public interface ObjectStore {
      *         object did not exist.
      */
     long removeObject(String group, String id) throws IOException;
+    
+    /**
+     * Moves the passed object from one storage group to another.
+     * 
+     * @param srcGroup source group
+     * @param destGroup destination group
+     * @param id the id of the object to move between groups
+     * @return number of bytes moved or 0 if move failed.
+     */
+    long moveObject(String srcgroup, String destGroup, String id) throws IOException;
 }

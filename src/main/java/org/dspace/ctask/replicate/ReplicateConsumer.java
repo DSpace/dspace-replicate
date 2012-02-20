@@ -122,7 +122,7 @@ public class ReplicateConsumer implements Consumer {
         int evType = event.getEventType();
         int subjType = event.getSubjectType();
         String id = event.getDetail();
-        System.out.println("got event type: " + evType + " for subject type: " + subjType);
+        //System.out.println("got event type: " + evType + " for subject type: " + subjType);
         switch (evType)
         {
             case CREATE:
