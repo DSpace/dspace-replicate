@@ -1,3 +1,38 @@
 DSpace Replication Task Suite
-Installation & Configuration Documentation available at:
+=============================
+
+The Replication Task Suite is an add-on for DSpace which allows you to more easily
+replicate / backup DSpace content to another location. It utilizes the DSpace
+Curation Tasks framework to allow all backup/restore/auditing tasks to be performed
+either via Command Line (CLI) or from the DSpace Admin User Interface.
+
+Replication / Backup Locations
+-------------------------------
+Supported Replication / Backup locations include:
+  * Local filesystem folder
+  * Mounted drive
+  * DuraCloud (http://www.duracloud.org)
+
+Backup Format
+-------------
+DSpace content is replicated / backed up as a set of AIPs (Archival Information Packages).
+The Replication Task Suite supports two different AIP formats:
+  1. The DSpace AIP Format based on METS (Default)
+     https://wiki.duraspace.org/display/DSDOC3x/DSpace+AIP+Format
+  2. A BagIt based AIP Format (Beta)
+
+Sample Supported Actions
+------------------------
+The Replication Task Suite allows you to backup DSpace content, restore/replace DSpace content 
+(from a backup), or audit your existing backup. Some sample actions included:
+  * Replicate / Back up either on demand (via Admin UI or CLI) or on a scheduled basis (using a cron job)
+  * Restore / Replace content in DSpace based on current backups (via Admin UI or CLI)
+  * Perform checksum audit of your replicated content (via Admin UI or CLI)
+  * Provide a rough estimate of the amount of storage space your AIPs will require (via Admin UI or CLI)
+  * Keep a running "odometer" of all Input / Output transfers (via Admin UI or CLI)
+
+More Information
+----------------
+
+Installation documentation, configuration documentation and usage examples are all available at:
 https://wiki.duraspace.org/display/DSPACE/ReplicationTaskSuite
