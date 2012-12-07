@@ -1,121 +1,126 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-
-  <groupId>org.dspace</groupId>
-  <artifactId>dspace-replicate</artifactId>
-  <version>1.0-EA2-SNAPSHOT</version>
-  <packaging>jar</packaging>
-  <name>DSpace Replication Task Suite</name>
-  <url>https://wiki.duraspace.org/display/DSPACE/ReplicationTaskSuite</url>
-
-  <!-- Inherit most defaults from DSpace Common POM -->
-  <parent>
-    <artifactId>dspace-pom</artifactId>
+    <modelVersion>4.0.0</modelVersion>
     <groupId>org.dspace</groupId>
-    <version>12</version>
-  </parent>
+    <artifactId>dspace-replicate</artifactId>
+    <packaging>jar</packaging>
+    <name>DSpace Replication Task Suite</name>
+    <url>https://wiki.duraspace.org/display/DSPACE/ReplicationTaskSuite</url>
+    <version>1.0-EA2-SNAPSHOT</version>
+
+    <organization>
+        <name>DuraSpace</name>
+        <url>http://www.dspace.org</url>
+    </organization>
+
+    <!-- brings the sonatype snapshot repository and signing requirement on board -->
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
   
-  <properties>
-    <!-- DSpace Version Information (supported version of DSpace) -->
-    <dspace.version>1.8.1</dspace.version>
-    <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-    <duracloud.version>1.3.0</duracloud.version>
-  </properties>
+    <properties>
+        <!-- DSpace Version Information (supported version of DSpace) -->
+        <dspace.version>1.8.1</dspace.version>
+        <!-- DuraCloud Version Information (supported version of DuraCloud) -->
+        <duracloud.version>1.3.0</duracloud.version>
+    </properties>
   
-  <build>
-    <plugins>
-      <!-- Copy necessary Runtime Depenencies to /target/lib/
-           during build process. (We are only including Runtime
-           dependencies which are not a part of DSpace by default)-->
-      <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <executions>
-            <execution>
-                <phase>install</phase>
-                <goals>
-                    <goal>copy-dependencies</goal>
-                </goals>
-                <configuration>
-                    <!--Copy all DuraCloud dependencies to target-->
-                    <!--Also copy Apache Commons Compress to target, as this 
-                        is not a DSpace dependency by default-->
-                    <includeGroupIds>org.duracloud,org.apache.commons</includeGroupIds>
-                    <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                </configuration>
-            </execution>
-          </executions>
-      </plugin>
-    </plugins>
-  </build>
+    <build>
+        <plugins>
+            <!-- Copy necessary Runtime Depenencies to /target/lib/
+                 during build process. (We are only including Runtime
+                 dependencies which are not a part of DSpace by default)-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <!--Copy all DuraCloud dependencies to target-->
+                            <!--Also copy Apache Commons Compress to target, as this
+                                is not a DSpace dependency by default-->
+                            <includeGroupIds>org.duracloud,org.apache.commons</includeGroupIds>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
   
-  <!-- Define the DuraCloud Release repository - used to pull in all DuraCloud dependencies -->
-  <repositories>
-    <repository>
-        <id>duracloud-releases</id>
-        <url>https://m2.duraspace.org/content/repositories/releases</url>
-    </repository>
-  </repositories>
+    <!-- Define the DuraCloud Release repository - used to pull in all DuraCloud dependencies -->
+    <repositories>
+        <repository>
+            <id>duracloud-releases</id>
+            <url>https://m2.duraspace.org/content/repositories/releases</url>
+        </repository>
+    </repositories>
   
-  <!--
+    <!--
         GitHub repository used for version control
-  -->
-  <scm>
-    <connection>scm:git:git://github.com/DSpace/dspace-replicate.git</connection>
-    <developerConnection>scm:git:git@github.com:DSpace/dspace-replicate.git</developerConnection>
-    <url>https://github.com/DSpace/dspace-replicate</url>
-  </scm>
+    -->
+    <scm>
+        <connection>scm:git:git@github.com:DSpace/dspace-replicate.git</connection>
+        <developerConnection>scm:git:git@github.com:DSpace/dspace-replicate.git</developerConnection>
+        <url>git@github.com:DSpace/dspace-replicate.git</url>
+        <tag>HEAD</tag>
+    </scm>
   
-  <dependencies>
-    <dependency>
-        <groupId>org.dspace</groupId>
-        <artifactId>dspace-api</artifactId>
-        <version>${dspace.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>1.0</version>
-    </dependency>
-    <!-- DuraCloud dependencies (used for replication to/from DuraCloud).
-         We only need to specify a dependency on the 'storeclient', as it already 
-         declares dependencies on DuraCloud 'common' and 'storeprovider' APIs. -->
-    <dependency>
-        <groupId>org.duracloud</groupId>
-        <artifactId>storeclient</artifactId>
-        <version>${duracloud.version}</version>
-        <!-- NOTE: For 'dspace-replicate' to be compatible with XMLUI / Cocoon Logging, 
-             we need to exclude all SLF4J and Logback dependencies of DuraCloud. 
-             Currently, DuraCloud's Logging dependencies conflict with XMLUI's logging,
-             and cause 'NoSuchMethodError' messages relating to SLF4J.-->
-        <exclusions>
-            <exclusion>
-             <groupId>org.slf4j</groupId>
-             <artifactId>slf4j-api</artifactId>
-            </exclusion>
-            <exclusion>
-             <groupId>org.slf4j</groupId>
-             <artifactId>slf4j-parent</artifactId>
-            </exclusion>
-            <exclusion>
-             <groupId>org.slf4j</groupId>
-             <artifactId>jcl-over-slf4j</artifactId>
-            </exclusion>
-            <exclusion>
-             <groupId>org.slf4j</groupId>
-             <artifactId>log4j-over-slf4j</artifactId>
-            </exclusion>
-            <exclusion>
-             <groupId>ch.qos.logback</groupId>
-             <artifactId>logback-classic</artifactId>
-            </exclusion>
-        </exclusions>
-    </dependency>
-  </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>org.dspace</groupId>
+            <artifactId>dspace-api</artifactId>
+            <version>${dspace.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+          <version>3.8.1</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-compress</artifactId>
+          <version>1.0</version>
+        </dependency>
+        <!-- DuraCloud dependencies (used for replication to/from DuraCloud).
+             We only need to specify a dependency on the 'storeclient', as it already
+             declares dependencies on DuraCloud 'common' and 'storeprovider' APIs. -->
+        <dependency>
+            <groupId>org.duracloud</groupId>
+            <artifactId>storeclient</artifactId>
+            <version>${duracloud.version}</version>
+            <!-- NOTE: For 'dspace-replicate' to be compatible with XMLUI / Cocoon Logging,
+                 we need to exclude all SLF4J and Logback dependencies of DuraCloud.
+                 Currently, DuraCloud's Logging dependencies conflict with XMLUI's logging,
+                 and cause 'NoSuchMethodError' messages relating to SLF4J.-->
+            <exclusions>
+                <exclusion>
+                 <groupId>org.slf4j</groupId>
+                 <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                 <groupId>org.slf4j</groupId>
+                 <artifactId>slf4j-parent</artifactId>
+                </exclusion>
+                <exclusion>
+                 <groupId>org.slf4j</groupId>
+                 <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                 <groupId>org.slf4j</groupId>
+                 <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                 <groupId>ch.qos.logback</groupId>
+                 <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
 </project>
