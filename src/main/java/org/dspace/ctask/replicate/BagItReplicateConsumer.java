@@ -40,7 +40,7 @@ import org.dspace.pack.bagit.CatalogPacker;
 import static org.dspace.event.Event.*;
 
 /**
- * ReplicateConsumer is an event consumer that tracks events relevant to
+ * BagItReplicateConsumer is an event consumer that tracks events relevant to
  * replication synchronization. In response to deletions, it creates and
  * transmits a catalog of deleted objects (so they may be restored if 
  * deletion was an error). For new or changed objects, it queues a request
@@ -49,7 +49,7 @@ import static org.dspace.event.Event.*;
  * 
  * @author richardrodgers
  */
-public class ReplicateConsumer implements Consumer {
+public class BagItReplicateConsumer implements Consumer {
 
     private ReplicaManager repMan = null;
     private TaskQueue taskQueue = null;
