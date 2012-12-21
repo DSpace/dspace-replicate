@@ -32,9 +32,13 @@ import org.dspace.pack.PackerFactory;
  * to be generated & transmitted to storage, we should inform the user ASAP.
  * We wouldn't want them to assume everything was transferred successfully, 
  * if there were actually underlying errors.
+ * <P>
+ * Note that this task has a companion task called TransmitSingleAIP which
+ * ensures that no child/member objects are transmitted.
  * 
  * @author richardrodgers
  * @see PackerFactory
+ * @see TransmitSingleAIP
  */
 @Suspendable(invoked=Curator.Invoked.INTERACTIVE)
 public class TransmitAIP extends AbstractCurationTask
