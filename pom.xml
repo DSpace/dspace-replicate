@@ -28,6 +28,10 @@
   
     <build>
         <plugins>
+            <plugin>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.3.2</version>
+            </plugin>
             <!-- Copy necessary Runtime Depenencies to /target/lib/
                  during build process. (We are only including Runtime
                  dependencies which are not a part of DSpace by default)-->
