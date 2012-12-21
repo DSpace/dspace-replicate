@@ -162,7 +162,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             if (props.getProperty(WITHDRAWN) != null) {
                 item.withdraw();
             }
-            EmbargoManager.setEmbargo(ctx, item, null);
+            EmbargoManager.setEmbargo(ctx, item);
         } catch (AuthorizeException authE) {
             throw new IOException(authE);
         } catch (SQLException sqlE) {
