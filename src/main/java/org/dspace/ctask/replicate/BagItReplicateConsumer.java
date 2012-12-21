@@ -40,7 +40,7 @@ import org.dspace.pack.bagit.CatalogPacker;
 import static org.dspace.event.Event.*;
 
 /**
- * ReplicateConsumer is an event consumer that tracks events relevant to
+ * BagItReplicateConsumer is an event consumer that tracks events relevant to
  * replication synchronization. In response to deletions, it creates and
  * transmits a catalog of deleted objects (so they may be restored if 
  * deletion was an error). For new or changed objects, it queues a request
@@ -49,7 +49,7 @@ import static org.dspace.event.Event.*;
  * 
  * @author richardrodgers
  */
-public class ReplicateConsumer implements Consumer {
+public class BagItReplicateConsumer implements Consumer {
 
     private ReplicaManager repMan = null;
     private TaskQueue taskQueue = null;
@@ -85,6 +85,8 @@ public class ReplicateConsumer implements Consumer {
         taskQueue = (TaskQueue)PluginManager.getSinglePlugin("curate", TaskQueue.class);
         queueName = localProperty("consumer.queue");
         // look for and load any idFilter files - excludes trump includes
+        // An "idFilter" is an actual textual file named "exclude" or "include"
+        // which contains a list of handles to filter from the Consumer
         if (! loadIdFilter("exclude"))
         {
             if (loadIdFilter("include"))
@@ -121,39 +123,51 @@ public class ReplicateConsumer implements Consumer {
     {
         int evType = event.getEventType();
         int subjType = event.getSubjectType();
+        // This is the Handle of the object on which an event occured
         String id = event.getDetail();
         //System.out.println("got event type: " + evType + " for subject type: " + subjType);
         switch (evType)
         {
-            case CREATE:
-            case INSTALL:
+            case CREATE: //CREATE = Create a new object.
+            case INSTALL: //INSTALL = Install an object (exits workflow/workspace). Only used for Items.
+                // if NOT (Item & Create)
+                // (i.e. We don't want to replicate items UNTIL they are Installed)
                 if (subjType != Constants.ITEM || evType != CREATE)
                 {
                     if (acceptId(id, event, ctx))
                     {
+                        // add it to the master lists of added/new objects
+                        // for which we need to perform tasks
                         mapId(taskQMap, addQTasks, id);
                         mapId(taskPMap, addPTasks, id);
                     }
                 }
                 break;
-            case MODIFY:
-            case MODIFY_METADATA:
+            case MODIFY: //MODIFY = modify an object
+            case MODIFY_METADATA: //MODIFY_METADATA = just modify an object's metadata
+                //For MODIFY events, the Handle of modified object needs to be obtained from the Subject
                 id = event.getSubject(ctx).getHandle();
                 // make sure handle resolves - these could be events
                 // for a newly created item that hasn't been assigned a handle
                 if (id != null)
                 {
+                    // make sure we are supposed to process this object
                     if (acceptId(id, event, ctx))
                     {
+                        // add it to the master lists of modified objects
+                        // for which we need to perform tasks
                         mapId(taskQMap, modQTasks, id);
                         mapId(taskPMap, modPTasks, id);
                     }
                 }
                 break;
-            case REMOVE:
-            case DELETE:
-                // analyze event
-                if (acceptId(id, event, ctx)) deleteEvent(ctx, id, event);
+            case REMOVE: //REMOVE = Remove an object from a container or group
+            case DELETE: //DELETE = Delete an object (actually destroy it)
+                // make sure we are supposed to process this object
+                if (acceptId(id, event, ctx))
+                {   // analyze & process the deletion/removal event
+                    deleteEvent(ctx, id, event);
+                }
                 break;
             default:
                 break;
@@ -221,7 +235,18 @@ public class ReplicateConsumer implements Consumer {
         // no-op
     }
 
-    
+    /**
+     * Check to see if an object ID (Handle) is allowed to be processed by
+     * this consumer. Individual Objects may be filtered out of consumer
+     * processing by using a filter file (a textual file with a list of
+     * handles to either include or exclude).
+     *
+     * @param id Object ID to check
+     * @param event Event that was performed on the Object
+     * @param ctx Current DSpace Context
+     * @return true if this consumer should process this object event, false if it should not
+     * @throws SQLException if database error occurs
+     */
     private boolean acceptId(String id, Event event, Context ctx) throws SQLException
     {
         // always accept if not filtering
@@ -247,6 +272,15 @@ public class ReplicateConsumer implements Consumer {
         return idExclude ? ! onList : onList;
     }
 
+    /**
+     * Process a DELETE (destroy object) or REMOVE (remove object from container) event.
+     * For a DELETE, record all objects that were deleted (parent & possible child objects)
+     * For a REMOVE, if this was preceded by deletion of a parent, record a deletion catalog
+     * @param ctx current DSpace Context
+     * @param id Object on which the delete/remove event was triggered
+     * @param event event that was triggered
+     * @throws Exception
+     */
     private void deleteEvent(Context ctx, String id, Event event) throws Exception
     {
         int type = event.getEventType();
@@ -255,13 +289,12 @@ public class ReplicateConsumer implements Consumer {
             // either marks start of new deletion or a member of enclosing one
             if (delObjId == null)
             {
-                //System.out.println("ReplicateConsumer assigning id");
+                //Start of a new deletion
                 delObjId = id;
             }
             else
             {
                 // just add to list of deleted members
-                //System.out.println("ReplicateConsumer adding id to list");
                 delMemIds.add(id);
             }
         }
@@ -289,6 +322,9 @@ public class ReplicateConsumer implements Consumer {
         }
     }
 
+    /*
+     * Process a deletion event by recording a deletion catalog if configured
+     */
     private void processDelete() throws IOException
     {
         // write out deletion catalog if defined
@@ -315,10 +351,16 @@ public class ReplicateConsumer implements Consumer {
         delObjId = delOwnerId = null;
         delMemIds.clear();
     }
-    
+
+    /**
+     * Load the ID filter file of the given name.  This is a textual file in
+     * the base directory which contains a list of handles to include/exclude
+     * from this consumer
+     * @param filterName the name of the textual filter file
+     * @return true if filter file was loaded successfully, false otherwise
+     */
     private boolean loadIdFilter(String filterName)
     {
-        //String baseDir = localProperty("base.dir");
         File filterFile = new File(localProperty("base.dir"), filterName);
         if (filterFile.exists())
         {
@@ -354,7 +396,16 @@ public class ReplicateConsumer implements Consumer {
         }
         return false;
     }
-    
+
+    /**
+     * Record the given object tasklist in the given "map".  This is essentially
+     * providing a master list (map) of tasks to perform for particular objects.
+     * NOTE: if this object and task already exist in the master list, it will
+     * NOT be duplicated.
+     * @param map Master task list to add to (String task, Set<String> ids)
+     * @param tasks Tasks to be performed
+     * @param id Object for which the tasks should be performed.
+     */
     private void mapId(Map<String, Set<String>> map, List<String> tasks, String id)
     {
         if (tasks != null)
@@ -372,7 +423,11 @@ public class ReplicateConsumer implements Consumer {
         }
     }
     
-    
+    /**
+     * Parse the list of Consumer tasks to perform.  This list of tasks
+     * is in the 'replicate.cfg' file.
+     * @param propName property name
+     */
     private void parseTasks(String propName)
     {
         String taskStr = localProperty("consumer.tasks." + propName);
@@ -383,6 +438,8 @@ public class ReplicateConsumer implements Consumer {
         for (String task : taskStr.split(","))
         {
             task = task.trim();
+            //If the task in question does NOT end in "+p",
+            // then it should be queued for later processing
             if (! task.endsWith("+p"))
             {
                 if ("add".equals(propName))
@@ -410,6 +467,8 @@ public class ReplicateConsumer implements Consumer {
                     delTasks.add(task);   
                 }
             }
+            //Otherwise (if the task ends in "+p"),
+            //  it should be added to the list of tasks to perform immediately
             else 
             {
                 String sTask = task.substring(0, task.lastIndexOf("+p"));
@@ -440,7 +499,12 @@ public class ReplicateConsumer implements Consumer {
             }
         }
     }
-    
+
+    /**
+     * Load a single property value from the "replicate.cfg" configuration file
+     * @param propName property name
+     * @return property value
+     */
     private String localProperty(String propName)
     {
         return ConfigurationManager.getProperty("replicate", propName);
