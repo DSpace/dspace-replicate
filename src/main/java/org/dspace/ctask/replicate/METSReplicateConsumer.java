@@ -250,6 +250,9 @@ public class METSReplicateConsumer implements Consumer {
                 
                 case REMOVE: //REMOVE = Remove an object from a container or group
                 case DELETE: //DELETE = Delete an object (actually destroy it)
+                    // For REMOVE & DELETE, the Handle of object being deleted is found in Event Detail
+                    id = event.getDetail();
+
                     // make sure we are supposed to process this object
                     if (acceptId(id, event, ctx))
                     {   // analyze & process the deletion/removal event
@@ -380,23 +383,6 @@ public class METSReplicateConsumer implements Consumer {
             {
                 //Start of a new deletion
                 delObjId = id;
-
-                // get parent of this deleted object & mark it as modified
-                DSpaceObject parent = event.getSubject(ctx).getParentObject();
-                if(parent!=null)
-                {
-                    id = parent.getHandle();
-                    if(id != null)
-                    {
-                        if (acceptId(id, event, ctx))
-                        {
-                            // add parent to the master lists of modified objects
-                            // for which we need to perform tasks
-                            mapId(taskQMap, modQTasks, id);
-                            mapId(taskPMap, modPTasks, id);
-                        }
-                    }
-                }
             }
             else
             {
@@ -423,6 +409,21 @@ public class METSReplicateConsumer implements Consumer {
                     Community comm = Community.find(ctx, event.getSubjectID());
                     delOwnerId = comm.getHandle();
                 }
+
+                // If the parent/owner was found, mark that parent as having been modified
+                // (This ensures that a fresh AIP will be generated for the parent object)
+                if(delOwnerId != null)
+                {
+                    if (acceptId(delOwnerId, event, ctx))
+                    {
+                        // add parent to the master lists of modified objects
+                        // for which we need to perform tasks
+                        mapId(taskQMap, modQTasks, delOwnerId);
+                        mapId(taskPMap, modPTasks, delOwnerId);
+                    }
+                }
+
+                //Record the deletion catalog for the deleted object (as needed)
                 processDelete();
              }
         }
