@@ -139,20 +139,33 @@ public class RemoveAIP extends AbstractCurationTask {
         // (This catalog should exist, as the object was previously deleted)
         String catId = repMan.deletionCatalogId(id, archFmt);
         int status = Curator.CURATE_FAIL;
+        String result;
         File catFile = repMan.fetchObject(deleteGroupName, catId);
         if (catFile != null) {
             CatalogPacker cpack = new CatalogPacker(id);
             cpack.unpack(catFile);
-            // remove the object, then all members, last of all the deletion catalog
+            // remove the object AIP itself
             String objId = repMan.storageId(id, archFmt);
             repMan.removeObject(storeGroupName, objId);
+            report("Removing AIP for: " + objId);
+            // remove all member/child object's AIPs
             for (String mem : cpack.getMembers()) {
                 String memId = repMan.storageId(mem, archFmt);
                 repMan.removeObject(storeGroupName, memId);
+                report("Removing AIP for: " + memId);
             }
+            // remove deletion catalog
             repMan.removeObject(deleteGroupName, catId);
+
+            result = "AIP for '" + id + "' has been removed (along with any child object AIPs)";
             status = Curator.CURATE_SUCCESS;
         }
+        else
+        {
+            result = "Deletion record for '" + id + "' could not be found in Replica Store. Perhaps this object's AIP was already removed?";
+        }
+
+        setResult(result);
         return status;
     }
 }

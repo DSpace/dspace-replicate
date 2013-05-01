@@ -87,6 +87,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
         String catId = repMan.deletionCatalogId(id, archFmt);
         File catArchive = repMan.fetchObject(deleteGroupName, catId);
         int status = Curator.CURATE_FAIL;
+        String result;
+        // CANNOT continue if the deletion catalog cannot be located
         if (catArchive != null) {
             CatalogPacker cpack = new CatalogPacker(id);
             cpack.unpack(catArchive);
@@ -97,8 +99,16 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             for (String mem : cpack.getMembers()) {
                 recover(ctx, repMan, mem);
             }
+            result = "Successfully restored Object '" + id + "' (and any child objects) from AIP.";
             status = Curator.CURATE_SUCCESS;
         }
+        else
+        {
+            result = "Failed to restore Object '" + id + "'. Deletion record could not be found in Replica Store.";
+        }
+
+        report(result);
+        setResult(result);
         return status;
     }
 
