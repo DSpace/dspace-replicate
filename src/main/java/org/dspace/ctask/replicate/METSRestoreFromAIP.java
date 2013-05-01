@@ -41,6 +41,9 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
 
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+
+    // Group where object deletion catalog/records are stored
+    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
     
     // Name of module configuration file specific to METS based AIPs
     private final String metsModuleConfig = "replicate-mets";
@@ -79,6 +82,17 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
             //restore/replace object represented by this archive file
             //(based on packaging params, this may also restore/replace all child objects too)
             restoreObject(repMan, archive, pkgParams);
+
+            //Check if a deletion catalog exists for this object
+            String catId = repMan.deletionCatalogId(id, archFmt);
+            File catArchive = repMan.fetchObject(deleteGroupName, catId);
+            if (catArchive != null) {
+                // remove the deletion catalog (as the object is now restored)
+                repMan.removeObject(deleteGroupName, catId);
+                // remove from local cache as well
+                catArchive.delete();
+            }
+            
             result = getSuccessMsg(id, pkgParams);
             status = Curator.CURATE_SUCCESS;
         }
