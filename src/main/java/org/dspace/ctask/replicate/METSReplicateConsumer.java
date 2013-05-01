@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
@@ -68,6 +69,8 @@ import static org.dspace.event.Event.*;
  * @author richardrodgers
  */
 public class METSReplicateConsumer implements Consumer {
+
+    private Logger log = Logger.getLogger(METSReplicateConsumer.class);
 
     private ReplicaManager repMan = null;
     private TaskQueue taskQueue = null;
@@ -230,6 +233,16 @@ public class METSReplicateConsumer implements Consumer {
 
                 case MODIFY: //MODIFY = modify an object
                 case MODIFY_METADATA: //MODIFY_METADATA = just modify an object's metadata
+                    // If subject of event is null, this means the object was likely deleted
+                    if (event.getSubject(ctx)==null)
+                    {
+                        log.warn(event.getEventTypeAsString() + " event, could not get object for "
+                                + event.getSubjectTypeAsString() + " id="
+                                + String.valueOf(event.getSubjectID())
+                                + ", perhaps it has been deleted.");
+                        break;
+                    }
+
                     //For MODIFY events, the Handle of modified object needs to be obtained from the Subject
                     id = event.getSubject(ctx).getHandle();
 
