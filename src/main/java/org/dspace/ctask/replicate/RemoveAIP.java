@@ -35,7 +35,7 @@ public class RemoveAIP extends AbstractCurationTask {
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
     
-    // Group where all AIPs are temporarily moved when deleted
+    // Group where object deletion catalog/records are stored
     private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
 
     /**

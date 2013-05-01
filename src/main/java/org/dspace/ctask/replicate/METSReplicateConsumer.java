@@ -93,7 +93,7 @@ public class METSReplicateConsumer implements Consumer {
     private List<String> delTasks = null;
     // create deletion catalogs?
     private boolean catalogDeletes = false;
-    // Group/catalog where all AIPs are temporarily moved when deleted
+    // Group where object deletion catalog/records are stored
     private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
 
     @Override
