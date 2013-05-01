@@ -234,6 +234,7 @@ public class ItemPacker implements Packer
                     }
                     bs.update();
                 }
+                in.close();
             }
         }
         // clean up bag

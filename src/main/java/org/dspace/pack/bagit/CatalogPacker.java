@@ -9,6 +9,7 @@ package org.dspace.pack.bagit;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -96,8 +97,10 @@ public class CatalogPacker implements Packer
         }
         Bag bag = new Bag(archive);
         // just populate the member list
+        InputStream bagIn = bag.dataStream(OBJFILE);
         Properties props = new Properties();
-        props.load(bag.dataStream(OBJFILE));
+        props.load(bagIn);
+        bagIn.close();
         ownerId = props.getProperty(OWNER_ID);
         members = new ArrayList<String>();
         Bag.FlatReader reader = bag.flatReader("members");
