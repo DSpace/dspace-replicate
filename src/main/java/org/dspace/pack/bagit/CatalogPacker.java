@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import org.dspace.core.ConfigurationManager;
 
 import org.dspace.pack.Packer;
 import static org.dspace.pack.PackerFactory.*;
@@ -28,6 +29,8 @@ public class CatalogPacker implements Packer
     private String objectId = null;
     private String ownerId = null;
     private List<String> members = null;
+    // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
+    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
     public CatalogPacker(String objectId)
     {
@@ -78,7 +81,7 @@ public class CatalogPacker implements Packer
             fwriter.close();
         }
         bag.close();
-        File archive = bag.deflate();
+        File archive = bag.deflate(archFmt);
         // clean up undeflated bag
         bag.empty();
         return archive;

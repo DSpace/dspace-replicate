@@ -84,8 +84,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     {
         ReplicaManager repMan = ReplicaManager.instance();
         // first we locate the deletion catalog for this object
-        String objId = repMan.storageId(id, archFmt);
-        File catArchive = repMan.fetchObject(deleteGroupName, objId);
+        String catId = repMan.deletionCatalogId(id, archFmt);
+        File catArchive = repMan.fetchObject(deleteGroupName, catId);
         int status = Curator.CURATE_FAIL;
         if (catArchive != null) {
             CatalogPacker cpack = new CatalogPacker(id);

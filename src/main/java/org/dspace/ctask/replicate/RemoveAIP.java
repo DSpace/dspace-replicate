@@ -31,7 +31,7 @@ import org.dspace.pack.bagit.CatalogPacker;
 public class RemoveAIP extends AbstractCurationTask {
 
     private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
-    
+
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
     
@@ -126,24 +126,31 @@ public class RemoveAIP extends AbstractCurationTask {
     public int perform(Context ctx, String id) throws IOException 
     {
         ReplicaManager repMan = ReplicaManager.instance();
+   
+        //If the object is still in DSpace, call perform(dso) instead.
         DSpaceObject dso = dereference(ctx, id);
         if (dso != null) {
             return perform(dso);
         }
-        // treat as a deletion GC
-        String objId = repMan.storageId(id, archFmt);
+        // Otherwise, this object was already previously deleted from DSpace.
+        // So, we'll treat this as a deletion "garbage clean"
+
+        // Locate the deletion catalog associated with this object
+        // (This catalog should exist, as the object was previously deleted)
+        String catId = repMan.deletionCatalogId(id, archFmt);
         int status = Curator.CURATE_FAIL;
-        File catFile = repMan.fetchObject(deleteGroupName, objId);
+        File catFile = repMan.fetchObject(deleteGroupName, catId);
         if (catFile != null) {
             CatalogPacker cpack = new CatalogPacker(id);
             cpack.unpack(catFile);
             // remove the object, then all members, last of all the deletion catalog
+            String objId = repMan.storageId(id, archFmt);
             repMan.removeObject(storeGroupName, objId);
             for (String mem : cpack.getMembers()) {
                 String memId = repMan.storageId(mem, archFmt);
                 repMan.removeObject(storeGroupName, memId);
             }
-            repMan.removeObject(deleteGroupName, objId);
+            repMan.removeObject(deleteGroupName, catId);
             status = Curator.CURATE_SUCCESS;
         }
         return status;
