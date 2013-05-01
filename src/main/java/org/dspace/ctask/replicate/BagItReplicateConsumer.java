@@ -333,7 +333,10 @@ public class BagItReplicateConsumer implements Consumer {
             Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
             try
             {
-                File packDir = repMan.stage(deleteGroupName, delObjId);
+                // Create a new deletion catalog (with default file extension / format)
+                // and store it in the deletion group store
+                String catID = repMan.deletionCatalogId(delObjId, null);
+                File packDir = repMan.stage(deleteGroupName, catID);
                 File archive = packer.pack(packDir);
                 //System.out.println("delcat about to transfer");
                 repMan.transferObject(deleteGroupName, archive);

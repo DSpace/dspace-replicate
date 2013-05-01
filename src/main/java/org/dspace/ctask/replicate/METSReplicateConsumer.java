@@ -441,10 +441,12 @@ public class METSReplicateConsumer implements Consumer {
             Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
             try
             {
-                File packDir = repMan.stage(deleteGroupName, delObjId);
+                // Create a new deletion catalog (with default file extension / format)
+                // and store it in the deletion group store
+                String catID = repMan.deletionCatalogId(delObjId, null);
+                File packDir = repMan.stage(deleteGroupName, catID);
                 File archive = packer.pack(packDir);
-                //Temporarily move all deleted objects to the deletion archive
-                // (they can be permanently deleted later, or restored as needed)
+                // Create a deletion catalog in deletion archive location.
                 repMan.transferObject(deleteGroupName, archive);
             }
             catch (AuthorizeException authE)
