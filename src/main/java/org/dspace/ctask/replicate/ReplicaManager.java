@@ -50,6 +50,10 @@ public class ReplicaManager {
     private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
     // Separating character between Type prefix and object identifier, used when packages are named with a Type prefix
     private final String typePrefixSeparator = "@";
+    // Special Type prefix for Deletion catalog records
+    private final String deletionCatalogPrefix = "DELETION-RECORD";
+    // AIP Package compression format (e.g. zip or tgz)
+    private final String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
 
     private ReplicaManager() throws IOException
@@ -93,7 +97,7 @@ public class ReplicaManager {
         {
             stageDir.mkdirs();
         }
-        return new File(stageDir, storageId(id, null)); 
+        return new File(stageDir, storageId(id, null));
     }
     
     
@@ -114,9 +118,9 @@ public class ReplicaManager {
         String storageId = objId.replaceAll("/", "-");
         
         // add appropriate file extension, if needed
-        if(fileExtension!=null)
+        if(fileExtension!=null && !storageId.endsWith("." + fileExtension))
             storageId = storageId + "." + fileExtension;
-        
+
         // If 'packer.typeprefix' setting is 'true', 
         // then prefix the storageID with the DSpace Type (if it doesn't already have a prefix)
         if(ConfigurationManager.getBooleanProperty("replicate", "packer.typeprefix", true) && 
@@ -189,6 +193,39 @@ public class ReplicaManager {
         
         //Finally revert all dashes back to slashes (to create the original canonical ID)
         return storageId.replaceAll("-", "/");
+    }
+
+    /**
+     * Determine the ID of an object's deletion catalog in storage.
+     * This method ensures any special characters are
+     * escaped. It also ensures all objects are named in a similar
+     * manner once they are in a given store (so that they can similarly
+     * be retrieved from storage using this same 'storageId').
+     *
+     * @param objId - original object id (canonical ID)
+     * @param fileExtension - file extension, if any (may be null)
+     * @return reformatted storage ID for this object (including file extension)
+     */
+    public String deletionCatalogId(String objId, String fileExtension)
+    {
+        // canonical handle notation bedevils file system semantics
+        String storageId = objId.replaceAll("/", "-");
+
+        // add appropriate file extension, if needed
+        if(fileExtension!=null && !storageId.endsWith("." + fileExtension))
+            storageId = storageId + "." + fileExtension;
+
+        if(ConfigurationManager.getBooleanProperty("replicate", "packer.typeprefix", true) &&
+           !storageId.contains(typePrefixSeparator))
+        {
+            //Prepend the "deletion catalog" type prefix on the name
+            return deletionCatalogPrefix + typePrefixSeparator + storageId;
+        }
+        else
+        {
+            // Otherwise, just return the cleaned up ID
+            return storageId;
+        }
     }
 
     public Odometer getOdometer() throws IOException

@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
@@ -69,6 +70,8 @@ import static org.dspace.event.Event.*;
  */
 public class METSReplicateConsumer implements Consumer {
 
+    private Logger log = Logger.getLogger(METSReplicateConsumer.class);
+
     private ReplicaManager repMan = null;
     private TaskQueue taskQueue = null;
     private String queueName = null;
@@ -93,7 +96,7 @@ public class METSReplicateConsumer implements Consumer {
     private List<String> delTasks = null;
     // create deletion catalogs?
     private boolean catalogDeletes = false;
-    // Group/catalog where all AIPs are temporarily moved when deleted
+    // Group where object deletion catalog/records are stored
     private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
 
     @Override
@@ -230,6 +233,16 @@ public class METSReplicateConsumer implements Consumer {
 
                 case MODIFY: //MODIFY = modify an object
                 case MODIFY_METADATA: //MODIFY_METADATA = just modify an object's metadata
+                    // If subject of event is null, this means the object was likely deleted
+                    if (event.getSubject(ctx)==null)
+                    {
+                        log.warn(event.getEventTypeAsString() + " event, could not get object for "
+                                + event.getSubjectTypeAsString() + " id="
+                                + String.valueOf(event.getSubjectID())
+                                + ", perhaps it has been deleted.");
+                        break;
+                    }
+
                     //For MODIFY events, the Handle of modified object needs to be obtained from the Subject
                     id = event.getSubject(ctx).getHandle();
 
@@ -250,6 +263,9 @@ public class METSReplicateConsumer implements Consumer {
                 
                 case REMOVE: //REMOVE = Remove an object from a container or group
                 case DELETE: //DELETE = Delete an object (actually destroy it)
+                    // For REMOVE & DELETE, the Handle of object being deleted is found in Event Detail
+                    id = event.getDetail();
+
                     // make sure we are supposed to process this object
                     if (acceptId(id, event, ctx))
                     {   // analyze & process the deletion/removal event
@@ -380,23 +396,6 @@ public class METSReplicateConsumer implements Consumer {
             {
                 //Start of a new deletion
                 delObjId = id;
-
-                // get parent of this deleted object & mark it as modified
-                DSpaceObject parent = event.getSubject(ctx).getParentObject();
-                if(parent!=null)
-                {
-                    id = parent.getHandle();
-                    if(id != null)
-                    {
-                        if (acceptId(id, event, ctx))
-                        {
-                            // add parent to the master lists of modified objects
-                            // for which we need to perform tasks
-                            mapId(taskQMap, modQTasks, id);
-                            mapId(taskPMap, modPTasks, id);
-                        }
-                    }
-                }
             }
             else
             {
@@ -423,6 +422,21 @@ public class METSReplicateConsumer implements Consumer {
                     Community comm = Community.find(ctx, event.getSubjectID());
                     delOwnerId = comm.getHandle();
                 }
+
+                // If the parent/owner was found, mark that parent as having been modified
+                // (This ensures that a fresh AIP will be generated for the parent object)
+                if(delOwnerId != null)
+                {
+                    if (acceptId(delOwnerId, event, ctx))
+                    {
+                        // add parent to the master lists of modified objects
+                        // for which we need to perform tasks
+                        mapId(taskQMap, modQTasks, delOwnerId);
+                        mapId(taskPMap, modPTasks, delOwnerId);
+                    }
+                }
+
+                //Record the deletion catalog for the deleted object (as needed)
                 processDelete();
              }
         }
@@ -440,10 +454,12 @@ public class METSReplicateConsumer implements Consumer {
             Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
             try
             {
-                File packDir = repMan.stage(deleteGroupName, delObjId);
+                // Create a new deletion catalog (with default file extension / format)
+                // and store it in the deletion group store
+                String catID = repMan.deletionCatalogId(delObjId, null);
+                File packDir = repMan.stage(deleteGroupName, catID);
                 File archive = packer.pack(packDir);
-                //Temporarily move all deleted objects to the deletion archive
-                // (they can be permanently deleted later, or restored as needed)
+                // Create a deletion catalog in deletion archive location.
                 repMan.transferObject(deleteGroupName, archive);
             }
             catch (AuthorizeException authE)

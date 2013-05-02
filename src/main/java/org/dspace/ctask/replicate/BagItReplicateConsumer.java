@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
@@ -51,6 +52,8 @@ import static org.dspace.event.Event.*;
  */
 public class BagItReplicateConsumer implements Consumer {
 
+    private Logger log = Logger.getLogger(BagItReplicateConsumer.class);
+
     private ReplicaManager repMan = null;
     private TaskQueue taskQueue = null;
     private String queueName = null;
@@ -75,7 +78,7 @@ public class BagItReplicateConsumer implements Consumer {
     private List<String> delTasks = null;
     // create deletion catalogs?
     private boolean catalogDeletes = false;
-    // Group/catalog where all AIPs are temporarily moved when deleted
+    // Group where object deletion catalog/records are stored
     private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
 
     @Override
@@ -145,6 +148,16 @@ public class BagItReplicateConsumer implements Consumer {
                 break;
             case MODIFY: //MODIFY = modify an object
             case MODIFY_METADATA: //MODIFY_METADATA = just modify an object's metadata
+                // If subject of event is null, this means the object was likely deleted
+                if (event.getSubject(ctx)==null)
+                {
+                    log.warn(event.getEventTypeAsString() + " event, could not get object for "
+                            + event.getSubjectTypeAsString() + " id="
+                            + String.valueOf(event.getSubjectID())
+                            + ", perhaps it has been deleted.");
+                    break;
+                }
+
                 //For MODIFY events, the Handle of modified object needs to be obtained from the Subject
                 id = event.getSubject(ctx).getHandle();
                 // make sure handle resolves - these could be events
@@ -333,7 +346,10 @@ public class BagItReplicateConsumer implements Consumer {
             Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
             try
             {
-                File packDir = repMan.stage(deleteGroupName, delObjId);
+                // Create a new deletion catalog (with default file extension / format)
+                // and store it in the deletion group store
+                String catID = repMan.deletionCatalogId(delObjId, null);
+                File packDir = repMan.stage(deleteGroupName, catID);
                 File archive = packer.pack(packDir);
                 //System.out.println("delcat about to transfer");
                 repMan.transferObject(deleteGroupName, archive);

@@ -46,6 +46,9 @@ import org.dspace.curate.Utils;
 
 // Warning - static import ahead!
 import static javax.xml.stream.XMLStreamConstants.*;
+import org.apache.log4j.Logger;
+import org.dspace.core.ConfigurationManager;
+import org.dspace.ctask.replicate.BagItRestoreFromAIP;
 
 /**
  * Bag represents a rudimentary bag conformant to LC Bagit spec - version 0.96.
@@ -69,7 +72,8 @@ public class Bag {
     private static final String ENCODING = "UTF-8";
     private static final String CS_ALGO = "MD5";
     private static final String BAGIT_VSN = "0.96";
-    private static final String DFLT_FMT = "zip";
+    private static final String DFLT_FMT = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+
     // mandated file names
     private static final String MANIF_FILE = "manifest-" + CS_ALGO.toLowerCase() + ".txt";
     private static final String TAGMANIF_FILE = "tag" + MANIF_FILE;
@@ -203,6 +207,7 @@ public class Bag {
             // attempt to optimize copy in various ways - TODO
             Utils.copy(dis, fos);
             fos.close();
+            dis.close();
             is.close();
         }
         catch (NoSuchAlgorithmException nsaE)
@@ -301,7 +306,9 @@ public class Bag {
     public File deflate(String destDir, String fmt) throws IOException
     {
         File defFile = new File(destDir, baseDir.getName() + "." + fmt);
-        deflate(new FileOutputStream(defFile), fmt);
+        FileOutputStream fout = new FileOutputStream(defFile);
+        deflate(fout, fmt);
+        fout.close();
         return defFile;
     }
     
@@ -339,6 +346,7 @@ public class Bag {
         String fmt = archFile.substring(archFile.lastIndexOf(".") + 1);
         InputStream in = new FileInputStream(new File(archFile));
         inflate(in, fmt);
+        in.close();
     }
     
     public void inflate(InputStream in, String fmt) throws IOException
@@ -590,6 +598,7 @@ public class Bag {
         public void close() throws IOException
         {
             dout.flush();
+            dout.close();
             out.close();
             if (tailWriter != null)
             {
