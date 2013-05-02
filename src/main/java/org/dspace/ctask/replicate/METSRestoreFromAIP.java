@@ -150,6 +150,10 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
             // This only restores/replaces a single object.
             packer.unpack(archive, pkgParams);
 
+            // Remove the locally cached archive file - it is no longer needed.
+            if(archive.exists())
+                archive.delete();
+
             //check if recursiveMode is enabled (restore/replace multiple objects)
             if(pkgParams.recursiveModeEnabled())
             {
