@@ -82,6 +82,9 @@ public class CompareWithAIP extends AbstractCurationTask
                 File packDir = repMan.stage(storeGroupName, id);
                 File archive = packer.pack(packDir);
                 String chkSum = Utils.checksum(archive, "MD5");
+                // remove local archive file -- it's no longer needed
+                archive.delete();
+
                 // compare with replica
                 String repChkSum = repMan.objectAttribute(storeGroupName, objId, "checksum");
                 if (! chkSum.equals(repChkSum))
