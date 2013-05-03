@@ -154,7 +154,10 @@ public class RemoveAIP extends AbstractCurationTask {
                 repMan.removeObject(storeGroupName, memId);
                 report("Removing AIP for: " + memId);
             }
-            // remove deletion catalog
+            
+            // remove local deletion catalog
+            catFile.delete();
+            // remove remote deletion catalog
             repMan.removeObject(deleteGroupName, catId);
 
             result = "AIP for '" + id + "' has been removed (along with any child object AIPs)";
