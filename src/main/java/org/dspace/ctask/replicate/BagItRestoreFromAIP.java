@@ -9,6 +9,7 @@ package org.dspace.ctask.replicate;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -54,7 +55,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     // Group where all AIPs are stored
     private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
     
-    // Group where all AIPs are temporarily moved when deleted
+    // Group where object deletion catalog/records are stored
     private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
     
     /**
@@ -84,9 +85,11 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     {
         ReplicaManager repMan = ReplicaManager.instance();
         // first we locate the deletion catalog for this object
-        String objId = repMan.storageId(id, archFmt);
-        File catArchive = repMan.fetchObject(deleteGroupName, objId);
+        String catId = repMan.deletionCatalogId(id, archFmt);
+        File catArchive = repMan.fetchObject(deleteGroupName, catId);
         int status = Curator.CURATE_FAIL;
+        String result;
+        // CANNOT continue if the deletion catalog cannot be located
         if (catArchive != null) {
             CatalogPacker cpack = new CatalogPacker(id);
             cpack.unpack(catArchive);
@@ -97,8 +100,18 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             for (String mem : cpack.getMembers()) {
                 recover(ctx, repMan, mem);
             }
+            // remove the deletion catalog (as the object is now restored)
+            repMan.removeObject(deleteGroupName, catId);
+            result = "Successfully restored Object '" + id + "' (and any child objects) from AIP.";
             status = Curator.CURATE_SUCCESS;
         }
+        else
+        {
+            result = "Failed to restore Object '" + id + "'. Deletion record could not be found in Replica Store. Are you sure this object was previously deleted?";
+        }
+
+        report(result);
+        setResult(result);
         return status;
     }
 
@@ -115,8 +128,10 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
         File archive = repMan.fetchObject(storeGroupName, objId);
         if (archive != null) {
             Bag bag = new Bag(archive);
+            InputStream bagIn = bag.dataStream(OBJFILE);
             Properties props = new Properties();
-            props.load(bag.dataStream(OBJFILE));
+            props.load(bagIn);
+            bagIn.close();
             String type = props.getProperty(OBJECT_TYPE);
             String ownerId = props.getProperty(OWNER_ID);
             if ("item".equals(type)) {

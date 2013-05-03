@@ -9,9 +9,11 @@ package org.dspace.pack.bagit;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import org.dspace.core.ConfigurationManager;
 
 import org.dspace.pack.Packer;
 import static org.dspace.pack.PackerFactory.*;
@@ -28,6 +30,8 @@ public class CatalogPacker implements Packer
     private String objectId = null;
     private String ownerId = null;
     private List<String> members = null;
+    // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
+    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
 
     public CatalogPacker(String objectId)
     {
@@ -78,7 +82,7 @@ public class CatalogPacker implements Packer
             fwriter.close();
         }
         bag.close();
-        File archive = bag.deflate();
+        File archive = bag.deflate(archFmt);
         // clean up undeflated bag
         bag.empty();
         return archive;
@@ -93,8 +97,10 @@ public class CatalogPacker implements Packer
         }
         Bag bag = new Bag(archive);
         // just populate the member list
+        InputStream bagIn = bag.dataStream(OBJFILE);
         Properties props = new Properties();
-        props.load(bag.dataStream(OBJFILE));
+        props.load(bagIn);
+        bagIn.close();
         ownerId = props.getProperty(OWNER_ID);
         members = new ArrayList<String>();
         Bag.FlatReader reader = bag.flatReader("members");
