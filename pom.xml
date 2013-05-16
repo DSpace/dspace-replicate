@@ -22,12 +22,24 @@
     <properties>
         <!-- DSpace Version Information (supported version of DSpace) -->
         <dspace.version>[1.8.0,1.9.0)</dspace.version>
-        <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-        <duracloud.version>2.2.0</duracloud.version>
+        <!-- WARNING: MUST BE version 2.1.2 as that is the last version of the
+             DuraCloud API which supported Java 6, and DSpace 1.8.x requires Java 6.
+             See https://jira.duraspace.org/browse/DS-1081 which wasn't resolved until DSpace 3.0. -->
+        <duracloud.version>2.1.2</duracloud.version>
     </properties>
   
     <build>
         <plugins>
+            <plugin>
+                <!-- Replication Task Suite requires Java 6 (or higher),
+                     as DSpace 1.8.x recommends Java 6.   -->
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                  <source>1.6</source>
+                  <target>1.6</target>
+                </configuration>
+            </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.3.2</version>
