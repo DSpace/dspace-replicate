@@ -23,11 +23,21 @@
         <!-- DSpace Version Information (supported version of DSpace) -->
         <dspace.version>[3.0,4.0)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-        <duracloud.version>2.2.0</duracloud.version>
+        <duracloud.version>2.3.1</duracloud.version>
     </properties>
   
     <build>
         <plugins>
+            <plugin>
+                <!-- Replication Task Suite requires Java 1.7 or higher,
+                     as DuraCloud APIs require Java 1.7 or above.       -->
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                  <source>1.7</source>
+                  <target>1.7</target>
+                </configuration>
+            </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.3.2</version>
