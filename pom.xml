@@ -22,10 +22,10 @@
     <properties>
         <!-- DSpace Version Information (supported version of DSpace) -->
         <dspace.version>[1.8.0,1.9.0)</dspace.version>
-        <!-- WARNING: MUST BE version 2.1.2 as that is the last version of the
+        <!-- WARNING: version CANNOT be > 2.1.x as that is the last version of the
              DuraCloud API which supported Java 6, and DSpace 1.8.x requires Java 6.
              See https://jira.duraspace.org/browse/DS-1081 which wasn't resolved until DSpace 3.0. -->
-        <duracloud.version>2.1.2</duracloud.version>
+        <duracloud.version>2.1.3</duracloud.version>
     </properties>
   
     <build>
