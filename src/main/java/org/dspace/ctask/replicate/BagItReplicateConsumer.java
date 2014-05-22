@@ -53,7 +53,7 @@ import static org.dspace.event.Event.*;
  * deletion was an error). For new or changed objects, it queues a request
  * to perform the configured curation tasks, or directly performs the task
  * if so indicated.
- * 
+ *
  * @author richardrodgers
  */
 public class BagItReplicateConsumer implements Consumer {
@@ -90,6 +90,8 @@ public class BagItReplicateConsumer implements Consumer {
     private List<String> delTasks = null;
     // create deletion catalogs?
     private boolean catalogDeletes = false;
+    // Group where all AIPs are stored
+    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
     // Group where object deletion catalog/records are stored
     private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
@@ -238,7 +240,7 @@ public class BagItReplicateConsumer implements Consumer {
             }
             taskPMap.clear();
         }
-       
+
         // if there any uncommitted deletions, record them now
         if (delObjId != null)
         {
@@ -355,24 +357,33 @@ public class BagItReplicateConsumer implements Consumer {
         // write out deletion catalog if defined
         if (catalogDeletes)
         {
-            Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
-            try
+            //First, check if this object has an AIP in storage
+            boolean found = repMan.objectExists(storeGroupName, delObjId);
+
+            // If the object has an AIP, then create a deletion catalog
+            // If there's no AIP, then there's no need for a deletion
+            // catalog as the object isn't backed up & cannot be restored!
+            if(found)
             {
-                // Create a new deletion catalog (with default file extension / format)
-                // and store it in the deletion group store
-                String catID = repMan.deletionCatalogId(delObjId, null);
-                File packDir = repMan.stage(deleteGroupName, catID);
-                File archive = packer.pack(packDir);
-                //System.out.println("delcat about to transfer");
-                repMan.transferObject(deleteGroupName, archive);
-            }
-            catch (AuthorizeException authE)
-            {
-                throw new IOException(authE);
-            }
-            catch (SQLException sqlE)
-            {
-                throw new IOException(sqlE);
+                Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
+                try
+                {
+                    // Create a new deletion catalog (with default file extension / format)
+                    // and store it in the deletion group store
+                    String catID = repMan.deletionCatalogId(delObjId, null);
+                    File packDir = repMan.stage(deleteGroupName, catID);
+                    File archive = packer.pack(packDir);
+                    //System.out.println("delcat about to transfer");
+                    repMan.transferObject(deleteGroupName, archive);
+                }
+                catch (AuthorizeException authE)
+                {
+                    throw new IOException(authE);
+                }
+                catch (SQLException sqlE)
+                {
+                    throw new IOException(sqlE);
+                }
             }
         }
         // reset for next events
@@ -450,7 +461,7 @@ public class BagItReplicateConsumer implements Consumer {
             }
         }
     }
-    
+
     /**
      * Parse the list of Consumer tasks to perform.  This list of tasks
      * is in the 'replicate.cfg' file.
