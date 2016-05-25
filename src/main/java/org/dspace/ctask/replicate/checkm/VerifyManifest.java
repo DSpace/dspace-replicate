@@ -43,7 +43,7 @@ public class VerifyManifest extends AbstractCurationTask {
      * Perform the 'Verify Manifest' task
      * @param dso the DSpace Object to be verified
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException

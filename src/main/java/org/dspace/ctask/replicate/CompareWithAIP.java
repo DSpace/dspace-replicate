@@ -11,7 +11,6 @@ package org.dspace.ctask.replicate;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
@@ -62,7 +61,7 @@ public class CompareWithAIP extends AbstractCurationTask
      * Perform 'Compare with AIP' task
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException
@@ -125,7 +124,7 @@ public class CompareWithAIP extends AbstractCurationTask
      * container itself).
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param dso DSpace Object
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     private void auditExtent(ReplicaManager repMan, DSpaceObject dso) throws IOException
     {
@@ -197,7 +196,7 @@ public class CompareWithAIP extends AbstractCurationTask
      * @param repMan ReplicaManager  (used to access ObjectStore)
      * @param dso DSpaceObject
      * @return true if replica exists, false otherwise
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     private boolean checkReplica(ReplicaManager repMan, DSpaceObject dso) throws IOException
     {

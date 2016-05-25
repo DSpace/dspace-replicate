@@ -25,9 +25,9 @@ public interface Packer
      *
      * @param packDir the locus of the packing
      * @return the packed archive file
-     * @throws AuthorizeException
-     * @throws IOException
-     * @throws SQLException
+     * @throws AuthorizeException if authorize error
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     File pack(File packDir) throws AuthorizeException, IOException, SQLException;
 
@@ -35,9 +35,9 @@ public interface Packer
      * Unpacks (maps) the contents of the passed archive file into this object.
      *
      * @param archFile the archive file to unpack
-     * @throws AuthorizeException
-     * @throws IOException
-     * @throws SQLException
+     * @throws AuthorizeException if authorize error
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     void unpack(File archFile) throws AuthorizeException, IOException, SQLException;
 
@@ -47,7 +47,7 @@ public interface Packer
      *
      * @param method how to estimate - not currently implemented
      * @return the bagged object size in bytes
-     * @throws SQLException
+     * @throws SQLException if database error
      */
     long size(String method) throws SQLException;
 
@@ -58,7 +58,7 @@ public interface Packer
      * That is, a list of Item bundle names taken to be exclusions, unless
      * preceeded by a '+", where the list is taken to be inclusive.
      *
-     * @param filter
+     * @param filter filter
      */
     void setContentFilter(String filter);
 

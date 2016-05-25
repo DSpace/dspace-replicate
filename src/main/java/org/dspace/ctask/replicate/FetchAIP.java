@@ -38,7 +38,7 @@ public class FetchAIP extends AbstractCurationTask
      * Perform the 'Fetch AIP' task
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException
@@ -65,7 +65,7 @@ public class FetchAIP extends AbstractCurationTask
      * @param ctx DSpace Context (this param is ignored for this task)
      * @param id ID of object whose AIP should be fetched
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(Context ctx, String id) throws IOException

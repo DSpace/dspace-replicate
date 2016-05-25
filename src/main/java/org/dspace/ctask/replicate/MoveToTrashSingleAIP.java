@@ -51,7 +51,7 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
      * Actually generates the AIP and transmits it to the replica ObjectStore
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException
@@ -79,7 +79,7 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
      * @param ctx DSpace Context (this param is ignored for this task)
      * @param id ID of object whose AIP should be moved
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(Context ctx, String id) throws IOException

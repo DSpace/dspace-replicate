@@ -57,7 +57,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
      * @param ctx current DSpace Context
      * @param id the ID of DSpace object to restore/replace
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(Context ctx, String id) throws IOException
@@ -135,7 +135,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
      * @param repMan ReplicaManager
      * @param archive File in replica archive
      * @param pkgParams PackageParameters (may specify restore/replace mode, recursion, etc.)
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     private void restoreObject(ReplicaManager repMan, File archive, PackageParameters pkgParams)
              throws IOException

@@ -45,7 +45,7 @@ public class VerifyAIP extends AbstractCurationTask
      * Simply tests for presence of AIP in replica ObjectStore.
      * @param dso the DSpace Object to verify
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException
@@ -73,7 +73,7 @@ public class VerifyAIP extends AbstractCurationTask
      * @param ctx DSpace Context (this param is ignored for this task)
      * @param id ID of object to verify
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error 
      */
     @Override
     public int perform(Context ctx, String id) throws IOException

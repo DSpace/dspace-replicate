@@ -29,7 +29,7 @@ import org.dspace.pack.PackerFactory;
  * in 'replicate.cfg'. See the org.dspace.pack.PackerFactory for more info.
  * <P>
  * This task is "suspendable" when invoked from the UI. If a single AIP fails
- * to be generated & transmitted to storage, we should inform the user ASAP.
+ * to be generated and transmitted to storage, we should inform the user ASAP.
  * We wouldn't want them to assume everything was transferred successfully, 
  * if there were actually underlying errors.
  * <P>
@@ -52,7 +52,7 @@ public class TransmitAIP extends AbstractCurationTask
      * Actually generates the AIP and transmits it to the replica ObjectStore
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException

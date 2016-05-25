@@ -135,9 +135,9 @@ public class METSReplicateConsumer implements Consumer {
      * replication service, and can be used either to recover from mistaken
      * deletions, or purge the replica store when desired.
      *
-     * @param ctx
-     * @param event
-     * @throws Exception
+     * @param ctx Context
+     * @param event Event
+     * @throws Exception if error
      */
     @Override
     public void consume(Context ctx, Event event) throws Exception
@@ -384,7 +384,7 @@ public class METSReplicateConsumer implements Consumer {
      * @param ctx current DSpace Context
      * @param id Object on which the delete/remove event was triggered
      * @param event event that was triggered
-     * @throws Exception
+     * @throws Exception if error
      */
     private void deleteEvent(Context ctx, String id, Event event) throws Exception
     {

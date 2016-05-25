@@ -47,7 +47,7 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
      * whatever information is contained in the AIP.
      * @param dso the DSpace object to replace
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException 

@@ -27,8 +27,7 @@ import org.dspace.curate.Distributive;
  * 
  * @author richardrodgers
  * @see TransmitAIP
- * @see PackerFactory
- * @see ReplicateConsumer
+ * @see org.dspace.pack.PackerFactory
  */
 @Distributive
 public class TransmitSingleAIP extends TransmitAIP {}

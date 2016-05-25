@@ -46,9 +46,7 @@ import org.dspace.curate.Utils;
 
 // Warning - static import ahead!
 import static javax.xml.stream.XMLStreamConstants.*;
-import org.apache.log4j.Logger;
 import org.dspace.core.ConfigurationManager;
-import org.dspace.ctask.replicate.BagItRestoreFromAIP;
 
 /**
  * Bag represents a rudimentary bag conformant to LC Bagit spec - version 0.96.
@@ -56,7 +54,7 @@ import org.dspace.ctask.replicate.BagItRestoreFromAIP;
  * Although they don't have to be, these bags are 'wormy' - meaning that they
  * can be written only once (have no update semantics), and can be 'holey' -
  * meaning they can contain content by reference as well as inclusion. The
- * implementation provides 3 symmetrical interfaces for reading from & writing
+ * implementation provides 3 symmetrical interfaces for reading from and writing
  * to the bag: (1) A 'flat' reader and writer for line-oriented character
  * data, (2) an 'xml' reader and writer for XML documents, and (3) a 'raw'
  * stream-based reader and writer for uninterpreted binary data.
@@ -102,8 +100,8 @@ public class Bag {
      *     archive of a bag. Explode the archive and create a filled bag in
      *     the same directory as the archive file.
      * 
-     * @param baseFile
-     * @throws IOException
+     * @param baseFile File
+     * @throws IOException if I/O error
      */
     public Bag(File baseFile) throws IOException
     {

@@ -40,7 +40,7 @@ public class FetchManifest extends AbstractCurationTask
      * Perform 'Fetch Manifest' task
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException

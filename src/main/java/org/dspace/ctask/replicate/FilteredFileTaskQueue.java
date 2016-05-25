@@ -56,7 +56,7 @@ public class FilteredFileTaskQueue extends FileTaskQueue
      *        a token which must be presented to release the queue
      * @return set
      *        the current set of queued unique task entries
-     * @throws IOException
+     * @throws IOException if I/O error
      */
     @Override
     public synchronized Set<TaskQueueEntry> dequeue(String queueName, long ticket)
