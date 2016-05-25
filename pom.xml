@@ -18,14 +18,14 @@
         <artifactId>oss-parent</artifactId>
         <version>7</version>
     </parent>
-  
+
     <properties>
         <!-- DSpace Version Information (supported version of DSpace) -->
         <dspace.version>[3.0,4.0)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-        <duracloud.version>2.3.1</duracloud.version>
+        <duracloud.version>3.7.4</duracloud.version>
     </properties>
-  
+
     <build>
         <plugins>
             <plugin>
@@ -66,15 +66,7 @@
             </plugin>
         </plugins>
     </build>
-  
-    <!-- Define the DuraCloud Release repository - used to pull in all DuraCloud dependencies -->
-    <repositories>
-        <repository>
-            <id>duracloud-releases</id>
-            <url>https://m2.duraspace.org/content/repositories/releases</url>
-        </repository>
-    </repositories>
-  
+
     <!--
         GitHub repository used for version control
     -->
@@ -84,7 +76,7 @@
         <url>git@github.com:DSpace/dspace-replicate.git</url>
         <tag>HEAD</tag>
     </scm>
-  
+
     <dependencies>
         <dependency>
             <groupId>org.dspace</groupId>
