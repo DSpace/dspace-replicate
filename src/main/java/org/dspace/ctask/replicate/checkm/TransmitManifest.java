@@ -62,7 +62,7 @@ public class TransmitManifest extends AbstractCurationTask {
      * Actually generates manifest and transmits to Replica ObjectStore
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException
@@ -110,8 +110,8 @@ public class TransmitManifest extends AbstractCurationTask {
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param site the DSpace Site object
      * @return reference to manifest file generated for Community
-     * @throws IOException
-     * @throws SQLException 
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     private File siteManifest(ReplicaManager repMan, Site site) throws IOException, SQLException
     {
@@ -151,8 +151,8 @@ public class TransmitManifest extends AbstractCurationTask {
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param comm the DSpace Community
      * @return reference to manifest file generated for Community
-     * @throws IOException
-     * @throws SQLException 
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     private File communityManifest(ReplicaManager repMan, Community comm) throws IOException, SQLException
     {
@@ -198,8 +198,8 @@ public class TransmitManifest extends AbstractCurationTask {
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param coll the DSpace Collection
      * @return reference to manifest file generated for Collection
-     * @throws IOException
-     * @throws SQLException 
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     private File collectionManifest(ReplicaManager repMan, Collection coll) throws IOException, SQLException
     {
@@ -237,8 +237,8 @@ public class TransmitManifest extends AbstractCurationTask {
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param item the DSpace Item
      * @return reference to manifest file generated for Item
-     * @throws IOException
-     * @throws SQLException 
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     private File itemManifest(ReplicaManager repMan, Item item) throws IOException, SQLException
     {
@@ -319,7 +319,7 @@ public class TransmitManifest extends AbstractCurationTask {
      * Initialize a Writer for a Manifest file. Also, writes header to manifest file.
      * @param file file where manifest will be stored
      * @return reference to Writer
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     private Writer manifestWriter(File file) throws IOException
     {

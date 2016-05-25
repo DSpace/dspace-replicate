@@ -45,7 +45,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * 
      * @param dso the DSpace object
      * @return integer which represents Curator return status
-     * @throws IOException
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException 
@@ -66,7 +66,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * manifests from the Replica ObjectStore.
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param dso the DSpace Object
-     * @throws IOException 
+     * @throws IOException if I/O error 
      */
     private void remove(ReplicaManager repMan, DSpaceObject dso) throws IOException 
     {    
@@ -119,7 +119,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * @param ctx current DSpace Context
      * @param id Identifier of the object to be removed.
      * @return integer which represents Curator return status
-     * @throws IOException
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(Context ctx, String id) throws IOException 
@@ -144,7 +144,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * manifests from the Replica ObjectStore.
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param id the DSpace Object's identifier
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     private void deleteManifest(ReplicaManager repMan, String id) throws IOException 
     {

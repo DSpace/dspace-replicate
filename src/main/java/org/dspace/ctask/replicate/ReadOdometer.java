@@ -32,7 +32,7 @@ public class ReadOdometer extends AbstractCurationTask
      * Performs the "Read Odometer" task.
      * @param dso this param is ignored, as the odometer is sitewide
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException

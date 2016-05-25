@@ -64,7 +64,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * always returns an exception. 
      * @param dso DSpace Object to recover
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if IO error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException {
@@ -78,7 +78,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param ctx current DSpace context
      * @param id identifier of object to restore
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if IO error
      */
     @Override
     public int perform(Context ctx, String id) throws IOException 
@@ -120,7 +120,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param ctx current DSpace Context
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param id Identifier of object in ObjectStore
-     * @throws IOException 
+     * @throws IOException if IO error
      */
     private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException 
     {
@@ -152,7 +152,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param archive AIP package file 
      * @param objId identifier of object we are restoring
      * @param props properties which control how item is restored
-     * @throws IOException 
+     * @throws IOException if IO error
      */
     private void recoverItem(Context ctx, File archive, String objId, Properties props) throws IOException 
     {
@@ -191,7 +191,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param archive AIP package file 
      * @param collId identifier of collection we are restoring
      * @param commId identifier of parent community for this collection
-     * @throws IOException 
+     * @throws IOException if IO error
      */
     private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException 
     {
@@ -219,7 +219,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param archive AIP package file 
      * @param commId identifier of community we are restoring
      * @param parentId identifier of parent community (if any) for community
-     * @throws IOException 
+     * @throws IOException if IO error
      */
     private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException 
     {

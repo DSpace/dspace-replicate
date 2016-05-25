@@ -35,7 +35,6 @@ import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 
 import org.apache.log4j.Logger;
-import org.dspace.core.LogManager;
 
 /**
  * METSPacker packs and unpacks Item AIPs in METS compressed archives
@@ -99,9 +98,9 @@ public class METSPacker implements Packer
      * 
      * @param packDir the directory where this package should be created
      * @return the created package file
-     * @throws AuthorizeException
-     * @throws IOException
-     * @throws SQLException 
+     * @throws AuthorizeException if authorize error
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException
@@ -153,9 +152,9 @@ public class METSPacker implements Packer
      * using the configured AIP PackageIngester (in dspace.cfg)
      * 
      * @param archive the METS AIP package
-     * @throws AuthorizeException
-     * @throws IOException
-     * @throws SQLException 
+     * @throws AuthorizeException if authorize error
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
     @Override
     public void unpack(File archive) throws AuthorizeException, IOException, SQLException
@@ -177,9 +176,9 @@ public class METSPacker implements Packer
      * 
      * @param archive the METS AIP package
      * @param pkgParams the PackageParameters (if null, defaults to Recursive Replace settings)
-     * @throws AuthorizeException
-     * @throws IOException
-     * @throws SQLException 
+     * @throws AuthorizeException if authorize error
+     * @throws IOException if I/O error
+     * @throws SQLException if database error 
      */
     public void unpack(File archive, PackageParameters pkgParams) throws AuthorizeException, IOException, SQLException
     {
@@ -303,7 +302,7 @@ public class METSPacker implements Packer
      * Estimated size is currently just based on size of content files.
      * 
      * @return estimated storage size
-     * @throws SQLException 
+     * @throws SQLException if database error
      */
     private long siteSize() throws SQLException
     {
@@ -332,7 +331,7 @@ public class METSPacker implements Packer
      * 
      * @param community DSpace Community
      * @return estimated storage size
-     * @throws SQLException 
+     * @throws SQLException if database error
      */
     private long communitySize(Community community) throws SQLException
     {
@@ -362,7 +361,7 @@ public class METSPacker implements Packer
      * 
      * @param collection DSpace Collection
      * @return estimated storage size
-     * @throws SQLException 
+     * @throws SQLException  if database error
      */
     private long collectionSize(Collection collection) throws SQLException
     {
@@ -388,7 +387,7 @@ public class METSPacker implements Packer
      * 
      * @param item DSpace Item
      * @return estimated storage size
-     * @throws SQLException 
+     * @throws SQLException  if database error
      */
     private long itemSize(Item item) throws SQLException
     {

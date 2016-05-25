@@ -58,7 +58,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
      * myreplacetask.createMetadataFields = true
      * myreplacetask.[any-supported-option] = [any-supported-value]
      * 
-     * @param moduleName Module name to load configuration file & settings from
+     * @param moduleName Module name to load configuration file and settings from
      * @return configured PackageParameters (or null, if configurations not found)
      * @see org.dspace.content.packager.PackageParameters
      */

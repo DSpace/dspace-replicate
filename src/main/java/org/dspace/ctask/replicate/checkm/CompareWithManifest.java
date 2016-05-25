@@ -50,7 +50,7 @@ public class CompareWithManifest extends AbstractCurationTask
      * Perform 'Compare with Manifest' task
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException
@@ -88,8 +88,8 @@ public class CompareWithManifest extends AbstractCurationTask
      * @param repMan Replication Manager
      * @param filename filename of object's manifest file
      * @param context current DSpace context
-     * @throws IOException
-     * @throws SQLException
+     * @throws IOException if I/O error
+     * @throws SQLException if database error
      * @return integer which represents Curator return status
      */
     private int checkManifest(ReplicaManager repMan, String filename, Context context) throws IOException, SQLException

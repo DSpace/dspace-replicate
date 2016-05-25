@@ -46,7 +46,7 @@ public class RemoveAIP extends AbstractCurationTask {
      * 
      * @param dso the DSpace object
      * @return integer which represents Curator return status
-     * @throws IOException
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(DSpaceObject dso) throws IOException 
@@ -62,7 +62,7 @@ public class RemoveAIP extends AbstractCurationTask {
      * replica ObjectStore.
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param dso the DSpace object whose replicas we will remove
-     * @throws IOException 
+     * @throws IOException if I/O error
      */
     private void remove(ReplicaManager repMan, DSpaceObject dso) throws IOException 
     {
@@ -120,7 +120,7 @@ public class RemoveAIP extends AbstractCurationTask {
      * @param ctx current DSpace Context
      * @param id Identifier of the object to be removed.
      * @return integer which represents Curator return status
-     * @throws IOException
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(Context ctx, String id) throws IOException 
