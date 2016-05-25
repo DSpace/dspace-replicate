@@ -40,7 +40,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.3.2</version>
+                <version>2.5.3</version>
             </plugin>
             <!-- Copy necessary Runtime Depenencies to /target/lib/
                  during build process. (We are only including Runtime
