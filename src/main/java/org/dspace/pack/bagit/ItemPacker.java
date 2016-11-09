@@ -80,7 +80,7 @@ public class ItemPacker implements Packer
         String linkedStr = linked.toString();
         if (linkedStr.length() > 0)
         {
-            fwriter.writeProperty(OTHER_IDS, linkedStr.substring(0, linkedStr.length() - 2));
+            fwriter.writeProperty(OTHER_IDS, linkedStr.substring(0, linkedStr.length() - 1));
         }
         if (item.isWithdrawn())
         {
