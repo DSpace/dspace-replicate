@@ -21,10 +21,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.Collection;
-import org.dspace.content.Community;
-import org.dspace.content.DSpaceObject;
-import org.dspace.content.Item;
+import org.dspace.content.*;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.*;
 import org.dspace.core.Context;
@@ -107,7 +104,7 @@ public class METSReplicateConsumer implements Consumer {
     // create deletion catalogs?
     private boolean catalogDeletes = false;
     // Group where object deletion catalog/records are stored
-    private final String deleteGroupName = configurationService.getProperty("replicate", "group.delete.name");
+    private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
     @Override
     public void initialize() throws Exception
@@ -162,7 +159,8 @@ public class METSReplicateConsumer implements Consumer {
         {
             // ANY changes to a Group/EPerson are essentially modifications
             // to the DSpace System (Site), as they are site-wide changes
-            id = siteService.findSite(Curator.curationContext()).getHandle();
+            Site site = siteService.findSite(ctx);
+            id  = site == null ? null : site.getHandle();
             // make sure we are supposed to process this object
             if (acceptId(id, event, ctx))
             {

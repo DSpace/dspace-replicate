@@ -80,7 +80,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
                     //Only obey the setting(s) beginning with this task's ID/name,
                     if (option.startsWith(this.taskId)) {
                         //Parse out the option name by removing the "[taskID]." from beginning of property
-                        option = property.replace(taskId + ".", "");
+                        option = option.replace(taskId + ".", "");
                         String value = moduleProps.getProperty(property);
 
                         //Check which option is being set
