@@ -10,12 +10,17 @@ package org.dspace.pack.bagit;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.BitstreamService;
+import org.dspace.content.service.CommunityService;
+import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 
@@ -28,6 +33,9 @@ import static org.dspace.pack.PackerFactory.*;
  */
 public class CommunityPacker implements Packer
 {
+    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
+
     // NB - these values must remain synchronized with DB schema -
     // they represent the peristent object state
     private static final String[] fields = {
@@ -66,10 +74,10 @@ public class CommunityPacker implements Packer
         fwriter.writeProperty(BAG_TYPE, "AIP");
         fwriter.writeProperty(OBJECT_TYPE, "community");
         fwriter.writeProperty(OBJECT_ID, community.getHandle());
-        Community parent = community.getParentCommunity();
-        if (parent != null)
+        List<Community> parent = community.getParentCommunities();
+        if (parent != null && !parent.isEmpty())
         {
-            fwriter.writeProperty(OWNER_ID, parent.getHandle());
+            fwriter.writeProperty(OWNER_ID, parent.get(0).getHandle());
         }
         fwriter.close();
         // then metadata
@@ -77,7 +85,7 @@ public class CommunityPacker implements Packer
         xwriter.startStanza("metadata");
         for (String field : fields)
         {
-            String val = community.getMetadata(field);
+            String val = communityService.getMetadata(community, field);
             if (val != null)
             {
                 xwriter.writeValue(field, val);
@@ -89,7 +97,7 @@ public class CommunityPacker implements Packer
         Bitstream logo = community.getLogo();
         if (logo != null)
         {
-            bag.addData("logo", logo.getSize(), logo.retrieve());
+            bag.addData("logo", logo.getSize(), bitstreamService.retrieve(Curator.curationContext(), logo));
         }
         bag.close();
         File archive = bag.deflate(archFmt);
@@ -112,14 +120,14 @@ public class CommunityPacker implements Packer
             Bag.Value value = null;
             while((value = reader.nextValue()) != null)
             {
-                community.setMetadata(value.name, value.val);
+                communityService.setMetadata(Curator.curationContext(), community, value.name, value.val);
             }
             reader.close();
         }
         // also install logo or set to null
-        community.setLogo(bag.dataStream("logo"));
+        communityService.setLogo(Curator.curationContext(), community, bag.dataStream("logo"));
         // now write data back to DB
-        community.update();
+        communityService.update(Curator.curationContext(), community);
         // clean up bag
         bag.empty();
     }

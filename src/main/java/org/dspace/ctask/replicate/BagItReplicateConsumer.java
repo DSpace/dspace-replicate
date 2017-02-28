@@ -24,10 +24,14 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CollectionService;
+import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
-import org.dspace.core.PluginManager;
+import org.dspace.core.factory.CoreServiceFactory;
+import org.dspace.core.service.PluginService;
 import org.dspace.curate.Curator;
 import org.dspace.curate.TaskQueue;
 import org.dspace.curate.TaskQueueEntry;
@@ -36,6 +40,8 @@ import org.dspace.event.Consumer;
 import org.dspace.event.Event;
 import org.dspace.pack.Packer;
 import org.dspace.pack.bagit.CatalogPacker;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 
 // for readability
 import static org.dspace.event.Event.*;
@@ -53,6 +59,12 @@ import static org.dspace.event.Event.*;
 public class BagItReplicateConsumer implements Consumer {
 
     private Logger log = Logger.getLogger(BagItReplicateConsumer.class);
+
+    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
+    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     private ReplicaManager repMan = null;
     private TaskQueue taskQueue = null;
@@ -79,14 +91,14 @@ public class BagItReplicateConsumer implements Consumer {
     // create deletion catalogs?
     private boolean catalogDeletes = false;
     // Group where object deletion catalog/records are stored
-    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
+    private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
     @Override
     public void initialize() throws Exception
     {
         repMan = ReplicaManager.instance();
-        taskQueue = (TaskQueue)PluginManager.getSinglePlugin("curate", TaskQueue.class);
-        queueName = localProperty("consumer.queue");
+        taskQueue = (TaskQueue) pluginService.getSinglePlugin(TaskQueue.class);
+        queueName = configurationService.getProperty("replicate.consumer.queue");
         // look for and load any idFilter files - excludes trump includes
         // An "idFilter" is an actual textual file named "exclude" or "include"
         // which contains a list of handles to filter from the Consumer
@@ -274,7 +286,7 @@ public class BagItReplicateConsumer implements Consumer {
         {
             // NB: Item should be available form context cache - should
             // not incur a performance hit here
-            Item item = Item.find(ctx, event.getSubjectID());
+            Item item = itemService.find(ctx, event.getSubjectID());
             Collection coll = item.getOwningCollection();
             if (coll != null)
             {
@@ -321,13 +333,13 @@ public class BagItReplicateConsumer implements Consumer {
                 if (Constants.COLLECTION == event.getSubjectType())
                 {
                     // my owner is a collection
-                    Collection ownColl = Collection.find(ctx, event.getSubjectID());
+                    Collection ownColl = collectionService.find(ctx, event.getSubjectID());
                     delOwnerId = ownColl.getHandle();
                 }
                 else if (Constants.COMMUNITY == event.getSubjectType())
                 {
                     // my owner is a community
-                    Community comm = Community.find(ctx, event.getSubjectID());
+                    Community comm = communityService.find(ctx, event.getSubjectID());
                     delOwnerId = comm.getHandle();
                 }
                 processDelete();
@@ -377,7 +389,7 @@ public class BagItReplicateConsumer implements Consumer {
      */
     private boolean loadIdFilter(String filterName)
     {
-        File filterFile = new File(localProperty("base.dir"), filterName);
+        File filterFile = new File(configurationService.getProperty("replicate.base.dir"), filterName);
         if (filterFile.exists())
         {
             idFilter = new ArrayList<String>();
@@ -446,7 +458,7 @@ public class BagItReplicateConsumer implements Consumer {
      */
     private void parseTasks(String propName)
     {
-        String taskStr = localProperty("consumer.tasks." + propName);
+        String taskStr = configurationService.getProperty("replicate.consumer.tasks." + propName);
         if (taskStr == null || taskStr.length() == 0)
         {
             return;
@@ -515,15 +527,4 @@ public class BagItReplicateConsumer implements Consumer {
             }
         }
     }
-
-    /**
-     * Load a single property value from the "replicate.cfg" configuration file
-     * @param propName property name
-     * @return property value
-     */
-    private String localProperty(String propName)
-    {
-        return ConfigurationManager.getProperty("replicate", propName);
-    }
-
 }

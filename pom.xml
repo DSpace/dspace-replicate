@@ -21,9 +21,9 @@
 
     <properties>
         <!-- DSpace Version Information (supported version of DSpace) -->
-        <dspace.version>[3.0,4.0)</dspace.version>
+        <dspace.version>[6.0,7.0)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-        <duracloud.version>3.7.4</duracloud.version>
+        <duracloud.version>4.2.5</duracloud.version>
     </properties>
 
     <build>
@@ -93,7 +93,7 @@
         <dependency>
           <groupId>org.apache.commons</groupId>
           <artifactId>commons-compress</artifactId>
-          <version>1.4.1</version>
+          <version>1.8</version>
         </dependency>
         <!-- DuraCloud dependencies (used for replication to/from DuraCloud).
              We only need to specify a dependency on the 'storeclient', as it already

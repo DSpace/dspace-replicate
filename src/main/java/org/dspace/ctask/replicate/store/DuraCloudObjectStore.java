@@ -15,6 +15,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duracloud.client.ContentStore;
 import org.duracloud.client.ContentStoreManager;
 import org.duracloud.client.ContentStoreManagerImpl;
@@ -23,7 +25,6 @@ import org.duracloud.domain.Content;
 import org.duracloud.error.ContentStoreException;
 import org.duracloud.error.NotFoundException;
 
-import org.dspace.core.ConfigurationManager;
 import org.dspace.ctask.replicate.ObjectStore;
 import org.dspace.curate.Utils;
 
@@ -35,6 +36,8 @@ import org.dspace.curate.Utils;
  */
 public class DuraCloudObjectStore implements ObjectStore
 {
+    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+
     // DuraCloud store
     private ContentStore dcStore = null;
     
@@ -47,11 +50,12 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         // locate & login to Duracloud store
         ContentStoreManager storeManager =
-            new ContentStoreManagerImpl(localProperty("host"),
-                                        localProperty("port"),
-                                        localProperty("context"));
+            new ContentStoreManagerImpl(configurationService.getProperty("duracloud.host"),
+                                        configurationService.getProperty("duracloud.port"),
+                                        configurationService.getProperty("duracloud.context"));
         Credential credential = 
-            new Credential(localProperty("username"), localProperty("password"));
+            new Credential(configurationService.getProperty("duracloud.username"),
+                           configurationService.getProperty("duracloud.password"));
         storeManager.login(credential);
         try
         {
@@ -246,11 +250,6 @@ public class DuraCloudObjectStore implements ObjectStore
         {
             throw new IOException(csE);
         }
-    }
-    
-    private static String localProperty(String name)
-    {
-        return ConfigurationManager.getProperty("duracloud", name);
     }
     
     /**

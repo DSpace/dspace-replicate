@@ -20,13 +20,11 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Item;
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
-import org.dspace.handle.HandleManager;
 
 /**
  * CompareWithManifest task compares local repository content against the
@@ -44,7 +42,13 @@ public class CompareWithManifest extends AbstractCurationTask
     private String result = null;
     
     // Group where all Manifests will be stored
-    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
+    private String manifestGroupName;
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
+    }
 
     /**
      * Perform 'Compare with Manifest' task
@@ -61,10 +65,8 @@ public class CompareWithManifest extends AbstractCurationTask
         {
             String filename = repMan.storageId(dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
             
-            Context context = new Context();
-            int status = checkManifest(repMan, filename, context);
-            context.complete();
-            
+            int status = checkManifest(repMan, filename, Curator.curationContext());
+
             //report the final result
             report(result);
             setResult(result);
@@ -127,7 +129,7 @@ public class CompareWithManifest extends AbstractCurationTask
                         {
                             // look up object first & map bitstreams by seqID
                             String handle = entry.substring(0, cut);
-                            DSpaceObject dso = HandleManager.resolveToObject(context, handle);
+                            DSpaceObject dso = handleService.resolveToObject(context, handle);
                             if (dso != null && dso instanceof Item)
                             {
                                 item = (Item)dso;

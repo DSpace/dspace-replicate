@@ -17,7 +17,10 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CollectionService;
+import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
 import org.dspace.core.Constants;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -35,10 +38,21 @@ import org.dspace.pack.PackerFactory;
 @Mutative
 public class BagItReplaceWithAIP extends AbstractCurationTask {
 
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
 
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private String storeGroupName;
+
+    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+        storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+    }
     
     /**
      * Perform the 'Replace with AIP' task.
@@ -67,20 +81,20 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
                 // clear object where necessary
                 if (dso.getType() == Constants.ITEM) {
                     Item item = (Item)dso;
-                    item.clearMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+                    itemService.clearMetadata(Curator.curationContext(), item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
                     for (Bundle bundle : item.getBundles()) {
-                        item.removeBundle(bundle);
+                        itemService.removeBundle(Curator.curationContext(), item, bundle);
                     }   
                 }
                 packer.unpack(archive);
                 // now update the dso
                 int type = dso.getType();
                 if (type == Constants.ITEM) {
-                    ((Item)dso).update();
+                    itemService.update(Curator.curationContext(), (Item) dso);
                 } else if (type == Constants.COLLECTION) {
-                    ((Collection)dso).update();
+                    collectionService.update(Curator.curationContext(), (Collection) dso);
                 } else if (type == Constants.COMMUNITY) {
-                    ((Community)dso).update();
+                    communityService.update(Curator.curationContext(), (Community) dso);
                 }
                 status = Curator.CURATE_SUCCESS;
                 result = "Object: " + dso.getHandle() + " replaced from AIP";
@@ -93,11 +107,11 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
             setResult(result);
             return status;
         } 
-        catch (AuthorizeException authE) 
+        catch (AuthorizeException authE)
         {
             throw new IOException(authE);
-        } 
-        catch (SQLException sqlE) 
+        }
+        catch (SQLException sqlE)
         {
             throw new IOException(sqlE);
         }

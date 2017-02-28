@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -30,11 +29,17 @@ import org.dspace.curate.Curator;
 
 public class FetchManifest extends AbstractCurationTask
 {
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
 
     // Group where all Manifests are stored
-    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
-    
+    private String manifestGroupName;
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+        manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
+    }
     
     /**
      * Perform 'Fetch Manifest' task

@@ -9,7 +9,6 @@ package org.dspace.ctask.replicate;
 
 import java.util.Properties;
 import org.dspace.content.packager.PackageParameters;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.curate.AbstractCurationTask;
 
 /**
@@ -65,7 +64,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
     protected PackageParameters loadPackagerParameters(String moduleName)
     {
         //Load up the replicate-mets.cfg file & all settings inside it
-        Properties moduleProps = ConfigurationManager.getProperties(moduleName);
+        Properties moduleProps = configurationService.getProperties();
         
         PackageParameters pkgParams = new PackageParameters();
         
@@ -75,32 +74,29 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
             //loop through all properties in the config file
             for(String property : moduleProps.stringPropertyNames())
             {
-                //Only obey the setting(s) beginning with this task's ID/name, 
-                if(property.startsWith(this.taskId))
-                {
-                    //Parse out the option name by removing the "[taskID]." from beginning of property
-                    String option = property.replace(taskId + ".", "");
-                    String value = moduleProps.getProperty(property);
-                    
-                    //Check which option is being set
-                    if(option.equalsIgnoreCase(recursiveMode))
-                    {
-                        pkgParams.setRecursiveModeEnabled(Boolean.parseBoolean(value));
+                // Only obey the setting(s) belonging to the requested module
+                if (property.startsWith(moduleName)) {
+                    String option = property.replace(moduleName + ".", "");
+                    //Only obey the setting(s) beginning with this task's ID/name,
+                    if (option.startsWith(this.taskId)) {
+                        //Parse out the option name by removing the "[taskID]." from beginning of property
+                        option = property.replace(taskId + ".", "");
+                        String value = moduleProps.getProperty(property);
+
+                        //Check which option is being set
+                        if (option.equalsIgnoreCase(recursiveMode)) {
+                            pkgParams.setRecursiveModeEnabled(Boolean.parseBoolean(value));
+                        } else if (option.equals(useWorkflow)) {
+                            pkgParams.setWorkflowEnabled(Boolean.parseBoolean(value));
+                        } else if (option.equals(useCollectionTemplate)) {
+                            pkgParams.setUseCollectionTemplate(Boolean.parseBoolean(value));
+                        } else //otherwise, assume the Packager will understand what to do with this option
+                        {
+                            //just set it as a property in PackageParameters
+                            pkgParams.addProperty(option, value);
+                        }
                     }
-                    else if (option.equals(useWorkflow))
-                    {
-                        pkgParams.setWorkflowEnabled(Boolean.parseBoolean(value));
-                    } 
-                    else if (option.equals(useCollectionTemplate))
-                    {
-                        pkgParams.setUseCollectionTemplate(Boolean.parseBoolean(value));
-                    }
-                    else //otherwise, assume the Packager will understand what to do with this option
-                    {
-                        //just set it as a property in PackageParameters
-                        pkgParams.addProperty(option, value);
-                    }
-                }    
+                }
             }
 
             return pkgParams;

@@ -11,7 +11,6 @@ package org.dspace.ctask.replicate.checkm;
 import java.io.IOException;
 
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -37,7 +36,13 @@ import org.dspace.curate.Suspendable;
 public class VerifyManifest extends AbstractCurationTask {
 
     // Group where all Manifests are stored
-    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
+    private String manifestGroupName;
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
+    }
 
     /**
      * Perform the 'Verify Manifest' task

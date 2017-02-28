@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -27,12 +26,20 @@ import org.dspace.curate.Curator;
 
 public class FetchAIP extends AbstractCurationTask
 {
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
     
-    private String baseFolder = ConfigurationManager.getProperty("replicate", "base.dir");
+    private String baseFolder;
 
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private String storeGroupName;
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+        baseFolder = configurationService.getProperty("replicate.base.dir");
+        storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+    }
     
     /**
      * Perform the 'Fetch AIP' task

@@ -19,17 +19,19 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.InstallItem;
 import org.dspace.content.Item;
 import org.dspace.content.WorkspaceItem;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CollectionService;
+import org.dspace.content.service.InstallItemService;
+import org.dspace.content.service.WorkspaceItemService;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
 import org.dspace.curate.Mutative;
-import org.dspace.embargo.EmbargoManager;
-import org.dspace.handle.HandleManager;
+import org.dspace.embargo.factory.EmbargoServiceFactory;
+import org.dspace.embargo.service.EmbargoService;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.Bag;
@@ -50,13 +52,26 @@ import static org.dspace.pack.PackerFactory.*;
 public class BagItRestoreFromAIP extends AbstractCurationTask {
 
     private static Logger log = Logger.getLogger(BagItRestoreFromAIP.class);
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
 
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private String storeGroupName;
     
     // Group where object deletion catalog/records are stored
-    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
+    private String deleteGroupName;
+
+    private EmbargoService embargoService = EmbargoServiceFactory.getInstance().getEmbargoService();
+    private WorkspaceItemService workspaceItemService = ContentServiceFactory.getInstance().getWorkspaceItemService();
+    private InstallItemService installItemService = ContentServiceFactory.getInstance().getInstallItemService();
+    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
+        storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+    }
     
     /**
      * Perform 'Recover From AIP' task on a particular object.
@@ -158,26 +173,26 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     {
         try {
             String collId = props.getProperty(OWNER_ID);
-            Collection coll = (Collection)HandleManager.resolveToObject(ctx, collId);
-            WorkspaceItem wi = WorkspaceItem.create(ctx, coll, false);
+            Collection coll = (Collection) handleService.resolveToObject(ctx, collId);
+            WorkspaceItem wi = workspaceItemService.create(ctx, coll, false);
             Packer packer = PackerFactory.instance(wi.getItem());
             // stuff bag contents into item
             packer.unpack(archive);
             // Install item
-            Item item = InstallItem.restoreItem(ctx, wi, objId);
+            Item item = installItemService.restoreItem(ctx, wi, objId);
             String colls = props.getProperty(OTHER_IDS);
             if (colls != null) {
                 // reset linked collections
                 for (String link : colls.split(",")) {
-                    Collection linkC = (Collection)HandleManager.resolveToObject(ctx, link);
-                    linkC.addItem(item);
+                    Collection linkC = (Collection) handleService.resolveToObject(ctx, link);
+                    collectionService.addItem(ctx, linkC, item);
                 }
             }
             // now post-process: withdrawals, embargoes, etc
             if (props.getProperty(WITHDRAWN) != null) {
-                item.withdraw();
+                itemService.withdraw(ctx, item);
             }
-            EmbargoManager.setEmbargo(ctx, item);
+            embargoService.setEmbargo(ctx, item);
         } catch (AuthorizeException authE) {
             throw new IOException(authE);
         } catch (SQLException sqlE) {
@@ -198,8 +213,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
         Collection coll = null;
         try {
             if (commId != null) {
-                Community pcomm = (Community)HandleManager.resolveToObject(ctx, commId);
-                coll = pcomm.createCollection(collId);
+                Community pcomm = (Community) handleService.resolveToObject(ctx, commId);
+                coll = collectionService.create(ctx, pcomm, collId);
             } else {
                 log.error("Collection '" + collId + "' lacks parent community");
             }
@@ -227,10 +242,10 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
         Community comm = null;
         try {
             if (parentId != null) {
-                Community pcomm = (Community)HandleManager.resolveToObject(ctx, parentId);
-                comm = pcomm.createSubcommunity(commId);
+                Community pcomm = (Community) handleService.resolveToObject(ctx, parentId);
+                comm = communityService.createSubcommunity(ctx, pcomm, commId);
             } else {
-                comm = Community.create(null, ctx, commId);
+                comm = communityService.create(null, ctx, commId);
             }
             // update with AIP data
             Packer packer = PackerFactory.instance(comm);

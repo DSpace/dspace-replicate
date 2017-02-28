@@ -14,7 +14,6 @@ import java.sql.SQLException;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Suspendable;
@@ -44,7 +43,14 @@ import org.dspace.pack.PackerFactory;
 public class TransmitAIP extends AbstractCurationTask
 {
     // Group where all AIPs will be stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private String storeGroupName;
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+    }
+
 
     /**
      * Perform 'Transmit AIP' task

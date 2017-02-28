@@ -17,10 +17,13 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.log4j.Logger;
-
-import org.dspace.core.ConfigurationManager;
-import org.dspace.core.PluginManager;
-import org.dspace.handle.HandleManager;
+import org.dspace.core.factory.CoreServiceFactory;
+import org.dspace.core.service.PluginService;
+import org.dspace.curate.Curator;
+import org.dspace.handle.factory.HandleServiceFactory;
+import org.dspace.handle.service.HandleService;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 
 import static org.dspace.ctask.replicate.Odometer.*;
 
@@ -33,32 +36,36 @@ import static org.dspace.ctask.replicate.Odometer.*;
  */
 public class ReplicaManager {
 
+    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
+    private HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
+
     private Logger log = Logger.getLogger(ReplicaManager.class);
     // singleton instance
     private static ReplicaManager instance = null;
     // the replica provider
     private ObjectStore objStore = null;
     // base directory for replication activities
-    private final String repDir = ConfigurationManager.getProperty("replicate", "base.dir");
+    private final String repDir = configurationService.getProperty("replicate.base.dir");
     // an odometer for recording activity
     private Odometer odometer = null;
     // lock for updating odometer
     private final Object odoLock = new Object();
     // Primary store group name
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private final String storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     // Delete store group name
-    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
+    private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
     // Separating character between Type prefix and object identifier, used when packages are named with a Type prefix
     private final String typePrefixSeparator = "@";
     // Special Type prefix for Deletion catalog records
     private final String deletionCatalogPrefix = "DELETION-RECORD";
     // AIP Package compression format (e.g. zip or tgz)
-    private final String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private final String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
 
     private ReplicaManager() throws IOException
     {
-        objStore = (ObjectStore)PluginManager.getSinglePlugin("replicate", ObjectStore.class);
+        objStore = (ObjectStore) pluginService.getSinglePlugin(ObjectStore.class);
         if (objStore == null) {
             log.error("No ObjectStore configured in 'replicate.cfg'!");
             throw new IOException("No ObjectStore configured in 'replicate.cfg'!");
@@ -123,17 +130,15 @@ public class ReplicaManager {
 
         // If 'packer.typeprefix' setting is 'true', 
         // then prefix the storageID with the DSpace Type (if it doesn't already have a prefix)
-        if(ConfigurationManager.getBooleanProperty("replicate", "packer.typeprefix", true) && 
+        if(configurationService.getBooleanProperty("replicate.packer.typeprefix", true) &&
            !storageId.contains(typePrefixSeparator))
         {    
             String typePrefix = null;
         
             try
             {    
-                Context ctx = new Context();
                 //Get object associated with this handle
-                DSpaceObject dso = HandleManager.resolveToObject(ctx, objId);
-                ctx.complete();
+                DSpaceObject dso = handleService.resolveToObject(Curator.curationContext(), objId);
 
                 //typePrefix format = 'TYPE@'
                 if(dso!=null)
@@ -215,7 +220,7 @@ public class ReplicaManager {
         if(fileExtension!=null && !storageId.endsWith("." + fileExtension))
             storageId = storageId + "." + fileExtension;
 
-        if(ConfigurationManager.getBooleanProperty("replicate", "packer.typeprefix", true) &&
+        if(configurationService.getBooleanProperty("replicate.packer.typeprefix", true) &&
            !storageId.contains(typePrefixSeparator))
         {
             //Prepend the "deletion catalog" type prefix on the name

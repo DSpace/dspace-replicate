@@ -13,9 +13,11 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import org.dspace.core.ConfigurationManager;
 
 import org.dspace.pack.Packer;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
+
 import static org.dspace.pack.PackerFactory.*;
 
 /**
@@ -27,11 +29,13 @@ import static org.dspace.pack.PackerFactory.*;
  */
 public class CatalogPacker implements Packer
 {
+    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+
     private String objectId = null;
     private String ownerId = null;
     private List<String> members = null;
     // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
     public CatalogPacker(String objectId)
     {
