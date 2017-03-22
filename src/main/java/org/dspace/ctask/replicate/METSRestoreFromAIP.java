@@ -14,7 +14,6 @@ import java.util.List;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
@@ -37,16 +36,24 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
 {
     private Logger log = Logger.getLogger(METSRestoreFromAIP.class);
       
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
 
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private String storeGroupName;
 
     // Group where object deletion catalog/records are stored
-    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
+    private String deleteGroupName;
     
     // Name of module configuration file specific to METS based AIPs
     private final String metsModuleConfig = "replicate-mets";
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+        storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+        deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
+    }
     
     
     /**

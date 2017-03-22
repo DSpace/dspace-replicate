@@ -12,7 +12,6 @@ import java.io.IOException;
 import org.apache.log4j.Logger;
 
 import org.dspace.content.DSpaceObject;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -38,12 +37,20 @@ import org.dspace.curate.Distributive;
 public class MoveToTrashSingleAIP extends AbstractCurationTask
 {
     // Source and destination group where AIP will be moved to
-    private final String srcGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
-    private final String destGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
+    private String srcGroupName;
+    private String destGroupName;
     
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
     
     private static Logger log = Logger.getLogger(MoveToTrashSingleAIP.class);
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        srcGroupName = configurationService.getProperty("replicate.group.aip.name");
+        destGroupName = configurationService.getProperty("replicate.group.delete.name");
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+    }
     
     /**
      * Perform 'Move To Trash Single AIP' task

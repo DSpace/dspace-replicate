@@ -11,13 +11,14 @@ package org.dspace.ctask.replicate;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.List;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.ItemIterator;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.Item;
 import org.dspace.core.Constants;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -50,12 +51,19 @@ import org.dspace.pack.PackerFactory;
 @Suspendable(invoked=Curator.Invoked.INTERACTIVE)
 public class CompareWithAIP extends AbstractCurationTask
 {
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
     private int status = Curator.CURATE_UNSET;
     private String result = null;
     
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private String storeGroupName;
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+    }
 
     /**
      * Perform 'Compare with AIP' task
@@ -134,10 +142,10 @@ public class CompareWithAIP extends AbstractCurationTask
         if (Constants.COLLECTION == type)
         {
             Collection coll = (Collection)dso;
-            ItemIterator iter = null;
+            Iterator<Item> iter = null;
             try
             {
-                iter = coll.getItems();
+                iter = itemService.findByCollection(Curator.curationContext(), coll);
                 while (iter.hasNext())
                 {
                     checkReplica(repMan, iter.next());
@@ -147,38 +155,24 @@ public class CompareWithAIP extends AbstractCurationTask
             {
                 throw new IOException(sqlE);
             }
-            finally
-            {
-                if (iter != null)
-                {
-                    iter.close();
-                }
-            }
         } //If Community, make sure all Sub-Communities/Collections have AIPs in remote storage
         else if (Constants.COMMUNITY == type)
         {
             Community comm = (Community)dso;
-            try
+            for (Community subcomm : comm.getSubcommunities())
             {
-                for (Community subcomm : comm.getSubcommunities())
-                {
-                    checkReplica(repMan, subcomm);
-                }
-                for (Collection coll : comm.getCollections())
-                {
-                    checkReplica(repMan, coll);
-                }
+                checkReplica(repMan, subcomm);
             }
-            catch (SQLException sqlE)
+            for (Collection coll : comm.getCollections())
             {
-                throw new IOException(sqlE);
+                checkReplica(repMan, coll);
             }
         } //if Site, check to see all Top-Level Communities have an AIP in remote storage
         else if (Constants.SITE == type)
         {
             try
             {
-                Community[] topComm = Community.findAllTop(Curator.curationContext());
+                List<Community> topComm = communityService.findAllTop(Curator.curationContext());
                 for (Community comm : topComm)
                 {
                     checkReplica(repMan, comm);

@@ -10,9 +10,10 @@ package org.dspace.ctask.replicate.store;
 import java.io.File;
 import java.io.IOException;
 
-import org.dspace.core.ConfigurationManager;
 import org.dspace.ctask.replicate.ObjectStore;
 import org.dspace.curate.Utils;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 
 /**
  * LocalObjectStore uses the local file system to manage replicas or other
@@ -29,6 +30,7 @@ import org.dspace.curate.Utils;
  * @author richardrodgers
  */
 public class LocalObjectStore implements ObjectStore {
+    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
     // where replicas are kept
     protected String storeDir = null;
@@ -40,7 +42,7 @@ public class LocalObjectStore implements ObjectStore {
     @Override
     public void init() throws IOException
     {
-        storeDir = ConfigurationManager.getProperty("replicate", "store.dir");
+        storeDir = configurationService.getProperty("replicate.store.dir");
         File storeFile = new File(storeDir);
         if (! storeFile.exists())
         {

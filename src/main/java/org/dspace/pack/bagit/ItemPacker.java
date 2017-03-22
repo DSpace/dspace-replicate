@@ -15,14 +15,16 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.Bitstream;
-import org.dspace.content.Bundle;
-import org.dspace.content.Collection;
-import org.dspace.content.DCValue;
-import org.dspace.content.Item;
+import org.dspace.content.*;
 
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.BitstreamService;
+import org.dspace.content.service.BundleService;
+import org.dspace.content.service.ItemService;
+import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import static org.dspace.pack.PackerFactory.*;
 
@@ -33,6 +35,10 @@ import static org.dspace.pack.PackerFactory.*;
  */
 public class ItemPacker implements Packer
 {
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private BundleService bundleService = ContentServiceFactory.getInstance().getBundleService();
+    private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
+
     private Item item = null;
     private String archFmt = null;
     private List<String> filterBundles = new ArrayList<String>();
@@ -68,7 +74,7 @@ public class ItemPacker implements Packer
         StringBuilder linked = new StringBuilder();
         for (Collection coll : item.getCollections())
         {
-            if (item.isOwningCollection(coll))
+            if (itemService.isOwningCollection(item, coll))
             {
                 fwriter.writeProperty(OWNER_ID, coll.getHandle());
             }
@@ -93,14 +99,14 @@ public class ItemPacker implements Packer
         // first user metadata
         writer.startStanza("metadata");
         Bag.Value value = new Bag.Value();
-        DCValue[] vals = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (DCValue val : vals)
+        List<MetadataValue> vals = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+        for (MetadataValue val : vals)
         {
-            value.addAttr("schema", val.schema);
-            value.addAttr("element", val.element);
-            value.addAttr("qualifier", val.qualifier);
-            value.addAttr("language", val.language);
-            value.val = val.value;
+            value.addAttr("schema", val.getMetadataField().getMetadataSchema().getName());
+            value.addAttr("element", val.getMetadataField().getElement());
+            value.addAttr("qualifier", val.getMetadataField().getQualifier());
+            value.addAttr("language", val.getLanguage());
+            value.val = val.getValue();
             writer.writeValue(value);
         }
         writer.endStanza();
@@ -112,7 +118,7 @@ public class ItemPacker implements Packer
             {
                 // only bundle metadata is the primary bitstream - remember it
                 // and place in bitstream metadata if defined
-                int primaryId = bundle.getPrimaryBitstreamID();
+                UUID primaryId = bundle.getPrimaryBitstream().getID();
                 for (Bitstream bs : bundle.getBitstreams())
                 {
                     // write metadata to xml file
@@ -141,7 +147,7 @@ public class ItemPacker implements Packer
                     else
                     {
                         // add bytes to bag
-                        bag.addData(relPath + seqId, bs.getSize(), bs.retrieve());
+                        bag.addData(relPath + seqId, bs.getSize(), bitstreamService.retrieve(Curator.curationContext(), bs));
                     }
                 }
             }
@@ -167,7 +173,9 @@ public class ItemPacker implements Packer
             Bag.Value value = null;
             while((value = reader.nextValue()) != null)
             {
-                item.addMetadata(value.attrs.get("schema"),
+                itemService.addMetadata(Curator.curationContext(),
+                                 item,
+                                 value.attrs.get("schema"),
                                  value.attrs.get("element"),
                                  value.attrs.get("qualifier"),
                                  value.attrs.get("language"),
@@ -183,7 +191,7 @@ public class ItemPacker implements Packer
             {
                 continue;
             }
-            Bundle bundle = item.createBundle(bfile.getName());
+            Bundle bundle = bundleService.create(Curator.curationContext(), item, bfile.getName());
             for (File file : bfile.listFiles(new FileFilter() {
                             public boolean accept(File file) {
                                 return ! file.getName().endsWith(".xml");
@@ -193,7 +201,7 @@ public class ItemPacker implements Packer
                 InputStream in = bag.dataStream(relPath);
                 if (in != null)
                 {
-                    Bitstream bs = bundle.createBitstream(in);
+                    Bitstream bs = bitstreamService.create(Curator.curationContext(), bundle, in);
                     // now set bitstream metadata
                     reader = bag.xmlReader(relPath + "-metadata.xml");
                     if (reader != null && reader.findStanza("metadata"))
@@ -205,15 +213,15 @@ public class ItemPacker implements Packer
                             String name = value.name;
                             if ("name".equals(name))
                             {
-                                bs.setName(value.val);
+                                bs.setName(Curator.curationContext(), value.val);
                             }
                             else if ("source".equals(name))
                             {
-                                bs.setSource(value.val);
+                                bs.setSource(Curator.curationContext(), value.val);
                             }
                             else if ("description".equals(name))
                             {
-                                bs.setDescription(value.val);
+                                bs.setDescription(Curator.curationContext(), value.val);
                             }
                             else if ("sequence_id".equals(name))
                             {
@@ -222,7 +230,7 @@ public class ItemPacker implements Packer
                             else if ("bundle_primary".equals(name))
                             {
                                 // special case - bundle metadata in bitstream
-                                bundle.setPrimaryBitstreamID(bs.getID());
+                                bundle.setPrimaryBitstreamID(bs);
                             }
                         }
                         reader.close();
@@ -232,7 +240,7 @@ public class ItemPacker implements Packer
                         String missing = relPath + "-metadata.xml";
                         throw new IOException("Cannot locate bitstream metadata file: " + missing);
                     }
-                    bs.update();
+                    bitstreamService.update(Curator.curationContext(), bs);
                 }
                 in.close();
             }

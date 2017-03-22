@@ -7,9 +7,8 @@
  */
 package org.dspace.ctask.replicate;
 
-import java.util.Properties;
+import java.util.List;
 import org.dspace.content.packager.PackageParameters;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.curate.AbstractCurationTask;
 
 /**
@@ -65,7 +64,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
     protected PackageParameters loadPackagerParameters(String moduleName)
     {
         //Load up the replicate-mets.cfg file & all settings inside it
-        Properties moduleProps = ConfigurationManager.getProperties(moduleName);
+        List<String> moduleProps = configurationService.getPropertyKeys(moduleName);
         
         PackageParameters pkgParams = new PackageParameters();
         
@@ -73,15 +72,15 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
         if(moduleProps!=null)
         {    
             //loop through all properties in the config file
-            for(String property : moduleProps.stringPropertyNames())
+            for(String property : moduleProps)
             {
-                //Only obey the setting(s) beginning with this task's ID/name, 
+                //Only obey the setting(s) beginning with this task's ID/name,
                 if(property.startsWith(this.taskId))
                 {
                     //Parse out the option name by removing the "[taskID]." from beginning of property
                     String option = property.replace(taskId + ".", "");
-                    String value = moduleProps.getProperty(property);
-                    
+                    String value = configurationService.getProperty(property);
+
                     //Check which option is being set
                     if(option.equalsIgnoreCase(recursiveMode))
                     {
@@ -90,7 +89,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
                     else if (option.equals(useWorkflow))
                     {
                         pkgParams.setWorkflowEnabled(Boolean.parseBoolean(value));
-                    } 
+                    }
                     else if (option.equals(useCollectionTemplate))
                     {
                         pkgParams.setUseCollectionTemplate(Boolean.parseBoolean(value));
@@ -100,7 +99,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
                         //just set it as a property in PackageParameters
                         pkgParams.addProperty(option, value);
                     }
-                }    
+                }
             }
 
             return pkgParams;

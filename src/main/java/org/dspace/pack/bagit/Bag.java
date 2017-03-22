@@ -43,10 +43,11 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 
 import org.dspace.curate.Utils;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 
 // Warning - static import ahead!
 import static javax.xml.stream.XMLStreamConstants.*;
-import org.dspace.core.ConfigurationManager;
 
 /**
  * Bag represents a rudimentary bag conformant to LC Bagit spec - version 0.96.
@@ -66,11 +67,13 @@ import org.dspace.core.ConfigurationManager;
  * @author richardrodgers
  */
 public class Bag {
+    private static ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+
     // coding constants
     private static final String ENCODING = "UTF-8";
     private static final String CS_ALGO = "MD5";
     private static final String BAGIT_VSN = "0.96";
-    private static final String DFLT_FMT = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private static final String DFLT_FMT = configurationService.getProperty("replicate.packer.archfmt");
 
     // mandated file names
     private static final String MANIF_FILE = "manifest-" + CS_ALGO.toLowerCase() + ".txt";

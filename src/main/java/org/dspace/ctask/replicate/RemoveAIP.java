@@ -11,8 +11,13 @@ package org.dspace.ctask.replicate;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.List;
+
 import org.dspace.content.*;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -30,13 +35,24 @@ import org.dspace.pack.bagit.CatalogPacker;
 @Distributive
 public class RemoveAIP extends AbstractCurationTask {
 
-    private String archFmt = ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private String archFmt;
 
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private String storeGroupName;
     
     // Group where object deletion catalog/records are stored
-    private final String deleteGroupName = ConfigurationManager.getProperty("replicate", "group.delete.name");
+    private String deleteGroupName;
+
+    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        archFmt = configurationService.getProperty("replicate.packer.archfmt");
+        storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+        deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
+    }
 
     /**
      * Removes replicas of passed object from the replica store.
@@ -75,7 +91,7 @@ public class RemoveAIP extends AbstractCurationTask {
         if (dso instanceof Collection) {
             Collection coll = (Collection)dso;
             try {
-                ItemIterator iter = coll.getItems();
+                Iterator<Item> iter = itemService.findByCollection(Curator.curationContext(), coll);
                 while (iter.hasNext()) {
                     remove(repMan, iter.next());
                 }
@@ -85,20 +101,16 @@ public class RemoveAIP extends AbstractCurationTask {
         } // else if it a Community, also remove all sub-communities, collections (and items) from AIP storage 
         else if (dso instanceof Community) {
             Community comm = (Community)dso;
-            try {
-                for (Community subcomm : comm.getSubcommunities()) {
-                    remove(repMan, subcomm);
-                }
-                for (Collection coll : comm.getCollections()) {
-                    remove(repMan, coll);
-                }
-            } catch (SQLException sqlE) {
-                throw new IOException(sqlE);
+            for (Community subcomm : comm.getSubcommunities()) {
+                remove(repMan, subcomm);
+            }
+            for (Collection coll : comm.getCollections()) {
+                remove(repMan, coll);
             }
         } //else if it is a Site object, remove all top-level communities (and everything else) from AIP storage
         else if (dso instanceof Site) {
             try {
-                Community[] topCommunities = Community.findAllTop(Curator.curationContext());
+                List<Community> topCommunities = communityService.findAllTop(Curator.curationContext());
                 
                 for (Community subcomm : topCommunities) {
                     remove(repMan, subcomm);

@@ -14,10 +14,15 @@ import java.io.IOException;
 import java.io.Writer;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 import org.dspace.content.*;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
 import org.dspace.core.Constants;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
@@ -45,16 +50,22 @@ public class TransmitManifest extends AbstractCurationTask {
     //Format extension for manifest files
     protected static final String MANIFEST_EXTENSION = "txt";
 
-    private static String template = null;
+    private String template = null;
     
     // Group where all Manifests will be stored
-    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
+    private String manifestGroupName;
     
-    static {
-        template = ConfigurationManager.getProperty("replicate", "checkm.template");
-    }
-
     private static Logger log = Logger.getLogger(TransmitManifest.class);
+
+    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        template = configurationService.getProperty("replicate.checkm.template");
+        manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
+    }
     
     /**
      * Perform 'Transmit Manifest' task
@@ -125,7 +136,7 @@ public class TransmitManifest extends AbstractCurationTask {
         Writer writer = manifestWriter(manFile);
         int count = 0;
         
-        Community[] topCommunities = Community.findAllTop(Curator.curationContext());
+        List<Community> topCommunities = communityService.findAllTop(Curator.curationContext());
         //Create top-level community manifests & transfer each
         for (Community comm : topCommunities)
         {
@@ -214,7 +225,7 @@ public class TransmitManifest extends AbstractCurationTask {
         int count = 0;
         
         //Create all Item manifests & transfer each
-        ItemIterator ii = coll.getItems();
+        Iterator<Item> ii = itemService.findByCollection(Curator.curationContext(), coll);
         while (ii.hasNext())
         {
             File itemMan = itemManifest(repMan, ii.next());
@@ -253,11 +264,11 @@ public class TransmitManifest extends AbstractCurationTask {
         // look through all ORIGINAL bitstreams, and add
         // information about each (e.g. checksum) to manifest
         int count = 0;
-        Bundle[] bundles = item.getBundles("ORIGINAL");
-        if(bundles!=null && bundles.length>0)
+        List<Bundle> bundles = itemService.getBundles(item, "ORIGINAL");
+        if(bundles!=null && bundles.size()>0)
         {    
             //there should be only one ORIGINAL bundle
-            Bundle bundle = bundles[0];
+            Bundle bundle = bundles.get(0);
             for (Bitstream bs : bundle.getBitstreams())
             {
                 int i = 0;

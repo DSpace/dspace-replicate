@@ -12,8 +12,13 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.List;
+
 import org.dspace.content.*;
-import org.dspace.core.ConfigurationManager;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
@@ -35,7 +40,16 @@ import org.dspace.curate.Distributive;
 public class RemoveManifest extends AbstractCurationTask {
 
     // Group where all Manifests are stored
-    private final String manifestGroupName = ConfigurationManager.getProperty("replicate", "group.manifest.name");
+    private String manifestGroupName;
+
+    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+
+    @Override
+    public void init(Curator curator, String taskId) throws IOException {
+        super.init(curator, taskId);
+        manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
+    }
     
     /**
      * Removes replicas of passed object from the replica store.
@@ -76,7 +90,7 @@ public class RemoveManifest extends AbstractCurationTask {
         if (dso instanceof Collection) {
             Collection coll = (Collection)dso;
             try {
-                ItemIterator iter = coll.getItems();
+                Iterator<Item> iter = itemService.findByCollection(Curator.curationContext(), coll);
                 while (iter.hasNext()) {
                     remove(repMan, iter.next());
                 }
@@ -85,19 +99,15 @@ public class RemoveManifest extends AbstractCurationTask {
             }
         } else if (dso instanceof Community) {
             Community comm = (Community)dso;
-            try {
-                for (Community subcomm : comm.getSubcommunities()) {
-                    remove(repMan, subcomm);
-                }
-                for (Collection coll : comm.getCollections()) {
-                    remove(repMan, coll);
-                }
-            } catch (SQLException sqlE) {
-                throw new IOException(sqlE);
+            for (Community subcomm : comm.getSubcommunities()) {
+                remove(repMan, subcomm);
+            }
+            for (Collection coll : comm.getCollections()) {
+                remove(repMan, coll);
             }
         } else if (dso instanceof Site) {
             try {
-                Community[] topCommunities = Community.findAllTop(Curator.curationContext());
+                List<Community> topCommunities = communityService.findAllTop(Curator.curationContext());
                 
                 for (Community subcomm : topCommunities) {
                     remove(repMan, subcomm);

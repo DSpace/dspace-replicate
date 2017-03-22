@@ -10,13 +10,19 @@ package org.dspace.pack.bagit;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Iterator;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
-import org.dspace.content.ItemIterator;
 
+import org.dspace.content.Item;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.BitstreamService;
+import org.dspace.content.service.CollectionService;
+import org.dspace.content.service.ItemService;
+import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 
@@ -29,6 +35,10 @@ import static org.dspace.pack.PackerFactory.*;
  */
 public class CollectionPacker implements Packer
 {
+    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
+
     // NB - these values must remain synchronized with DB schema
     // they represent the peristent object state
     private static final String[] fields =
@@ -70,7 +80,7 @@ public class CollectionPacker implements Packer
         fwriter.writeProperty(BAG_TYPE, "AIP");
         fwriter.writeProperty(OBJECT_TYPE, "collection");
         fwriter.writeProperty(OBJECT_ID, collection.getHandle());
-        Community parent = collection.getCommunities()[0];
+        Community parent = collection.getCommunities().get(0);
         if (parent != null)
         {
             fwriter.writeProperty(OWNER_ID, parent.getHandle());
@@ -81,7 +91,7 @@ public class CollectionPacker implements Packer
         writer.startStanza("metadata");
         for (String field : fields)
         {
-            String val = collection.getMetadata(field);
+            String val = collectionService.getMetadata(collection, field);
             if (val != null)
             {
                 writer.writeValue(field, val);
@@ -93,7 +103,7 @@ public class CollectionPacker implements Packer
         Bitstream logo = collection.getLogo();
         if (logo != null)
         {
-            bag.addData("logo", logo.getSize(), logo.retrieve());
+            bag.addData("logo", logo.getSize(), bitstreamService.retrieve(Curator.curationContext(), logo));
         }
         bag.close();
         File archive = bag.deflate(archFmt);
@@ -117,14 +127,14 @@ public class CollectionPacker implements Packer
             Bag.Value value = null;
             while((value = reader.nextValue()) != null)
             {
-                collection.setMetadata(value.name, value.val);
+                collectionService.setMetadata(Curator.curationContext(), collection, value.name, value.val);
             }
             reader.close();
         }
           // also install logo or set to null
-        collection.setLogo(bag.dataStream("logo"));
+        collectionService.setLogo(Curator.curationContext(), collection, bag.dataStream("logo"));
         // now write data back to DB
-        collection.update();
+        collectionService.update(Curator.curationContext(), collection);
          // clean up bag
         bag.empty();
     }
@@ -142,7 +152,7 @@ public class CollectionPacker implements Packer
         // proceed to items, unless 'norecurse' set
         if (! "norecurse".equals(method))
         {
-            ItemIterator itemIter = collection.getItems();
+            Iterator<Item> itemIter = itemService.findByCollection(Curator.curationContext(), collection);
             ItemPacker iPup = null;
             while (itemIter.hasNext())
             {

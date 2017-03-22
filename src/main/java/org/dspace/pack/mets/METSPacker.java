@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.dspace.authorize.AuthorizeException;
@@ -21,20 +22,24 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
-import org.dspace.content.ItemIterator;
 import org.dspace.content.crosswalk.CrosswalkException;
+import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.AbstractPackageIngester;
 import org.dspace.content.packager.PackageDisseminator;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageIngester;
 import org.dspace.content.packager.PackageParameters;
+import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.core.Constants;
-import org.dspace.core.PluginManager;
+import org.dspace.core.factory.CoreServiceFactory;
+import org.dspace.core.service.PluginService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 
 import org.apache.log4j.Logger;
+import org.dspace.workflow.WorkflowException;
 
 /**
  * METSPacker packs and unpacks Item AIPs in METS compressed archives
@@ -43,6 +48,10 @@ import org.apache.log4j.Logger;
  */
 public class METSPacker implements Packer
 {
+    private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
+    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+
     private Logger log = Logger.getLogger(METSPacker.class);
     
     /** Related DSpace Object **/
@@ -108,7 +117,7 @@ public class METSPacker implements Packer
         //retrieve specified package disseminator
         if (dip == null)
         {
-            dip = (PackageDisseminator)PluginManager.
+            dip = (PackageDisseminator) pluginService.
                   getNamedPlugin(PackageDisseminator.class, "AIP");
         }
         if (dip == null)
@@ -187,7 +196,7 @@ public class METSPacker implements Packer
         }
         if (sip == null)
         {
-            sip = (PackageIngester) PluginManager
+            sip = (PackageIngester) pluginService
                     .getNamedPlugin(PackageIngester.class, "AIP");
         }
         if (sip == null)
@@ -254,6 +263,10 @@ public class METSPacker implements Packer
         {
             throw new IOException(xwkE.getMessage(), xwkE);
         }
+        catch (WorkflowException wfE)
+        {
+            throw new IOException(wfE.getMessage(), wfE);
+        }
         
         //If we are using a class that extends AbstractPackageIngester, 
         //then we can save the child AIP references for later processing.
@@ -315,7 +328,7 @@ public class METSPacker implements Packer
         // up the size of all Community, Collection & Item AIPs
         //Then, perform this task for all Top-Level Communities in the Site
         // (this will recursively perform task for all objects in DSpace)
-        for (Community subcomm : Community.findAllTop(ctx))
+        for (Community subcomm : communityService.findAllTop(ctx))
         {
             size += communitySize(subcomm);
         }
@@ -372,7 +385,7 @@ public class METSPacker implements Packer
         {
             size += logo.getSize();
         }
-        ItemIterator itemIter = collection.getItems();
+        Iterator<Item> itemIter = itemService.findByCollection(Curator.curationContext(), collection);
         while (itemIter.hasNext())
         {
             size += itemSize(itemIter.next());
