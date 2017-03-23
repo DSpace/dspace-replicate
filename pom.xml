@@ -5,7 +5,7 @@
     <packaging>jar</packaging>
     <name>DSpace Replication Task Suite</name>
     <url>https://wiki.duraspace.org/display/DSPACE/ReplicationTaskSuite</url>
-    <version>3.4-SNAPSHOT</version>
+    <version>6.0</version>
 
     <organization>
         <name>DuraSpace</name>
@@ -74,7 +74,7 @@
         <connection>scm:git:git@github.com:DSpace/dspace-replicate.git</connection>
         <developerConnection>scm:git:git@github.com:DSpace/dspace-replicate.git</developerConnection>
         <url>git@github.com:DSpace/dspace-replicate.git</url>
-        <tag>HEAD</tag>
+        <tag>dspace-replicate-6.0</tag>
     </scm>
 
     <dependencies>
