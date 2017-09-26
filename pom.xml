@@ -5,7 +5,7 @@
     <packaging>jar</packaging>
     <name>DSpace Replication Task Suite</name>
     <url>https://wiki.duraspace.org/display/DSPACE/ReplicationTaskSuite</url>
-    <version>3.3</version>
+    <version>3.4-SNAPSHOT</version>
 
     <organization>
         <name>DuraSpace</name>
@@ -23,7 +23,7 @@
         <!-- DSpace Version Information (supported version of DSpace) -->
         <dspace.version>[3.0,4.0)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-        <duracloud.version>3.7.4</duracloud.version>
+        <duracloud.version>4.3.9</duracloud.version>
     </properties>
 
     <build>
