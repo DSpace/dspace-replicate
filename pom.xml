@@ -23,7 +23,7 @@
         <!-- DSpace Version Information (supported version of DSpace) -->
         <dspace.version>[3.0,4.0)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-        <duracloud.version>4.3.9</duracloud.version>
+        <duracloud.version>4.4.0</duracloud.version>
     </properties>
 
     <build>
