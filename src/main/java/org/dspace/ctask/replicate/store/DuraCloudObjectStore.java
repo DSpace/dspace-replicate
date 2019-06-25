@@ -74,22 +74,24 @@ public class DuraCloudObjectStore implements ObjectStore
         long size = 0L;
         try
         {
+            java.util.Map<String, String> props =
+                dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id);
+            size = Long.valueOf(props.get(ContentStore.CONTENT_SIZE));
              // DEBUG REMOVE
-            long start = System.currentTimeMillis();
+            // long start = System.currentTimeMillis();
             Content content = dcStore.getContent(getSpaceID(group), getContentPrefix(group) + id);
-            // DEBUG REMOVE
-            long elapsed = System.currentTimeMillis() - start;
+            // DEBUG REMOVE// long elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC fetch content: " + elapsed);
-            size = Long.valueOf(content.getProperties().get(ContentStore.CONTENT_SIZE));
+            // size = Long.valueOf(content.getProperties().get(ContentStore.CONTENT_SIZE));
             FileOutputStream out = new FileOutputStream(file);
             // DEBUG remove
-            start = System.currentTimeMillis();
+            // start = System.currentTimeMillis();
             InputStream in = content.getStream();
             Utils.copy(in, out);
             in.close();
             out.close();
              // DEBUG REMOVE
-            elapsed = System.currentTimeMillis() - start;
+            // elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC fetch download: " + elapsed);
         }
         catch (NotFoundException nfE)

@@ -74,11 +74,13 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
             //loop through all properties in the config file
             for(String property : moduleProps)
             {
+                String propertyName = property.replace(moduleName + ".", "");
+
                 //Only obey the setting(s) beginning with this task's ID/name,
-                if(property.startsWith(this.taskId))
+                if(propertyName.startsWith(this.taskId))
                 {
                     //Parse out the option name by removing the "[taskID]." from beginning of property
-                    String option = property.replace(taskId + ".", "");
+                    String option = propertyName.replace(taskId + ".", "");
                     String value = configurationService.getProperty(property);
 
                     //Check which option is being set
