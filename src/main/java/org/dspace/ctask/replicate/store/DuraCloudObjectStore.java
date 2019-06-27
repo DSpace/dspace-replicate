@@ -78,7 +78,7 @@ public class DuraCloudObjectStore implements ObjectStore
                 dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id);
             size = Long.valueOf(props.get(ContentStore.CONTENT_SIZE));
 
-             // DEBUG REMOVE
+            // DEBUG REMOVE
             // long start = System.currentTimeMillis();
             Content content = dcStore.getContent(getSpaceID(group), getContentPrefix(group) + id);
             // DEBUG REMOVE
@@ -91,7 +91,7 @@ public class DuraCloudObjectStore implements ObjectStore
             Utils.copy(in, out);
             in.close();
             out.close();
-             // DEBUG REMOVE
+            // DEBUG REMOVE
             // elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC fetch download: " + elapsed);
         }
