@@ -353,7 +353,7 @@ public class METSPacker implements Packer
         Bitstream logo = community.getLogo();
         if (logo != null)
         {
-            size += logo.getSize();
+            size += logo.getSizeBytes();
         }
         for (Community comm : community.getSubcommunities())
         {
@@ -383,7 +383,7 @@ public class METSPacker implements Packer
         Bitstream logo = collection.getLogo();
         if (logo != null)
         {
-            size += logo.getSize();
+            size += logo.getSizeBytes();
         }
         Iterator<Item> itemIter = itemService.findByCollection(Curator.curationContext(), collection);
         while (itemIter.hasNext())
@@ -412,7 +412,7 @@ public class METSPacker implements Packer
             {
                 for (Bitstream bs : bundle.getBitstreams())
                 {
-                    size += bs.getSize();
+                    size += bs.getSizeBytes();
                 }
             }
         }

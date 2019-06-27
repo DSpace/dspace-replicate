@@ -142,12 +142,12 @@ public class ItemPacker implements Packer
                     if (url != null)
                     {
                         // add reference to bag
-                        bag.addDataRef(relPath + seqId, bs.getSize(), url);
+                        bag.addDataRef(relPath + seqId, bs.getSizeBytes(), url);
                     }
                     else
                     {
                         // add bytes to bag
-                        bag.addData(relPath + seqId, bs.getSize(), bitstreamService.retrieve(Curator.curationContext(), bs));
+                        bag.addData(relPath + seqId, bs.getSizeBytes(), bitstreamService.retrieve(Curator.curationContext(), bs));
                     }
                 }
             }
@@ -260,7 +260,7 @@ public class ItemPacker implements Packer
             {
                 for (Bitstream bs : bundle.getBitstreams())
                 {
-                    size += bs.getSize();
+                    size += bs.getSizeBytes();
                 }
             }
         }
@@ -304,7 +304,7 @@ public class ItemPacker implements Packer
         for (RefFilter filter : refFilters)
         {
             if (filter.bundle.equals(bundle.getName()) &&
-                filter.size == bs.getSize())
+                filter.size == bs.getSizeBytes())
             {
                 return filter.url;
             }

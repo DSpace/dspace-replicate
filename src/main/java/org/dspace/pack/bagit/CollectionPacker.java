@@ -103,7 +103,7 @@ public class CollectionPacker implements Packer
         Bitstream logo = collection.getLogo();
         if (logo != null)
         {
-            bag.addData("logo", logo.getSize(), bitstreamService.retrieve(Curator.curationContext(), logo));
+            bag.addData("logo", logo.getSizeBytes(), bitstreamService.retrieve(Curator.curationContext(), logo));
         }
         bag.close();
         File archive = bag.deflate(archFmt);
@@ -147,7 +147,7 @@ public class CollectionPacker implements Packer
         Bitstream logo = collection.getLogo();
         if (logo != null)
         {
-            size += logo.getSize();
+            size += logo.getSizeBytes();
         }
         // proceed to items, unless 'norecurse' set
         if (! "norecurse".equals(method))
