@@ -11,6 +11,8 @@ package org.dspace.ctask.replicate;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
@@ -44,11 +46,13 @@ public class TransmitAIP extends AbstractCurationTask
 {
     // Group where all AIPs will be stored
     private String storeGroupName;
+    private String skipList;
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {
         super.init(curator, taskId);
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
+        skipList = configurationService.getProperty("replicate.transmitaip.skiplist");
     }
 
 
@@ -63,17 +67,45 @@ public class TransmitAIP extends AbstractCurationTask
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
+        if (skipList != null) {
+            List<String> skipIds = createSkipList(skipList);
+            for (String id : skipIds) {
+                if (id.trim().contentEquals(dso.getHandle())) {
+                    String msg = "SKIP-LIST: This item is in the replicate skiplist: " + dso.getHandle();
+                    report(msg);
+                    setResult(msg);
+                    return Curator.CURATE_SKIP;
+                }
+            }
+        }
+
         ReplicaManager repMan = ReplicaManager.instance();
             
         Packer packer = PackerFactory.instance(dso);
         try
         {
             File archive = packer.pack(repMan.stage(storeGroupName, dso.getHandle()));
-            String msg = "Created AIP: '" + archive.getName() + 
-                         "' size: " + archive.length();
-            repMan.transferObject(storeGroupName, archive);
-            setResult(msg);
-            return Curator.CURATE_SUCCESS;
+            long size = repMan.transferObject(storeGroupName, archive);
+            // The DuraCloud transmission failed. Currently, curate tasks
+            // suspend processing if either CURATE_FAIL or CURATE_ERROR are returned.
+            if (size == -1) {
+                String result = "Transmission to DuraCloud failed for:" + dso.getHandle();
+                setResult(result);
+                report(result);
+                return Curator.CURATE_UNSET;
+            }
+            // File was not transmitted to DuraCloud (because the checksums matched).
+            // For local object stores the size will always be non-zero.
+            else if (size == 0L) {
+                setResult("Checksum matched. New AIP was not transmitted for " + dso.getHandle());
+                return Curator.CURATE_SUCCESS;
+            }
+            else {
+                String successMsg = "Created AIP: '" + archive.getName() +
+                    "' size: " + archive.length();
+                setResult(successMsg);
+                return Curator.CURATE_SUCCESS;
+            }
         }
         catch (AuthorizeException authE)
         {
@@ -83,5 +115,12 @@ public class TransmitAIP extends AbstractCurationTask
         {
             throw new IOException(sqlE);
         }
+    }
+
+    private List<String> createSkipList(String skipList) {
+        String[] skip;
+        skip = skipList.split(",");
+        return Arrays.asList(skip);
+
     }
 }

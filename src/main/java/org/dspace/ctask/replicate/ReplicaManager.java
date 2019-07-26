@@ -258,7 +258,7 @@ public class ReplicaManager {
         return file.exists() ? file : null;
     }
     
-    public void transferObject(String group, File file) throws IOException {
+    public long transferObject(String group, File file) throws IOException {
         String psStr = objStore.objectAttribute(group, file.getName(), "sizebytes");
         long prevSize = psStr != null ? Long.valueOf(psStr) : 0L;
         long size = objStore.transferObject(group, file);
@@ -272,7 +272,8 @@ public class ReplicaManager {
                 }
                 odometer.save();
             }
-        }       
+        }
+        return size;
     }
     
     public boolean objectExists(String group, String objId) throws IOException {

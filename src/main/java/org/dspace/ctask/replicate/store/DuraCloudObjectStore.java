@@ -7,11 +7,7 @@
  */
 package org.dspace.ctask.replicate.store;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -167,7 +163,8 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE);
+            // Log the DuraCloud exception message for getContentProperties.
+            System.out.println(csE.getMessage());
         }
         // delete staging file
         file.delete();
@@ -192,12 +189,18 @@ public class DuraCloudObjectStore implements ObjectStore
                                new FileInputStream(file), file.length(),
                                mimeType, chkSum,
                                new HashMap<String, String>());
-        
             return file.length();
+
         }
         catch (ContentStoreException csE)
         {
-            throw new IOException(csE);
+            // Log the DuraCloud exception for addContent.
+            System.out.println(csE.getMessage());
+            // Setting to -1 causes the TransmitAip task to report the transmission error.
+            return -1;
+        }
+        catch (FileNotFoundException e) {
+            throw new IOException(e.getMessage());
         }
     }
 
@@ -262,7 +265,7 @@ public class DuraCloudObjectStore implements ObjectStore
      * If the group contains a forward slash ('/'), then the substring
      * before the first slash is assumed to be the Space ID.
      * Otherwise, the entire group name is assumed to be the Space ID.
-     * @param String group name
+     * @param group name
      * @return DuraCloud Space ID
      */
     private String getSpaceID(String group)
@@ -282,7 +285,7 @@ public class DuraCloudObjectStore implements ObjectStore
      * If the group contains a forward slash ('/'), then the substring
      * after the first slash is assumed to be the content naming prefix.
      * Otherwise, there is no content naming prefix.
-     * @param String group name
+     * @param group name
      * @return content prefix (ending with a forward slash)
      */
     private String getContentPrefix(String group)
