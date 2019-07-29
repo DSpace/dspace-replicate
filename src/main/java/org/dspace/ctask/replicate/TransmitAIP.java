@@ -71,9 +71,9 @@ public class TransmitAIP extends AbstractCurationTask
             List<String> skipIds = createSkipList(skipList);
             for (String id : skipIds) {
                 if (id.trim().contentEquals(dso.getHandle())) {
-                    String msg = "SKIP-LIST: This item is in the replicate skiplist: " + dso.getHandle();
-                    report(msg);
+                    String msg = "This item is in the replicate skiplist: " + dso.getHandle();
                     setResult(msg);
+                    report(msg);
                     return Curator.CURATE_SKIP;
                 }
             }
@@ -94,8 +94,8 @@ public class TransmitAIP extends AbstractCurationTask
                 report(result);
                 return Curator.CURATE_UNSET;
             }
-            // File was not transmitted to DuraCloud (because the checksums matched).
-            // For local object stores the size will always be non-zero.
+            // File was not transmitted to DuraCloud because the checksums matched.
+            // (For local object stores the size will always be non-zero.)
             else if (size == 0L) {
                 setResult("Checksum matched. New AIP was not transmitted for " + dso.getHandle());
                 return Curator.CURATE_SUCCESS;

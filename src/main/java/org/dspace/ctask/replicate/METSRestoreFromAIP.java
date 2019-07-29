@@ -22,6 +22,7 @@ import org.dspace.pack.mets.METSPacker;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.packager.PackageParameters;
+import org.elasticsearch.common.recycler.Recycler;
 
 /**
  * METSRestoreFromAIP task will instate the METS AIP replica representation of the object in
@@ -106,6 +107,9 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         else
         {
             result = "Failed to update Object '" + id + "'. AIP could not be found in Replica Store.";
+            // Currently, CURATE_FAIL will suspend processing. Instead, we should continue
+            // processing and report the error.
+            status = Curator.CURATE_UNSET;
         }
              
         report(result);
@@ -164,7 +168,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
             //check if recursiveMode is enabled (restore/replace multiple objects)
             if(pkgParams.recursiveModeEnabled())
             {
-                //See if this package refered to child packages, 
+                //See if this package referred to child packages,
                 //if so, we want to also replace those child objects
                 List<String> childPkgRefs = packer.getChildPackageRefs();
                 if(childPkgRefs!=null && !childPkgRefs.isEmpty())
@@ -180,7 +184,9 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
                         }
                         else
                         {
-                            throw new IOException("Archive " + childRef + " was not found in Replica Store");
+                            String msg = "NOT FOUND: Archive " + childRef + " was not found in Replica Store";
+                            setResult(msg);
+                            report(msg);
                         }
                     }    
                 }
@@ -255,7 +261,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         
         //is it recursive?
         if(pkgParams.recursiveModeEnabled())
-            resultMsg += "(and all child objects) ";
+            resultMsg += "(and all found child objects) ";
         
         //complete message;
         resultMsg += "from AIP.";

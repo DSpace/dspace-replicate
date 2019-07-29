@@ -189,7 +189,8 @@ public class DuraCloudObjectStore implements ObjectStore
                                new FileInputStream(file), file.length(),
                                mimeType, chkSum,
                                new HashMap<String, String>());
-            return file.length();
+
+             return file.length();
 
         }
         catch (ContentStoreException csE)
