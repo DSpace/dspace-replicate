@@ -163,8 +163,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            // Log the DuraCloud exception message for getContentProperties.
-            System.out.println(csE.getMessage());
+            throw new IOException(csE.getMessage());
         }
         // delete staging file
         file.delete();
@@ -195,10 +194,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         catch (ContentStoreException csE)
         {
-            // Log the DuraCloud exception for addContent.
-            System.out.println(csE.getMessage());
-            // Setting to -1 causes the TransmitAip task to report the transmission error.
-            return -1;
+            throw new IOException(csE.getMessage());
         }
         catch (FileNotFoundException e) {
             throw new IOException(e.getMessage());

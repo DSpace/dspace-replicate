@@ -244,8 +244,10 @@ public class ReplicaManager {
     public File fetchObject(String group, String objId) throws IOException
     {
         //String repId = safeId(id) + "." + arFmt;
+        long size = 0L;
         File file = stage(group, objId);
-        long size = objStore.fetchObject(group, objId, file);
+        size = objStore.fetchObject(group, objId, file);
+
         if (size > 0L)
         {
             synchronized (odoLock)

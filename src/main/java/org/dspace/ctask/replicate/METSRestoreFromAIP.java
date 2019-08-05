@@ -22,7 +22,6 @@ import org.dspace.pack.mets.METSPacker;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.packager.PackageParameters;
-import org.elasticsearch.common.recycler.Recycler;
 
 /**
  * METSRestoreFromAIP task will instate the METS AIP replica representation of the object in
@@ -47,6 +46,9 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
     
     // Name of module configuration file specific to METS based AIPs
     private final String metsModuleConfig = "replicate-mets";
+
+    // Used to report errors encountered while processing child objects.
+    private int errorCount = 0;
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {
@@ -77,8 +79,8 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         
         //Look for object in Replica Store
         String objId = repMan.storageId(id, archFmt);
-        File archive = repMan.fetchObject(storeGroupName, objId);
-          
+
+        File archive = getArchive(storeGroupName, objId, repMan);
         if (archive != null) 
         {
             //Load packaging options from replicate-mets.cfg configuration file
@@ -89,42 +91,38 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
             
             //restore/replace object represented by this archive file
             //(based on packaging params, this may also restore/replace all child objects too)
+
             restoreObject(repMan, archive, pkgParams);
 
             //Check if a deletion catalog exists for this object
             String catId = repMan.deletionCatalogId(id, archFmt);
-            File catArchive = repMan.fetchObject(deleteGroupName, catId);
+            File catArchive = getArchive(deleteGroupName, catId, repMan);
             if (catArchive != null) {
                 // remove the deletion catalog (as the object is now restored)
                 repMan.removeObject(deleteGroupName, catId);
                 // remove from local cache as well
                 catArchive.delete();
             }
-            
             result = getSuccessMsg(id, pkgParams);
             status = Curator.CURATE_SUCCESS;
         }
         else
         {
-            result = "Failed to update Object '" + id + "'. AIP could not be found in Replica Store.";
-            // Currently, CURATE_FAIL will suspend processing. Instead, we should continue
-            // processing and report the error.
-            status = Curator.CURATE_UNSET;
+            result = "Failed to update Object '" + objId + "'. AIP could not be found in Replica Store.";
+            // Suspend in UI.
+            status = Curator.CURATE_FAIL;
         }
              
         report(result);
         setResult(result);
         return status;
     }
-    
-    
-    
+
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
         int status = Curator.CURATE_FAIL;
-        try
-        {
+        try {
             //Get Context from current curation thread
             Context ctx = Curator.curationContext();
             status = perform(ctx, dso.getHandle());
@@ -136,7 +134,6 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         }
         return status;
     }
-    
     
     /**
      * Restores/Replaces a DSpace Object (along with possibly its child objects),
@@ -175,8 +172,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
                 {
                     for(String childRef : childPkgRefs)
                     {
-                        File childArchive = repMan.fetchObject(storeGroupName, childRef);
-
+                        File childArchive = getArchive(storeGroupName, childRef, repMan);
                         if(childArchive!=null)
                         {
                             //recurse to restore/replace this child object (and all its children)
@@ -184,9 +180,11 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
                         }
                         else
                         {
-                            String msg = "NOT FOUND: Archive " + childRef + " was not found in Replica Store";
-                            setResult(msg);
+                            String msg = "Not restored/replaced: Archive " + childRef + " was not found in Replica Store.";
                             report(msg);
+                            setResult(msg);
+                            // Keep track of error count during recursion.
+                            errorCount++;
                         }
                     }    
                 }
@@ -200,8 +198,29 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         {
             throw new IOException(sqle);
         }
-    }        
-    
+    }
+
+    /**
+     * Fetches archive file from the store and reports any store exceptions.
+     * @param group
+     * @param id
+     * @param repMan
+     * @return the archive file
+     */
+    private File getArchive(String group, String id, ReplicaManager repMan) {
+        File archive = null;
+        try {
+            archive = repMan.fetchObject(group, id);
+        } catch (IOException ie) {
+            // report the error and let callers deal with the error count and status.
+            report(ie.getMessage());
+            setResult(ie.getMessage());
+            // TODO this is duplicate logging for when the task reporter is not available. There's probably a better
+            // solution.
+            log.error(ie);
+        }
+        return archive;
+    }
     
     /**
      * Return a human-friendly 'start processing' message based on the 
@@ -244,28 +263,30 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
      * @param pkgParams PackageParameters (used to determine actions)
      * @return human-friendly result message
      */
-    private String getSuccessMsg(String objId, PackageParameters pkgParams)
-    {
+    private String getSuccessMsg(String objId, PackageParameters pkgParams) {
         String resultMsg = "Successfully ";
-        
+
         //add action
-        if(pkgParams.replaceModeEnabled())
+        if (pkgParams.replaceModeEnabled())
             resultMsg += "replaced ";
         else if (pkgParams.keepExistingModeEnabled())
             resultMsg += "restored (keep-existing mode) ";
         else
             resultMsg += "restored ";
-        
+
         //add object info
-        resultMsg += "Object '" + objId +"' ";
-        
+        resultMsg += "Object '" + objId + "' from AIP.";
+
         //is it recursive?
-        if(pkgParams.recursiveModeEnabled())
-            resultMsg += "(and all found child objects) ";
-        
-        //complete message;
-        resultMsg += "from AIP.";
+        if (pkgParams.recursiveModeEnabled()) {
+            if (errorCount == 0) {
+                resultMsg += "(Including all child objects.) ";
+            } else {
+                resultMsg += " (Missing " + errorCount + " child objects, see log for details.) ";
+            }
+        }
+
         return resultMsg;
     }
-    
+
 }

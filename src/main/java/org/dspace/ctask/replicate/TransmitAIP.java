@@ -46,13 +46,13 @@ public class TransmitAIP extends AbstractCurationTask
 {
     // Group where all AIPs will be stored
     private String storeGroupName;
-    private String skipList;
+    private String[] skipList;
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {
         super.init(curator, taskId);
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
-        skipList = configurationService.getProperty("replicate.transmitaip.skiplist");
+        skipList = configurationService.getArrayProperty("replicate.transmitaip.skiplist");
     }
 
 
@@ -68,7 +68,7 @@ public class TransmitAIP extends AbstractCurationTask
     public int perform(DSpaceObject dso) throws IOException
     {
         if (skipList != null) {
-            List<String> skipIds = createSkipList(skipList);
+            List<String> skipIds = Arrays.asList(skipList);
             for (String id : skipIds) {
                 if (id.trim().contentEquals(dso.getHandle())) {
                     String msg = "This item is in the replicate skiplist: " + dso.getHandle();
@@ -86,26 +86,28 @@ public class TransmitAIP extends AbstractCurationTask
         {
             File archive = packer.pack(repMan.stage(storeGroupName, dso.getHandle()));
             long size = repMan.transferObject(storeGroupName, archive);
-            // The DuraCloud transmission failed. Currently, curate tasks
-            // suspend processing if either CURATE_FAIL or CURATE_ERROR are returned.
-            if (size == -1) {
-                String result = "Transmission to DuraCloud failed for:" + dso.getHandle();
-                setResult(result);
-                report(result);
-                return Curator.CURATE_UNSET;
-            }
-            // File was not transmitted to DuraCloud because the checksums matched.
-            // (For local object stores the size will always be non-zero.)
-            else if (size == 0L) {
-                setResult("Checksum matched. New AIP was not transmitted for " + dso.getHandle());
+
+            // TODO: should we report successes to the log file, as well as failures?
+
+            // File not transmitted to DuraCloud because the checksums matched.
+            // (For local object stores the size should always be non-zero.)
+            if (size == 0L) {
+                setResult("Checksum matched so AIP was not transmitted to DuraCloud for " + dso.getHandle());
                 return Curator.CURATE_SUCCESS;
             }
             else {
                 String successMsg = "Created AIP: '" + archive.getName() +
-                    "' size: " + archive.length();
+                    "' size: " + size;
                 setResult(successMsg);
                 return Curator.CURATE_SUCCESS;
             }
+        }
+        catch (IOException e) {
+            // Report the reason.
+            report(e.getMessage());
+            setResult("Transmission failed for:" + dso.getHandle() + ". " + e.getMessage());
+            // This will suspend task when running from the UI.
+            return Curator.CURATE_FAIL;
         }
         catch (AuthorizeException authE)
         {
@@ -117,10 +119,4 @@ public class TransmitAIP extends AbstractCurationTask
         }
     }
 
-    private List<String> createSkipList(String skipList) {
-        String[] skip;
-        skip = skipList.split(",");
-        return Arrays.asList(skip);
-
-    }
 }
