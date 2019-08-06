@@ -182,7 +182,6 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
                         {
                             String msg = "Not restored/replaced: Archive " + childRef + " was not found in Replica Store.";
                             report(msg);
-                            setResult(msg);
                             // Keep track of error count during recursion.
                             errorCount++;
                         }
