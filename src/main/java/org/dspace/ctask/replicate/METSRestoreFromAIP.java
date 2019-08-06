@@ -214,7 +214,6 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         } catch (IOException ie) {
             // report the error and let callers deal with the error count and status.
             report(ie.getMessage());
-            setResult(ie.getMessage());
             // TODO this is duplicate logging for when the task reporter is not available. There's probably a better
             // solution.
             log.error(ie);
