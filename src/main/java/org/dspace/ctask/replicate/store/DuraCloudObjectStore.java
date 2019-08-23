@@ -40,7 +40,7 @@ public class DuraCloudObjectStore implements ObjectStore
 
     // DuraCloud store
     private ContentStore dcStore = null;
-    
+
     public DuraCloudObjectStore()
     {
     }
@@ -53,17 +53,17 @@ public class DuraCloudObjectStore implements ObjectStore
             new ContentStoreManagerImpl(configurationService.getProperty("duracloud.host"),
                                         configurationService.getProperty("duracloud.port"),
                                         configurationService.getProperty("duracloud.context"));
-        Credential credential = 
+        Credential credential =
             new Credential(configurationService.getProperty("duracloud.username"),
                            configurationService.getProperty("duracloud.password"));
         storeManager.login(credential);
         try
         {
-            //Get the primary content store (e.g. Amazon)   
+            //Get the primary content store (e.g. Amazon)
             dcStore = storeManager.getPrimaryContentStore();
         }
         catch (ContentStoreException csE)
-        {      
+        {
             throw new IOException("Unable to connect to the DuraCloud Primary Content Store. Please check the DuraCloud connection/authentication settings in your 'duracloud.cfg' file.", csE);
         }
     }
@@ -74,23 +74,41 @@ public class DuraCloudObjectStore implements ObjectStore
         long size = 0L;
         try
         {
-             // DEBUG REMOVE
-            long start = System.currentTimeMillis();
+            // DEBUG REMOVE
+            //long start = System.currentTimeMillis();
+
             Content content = dcStore.getContent(getSpaceID(group), getContentPrefix(group) + id);
             // DEBUG REMOVE
-            long elapsed = System.currentTimeMillis() - start;
+            //long elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC fetch content: " + elapsed);
-            size = Long.valueOf(content.getProperties().get(ContentStore.CONTENT_SIZE));
-            FileOutputStream out = new FileOutputStream(file);
+
+            // Attempt to get size from request header
+            String contentSizeHeader = content.getProperties().get(ContentStore.CONTENT_SIZE);
+            try {
+                size = Long.valueOf(contentSizeHeader);
+            }
+            catch(NumberFormatException nfe) {
+                // ignore - header was missing or not a valid Long. We will determine size below
+            }
+
             // DEBUG remove
-            start = System.currentTimeMillis();
+            // start = System.currentTimeMillis();
+
+            // Open local file and download content into it
+            FileOutputStream out = new FileOutputStream(file);
             InputStream in = content.getStream();
             Utils.copy(in, out);
             in.close();
             out.close();
-             // DEBUG REMOVE
-            elapsed = System.currentTimeMillis() - start;
+
+            // DEBUG REMOVE
+            //elapsed = System.currentTimeMillis() - start;
             //System.out.println("DC fetch download: " + elapsed);
+
+            // If size could not be previously determined from request header, determine it from the downloaded file
+            if (size == 0L) {
+                size = file.length();
+            }
         }
         catch (NotFoundException nfE)
         {
@@ -102,7 +120,7 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         return size;
     }
-    
+
     @Override
     public boolean objectExists(String group, String id) throws IOException
     {
@@ -175,7 +193,7 @@ public class DuraCloudObjectStore implements ObjectStore
     {
         try
         {
-            //@TODO: We shouldn't need to pass a hardcoded MIME Type. Unfortunately, DuraCloud, 
+            //@TODO: We shouldn't need to pass a hardcoded MIME Type. Unfortunately, DuraCloud,
             // as of 1.3, doesn't properly determine a file's MIME Type. In future it should.
             String mimeType = "application/octet-stream";
             if(file.getName().endsWith(".zip"))
@@ -184,12 +202,12 @@ public class DuraCloudObjectStore implements ObjectStore
                 mimeType = "application/x-gzip";
             else if(file.getName().endsWith(".txt"))
                 mimeType = "text/plain";
-            
+
             dcStore.addContent(getSpaceID(group), getContentPrefix(group) + file.getName(),
                                new FileInputStream(file), file.length(),
                                mimeType, chkSum,
                                new HashMap<String, String>());
-        
+
             return file.length();
         }
         catch (ContentStoreException csE)
@@ -207,7 +225,7 @@ public class DuraCloudObjectStore implements ObjectStore
         {
             Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id);
             size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
-            dcStore.moveContent(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id, 
+            dcStore.moveContent(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id,
                                 getSpaceID(destGroup), getContentPrefix(destGroup) + id);
         }
         catch (NotFoundException nfE)
@@ -220,14 +238,14 @@ public class DuraCloudObjectStore implements ObjectStore
         }
         return size;
     }
-    
+
     @Override
     public String objectAttribute(String group, String id, String attrName) throws IOException
     {
         try
         {
             Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id);
-            
+
             if ("checksum".equals(attrName))
             {
                 return attrs.get(ContentStore.CONTENT_CHECKSUM);
@@ -251,7 +269,7 @@ public class DuraCloudObjectStore implements ObjectStore
             throw new IOException(csE);
         }
     }
-    
+
     /**
      * Returns the Space ID where content should be stored in DuraCloud,
      * based on the passed in Group.
@@ -271,7 +289,7 @@ public class DuraCloudObjectStore implements ObjectStore
         else // otherwise, the passed in group is the Space ID
             return group;
     }
-    
+
     /**
      * Returns the Content prefix that should be used when saving a file
      * to a DuraCloud space.
