@@ -20,7 +20,7 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
-import org.dspace.content.DCValue;
+import org.dspace.content.Metadatum;
 import org.dspace.content.Item;
 
 import org.dspace.pack.Packer;
@@ -93,8 +93,8 @@ public class ItemPacker implements Packer
         // first user metadata
         writer.startStanza("metadata");
         Bag.Value value = new Bag.Value();
-        DCValue[] vals = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (DCValue val : vals)
+        Metadatum[] vals = item.getMetadata(Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+        for (Metadatum val : vals)
         {
             value.addAttr("schema", val.schema);
             value.addAttr("element", val.element);
