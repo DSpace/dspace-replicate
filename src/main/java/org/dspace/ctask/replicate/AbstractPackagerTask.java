@@ -81,7 +81,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
                 //Set propertyName, removing leading module name (if applicable)
                 String propertyName = property;
                 if(propertyName.startsWith(moduleName + ".")) {
-                    propertyName = property.replaceFirst(moduleName + ".", "");
+                    propertyName = propertyName.replaceFirst(moduleName + ".", "");
                 }
 
                 //Only obey the setting(s) beginning with this task's ID/name,
