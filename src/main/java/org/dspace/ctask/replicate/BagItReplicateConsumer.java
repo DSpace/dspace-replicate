@@ -49,7 +49,7 @@ import static org.dspace.event.Event.*;
 /**
  * BagItReplicateConsumer is an event consumer that tracks events relevant to
  * replication synchronization. In response to deletions, it creates and
- * transmits a catalog of deleted objects (so they may be restored if 
+ * transmits a catalog of deleted objects (so they may be restored if
  * deletion was an error). For new or changed objects, it queues a request
  * to perform the configured curation tasks, or directly performs the task
  * if so indicated.
@@ -91,7 +91,7 @@ public class BagItReplicateConsumer implements Consumer {
     // create deletion catalogs?
     private boolean catalogDeletes = false;
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private final String storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     // Group where object deletion catalog/records are stored
     private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
@@ -495,7 +495,7 @@ public class BagItReplicateConsumer implements Consumer {
                     {
                         modQTasks = new ArrayList<String>();
                     }
-                    modQTasks.add(task);   
+                    modQTasks.add(task);
                 }
                 else if ("del".equals(propName))
                 {
@@ -503,12 +503,12 @@ public class BagItReplicateConsumer implements Consumer {
                     {
                         delTasks = new ArrayList<String>();
                     }
-                    delTasks.add(task);   
+                    delTasks.add(task);
                 }
             }
             //Otherwise (if the task ends in "+p"),
             //  it should be added to the list of tasks to perform immediately
-            else 
+            else
             {
                 String sTask = task.substring(0, task.lastIndexOf("+p"));
                 if ("add".equals(propName))
@@ -533,7 +533,7 @@ public class BagItReplicateConsumer implements Consumer {
                     if ("catalog".equals(sTask))
                     {
                         catalogDeletes = true;
-                    } 
+                    }
                 }
             }
         }

@@ -104,7 +104,7 @@ public class METSReplicateConsumer implements Consumer {
     // create deletion catalogs?
     private boolean catalogDeletes = false;
     // Group where all AIPs are stored
-    private final String storeGroupName = ConfigurationManager.getProperty("replicate", "group.aip.name");
+    private final String storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     // Group where object deletion catalog/records are stored
     private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
@@ -600,7 +600,7 @@ public class METSReplicateConsumer implements Consumer {
                     {
                         modQTasks = new ArrayList<String>();
                     }
-                    modQTasks.add(task);   
+                    modQTasks.add(task);
                 }
                 else if ("del".equals(propName))
                 {
@@ -608,12 +608,12 @@ public class METSReplicateConsumer implements Consumer {
                     {
                         delTasks = new ArrayList<String>();
                     }
-                    delTasks.add(task);   
+                    delTasks.add(task);
                 }
             }
             //Otherwise (if the task ends in "+p"),
             //  it should be added to the list of tasks to perform immediately
-            else 
+            else
             {
                 String sTask = task.substring(0, task.lastIndexOf("+p"));
                 if ("add".equals(propName))
@@ -638,7 +638,7 @@ public class METSReplicateConsumer implements Consumer {
                     if ("catalog".equals(sTask))
                     {
                         catalogDeletes = true;
-                    } 
+                    }
                 }
             }
         }
