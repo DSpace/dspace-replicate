@@ -70,14 +70,7 @@ public class DuraCloudObjectStore implements ObjectStore
         long size = 0L;
         try
         {
-            // DEBUG REMOVE
-            //long start = System.currentTimeMillis();
-
             Content content = dcStore.getContent(getSpaceID(group), getContentPrefix(group) + id);
-
-            // DEBUG REMOVE
-            //long elapsed = System.currentTimeMillis() - start;
-            //System.out.println("DC fetch content: " + elapsed);
 
             // Attempt to get size from request header
             String contentSizeHeader = content.getProperties().get(ContentStore.CONTENT_SIZE);
@@ -88,19 +81,12 @@ public class DuraCloudObjectStore implements ObjectStore
                 // ignore - header was missing or not a valid Long. We will determine size below
             }
 
-            // DEBUG remove
-            //start = System.currentTimeMillis();
-
             // Open local file and download content into it
             FileOutputStream out = new FileOutputStream(file);
             InputStream in = content.getStream();
             Utils.copy(in, out);
             in.close();
             out.close();
-
-            // DEBUG REMOVE
-            //elapsed = System.currentTimeMillis() - start;
-            //System.out.println("DC fetch download: " + elapsed);
 
             // If size could not be previously determined from request header, determine it from the downloaded file
             if (size == 0L) {
