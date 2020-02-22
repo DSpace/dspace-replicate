@@ -24,6 +24,8 @@
         <dspace.version>[6.0,7.0)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
         <duracloud.version>6.1.1</duracloud.version>
+        <!-- DuraCloud BagIt Support Library -->
+        <bagit-support.version>0.0.1-SNAPSHOT</bagit-support.version>
     </properties>
 
     <build>
@@ -91,9 +93,24 @@
           <scope>test</scope>
         </dependency>
         <dependency>
-          <groupId>org.apache.commons</groupId>
-          <artifactId>commons-compress</artifactId>
-          <version>1.19</version>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.20</version>
+        </dependency>
+        <dependency>
+            <groupId>org.duraspace</groupId>
+            <artifactId>bagit-support</artifactId>
+            <version>${bagit-support.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- DuraCloud dependencies (used for replication to/from DuraCloud).
              We only need to specify a dependency on the 'storeclient', as it already
