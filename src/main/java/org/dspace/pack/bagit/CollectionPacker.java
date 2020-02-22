@@ -9,24 +9,37 @@ package org.dspace.pack.bagit;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
-
 import org.dspace.content.Item;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
+import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-
-import static org.dspace.pack.PackerFactory.*;
+import org.duraspace.bagit.BagWriter;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -40,7 +53,7 @@ public class CollectionPacker implements Packer
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // NB - these values must remain synchronized with DB schema
-    // they represent the peristent object state
+    // they represent the persistent object state
     private static final String[] fields =
     {
         "name",
@@ -54,6 +67,8 @@ public class CollectionPacker implements Packer
 
     private Collection collection = null;
     private String archFmt = null;
+    // TODO: Add bag profile name
+    // TODO: Add.... anything else?
 
     public CollectionPacker(Collection collection, String archFmt)
     {
@@ -72,44 +87,67 @@ public class CollectionPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws AuthorizeException, IOException, SQLException
-    {
-        Bag bag = new Bag(packDir);
-        // set base object properties
-        Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
-        fwriter.writeProperty(BAG_TYPE, "AIP");
-        fwriter.writeProperty(OBJECT_TYPE, "collection");
-        fwriter.writeProperty(OBJECT_ID, collection.getHandle());
-        Community parent = collection.getCommunities().get(0);
-        if (parent != null)
-        {
-            fwriter.writeProperty(OWNER_ID, parent.getHandle());
+    public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
+        final MessageDigest messageDigest;
+        final Path dataDir = packDir.toPath().resolve("data");
+        final BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
+        // todo - on bag init add: tag files, bag metadata, track size written
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            // should never happen with known algs
+            throw new IOException(e.getMessage(), e);
         }
-        fwriter.close();
-        // then metadata
-        Bag.XmlWriter writer = bag.xmlWriter("metadata.xml");
-        writer.startStanza("metadata");
-        for (String field : fields)
-        {
-            String val = collectionService.getMetadata(collection, field);
-            if (val != null)
-            {
-                writer.writeValue(field, val);
+
+        final Map<File, String> checksums = new HashMap<>();
+
+        // Write the OBJFILE
+        // set base object properties
+        // todo: capture digest... in a better way
+        final Path objfile = dataDir.resolve(PackerFactory.OBJFILE);
+        try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
+             final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
+
+            objDigest.write((PackerFactory.BAG_TYPE + "  " + "AIP\n").getBytes());
+            objDigest.write((PackerFactory.OBJECT_TYPE + "  " + "collection\n").getBytes());
+            objDigest.write((PackerFactory.OBJECT_ID + "  " + collection.getHandle() + "\n").getBytes());
+            Community parent = collection.getCommunities().get(0);
+            if (parent != null) {
+                objDigest.write((PackerFactory.OWNER_ID + "  " + parent.getHandle() + "\n").getBytes());
             }
         }
-        writer.endStanza();
-        writer.close();
+        final String objFileDigest = Utils.toHex(messageDigest.digest());
+        checksums.put(objfile.toFile(), objFileDigest);
+
+        // then metadata
+        messageDigest.reset();
+        final Path manifestXml = dataDir.resolve("metadata.xml");
+        final Map<String, String> metadata = Arrays.stream(fields).collect(Collectors.toMap(
+            Function.identity(), key -> collectionService.getMetadata(collection, key)));
+
+        final String xmlDigest = BagItPacker.writeXmlMeta(metadata, manifestXml, messageDigest);
+        checksums.put(manifestXml.toFile(), xmlDigest);
+
         // also add logo if it exists
+        // todo: capture digest
         Bitstream logo = collection.getLogo();
-        if (logo != null)
-        {
-            bag.addData("logo", logo.getSize(), bitstreamService.retrieve(Curator.curationContext(), logo));
+        if (logo != null) {
+            final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
+            final Path logoPath = dataDir.resolve("logo");
+            Files.copy(logoIS, logoPath);
         }
-        bag.close();
-        File archive = bag.deflate(archFmt);
+
+        try {
+            bag.registerChecksums("md5", checksums);
+            bag.write();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        // File archive = bag.deflate(archFmt);
         // clean up undeflated bag
-        bag.empty();
-        return archive;
+        // bag.empty();
+        return packDir;
     }
 
     @Override
@@ -119,6 +157,7 @@ public class CollectionPacker implements Packer
         {
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
+        /*
         Bag bag = new Bag(archive);
         // add the metadata
         Bag.XmlReader reader = bag.xmlReader("metadata.xml");
@@ -137,10 +176,11 @@ public class CollectionPacker implements Packer
         collectionService.update(Curator.curationContext(), collection);
          // clean up bag
         bag.empty();
+         */
     }
 
     @Override
-    public long size(String method) throws SQLException 
+    public long size(String method) throws SQLException
     {
         long size = 0L;
         // start with logo size, if present
