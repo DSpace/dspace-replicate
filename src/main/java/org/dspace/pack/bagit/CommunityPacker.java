@@ -9,22 +9,35 @@ package org.dspace.pack.bagit;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
-
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.CommunityService;
+import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-
-import static org.dspace.pack.PackerFactory.*;
+import org.duraspace.bagit.BagWriter;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -37,7 +50,7 @@ public class CommunityPacker implements Packer
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // NB - these values must remain synchronized with DB schema -
-    // they represent the peristent object state
+    // they represent the persistent object state
     private static final String[] fields = {
         "name",
         "short_description",
@@ -66,44 +79,60 @@ public class CommunityPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws AuthorizeException, SQLException, IOException
-    {
-        Bag bag = new Bag(packDir);
-        // set base object properties
-        Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
-        fwriter.writeProperty(BAG_TYPE, "AIP");
-        fwriter.writeProperty(OBJECT_TYPE, "community");
-        fwriter.writeProperty(OBJECT_ID, community.getHandle());
-        List<Community> parent = community.getParentCommunities();
-        if (parent != null && !parent.isEmpty())
-        {
-            fwriter.writeProperty(OWNER_ID, parent.get(0).getHandle());
+    public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
+        final MessageDigest messageDigest;
+        final Path dataDir = packDir.toPath().resolve("data");
+        final BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
+        // todo - on bag init add: tag files, bag metadata, track size written
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            // should never happen with known algs
+            throw new IOException(e.getMessage(), e);
         }
-        fwriter.close();
-        // then metadata
-        Bag.XmlWriter xwriter = bag.xmlWriter("metadata.xml");
-        xwriter.startStanza("metadata");
-        for (String field : fields)
-        {
-            String val = communityService.getMetadata(community, field);
-            if (val != null)
-            {
-                xwriter.writeValue(field, val);
+
+        final Map<File, String> checksums = new HashMap<>();
+
+        final Path objfile = dataDir.resolve(PackerFactory.OBJFILE);
+        try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
+             final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
+
+            objDigest.write((PackerFactory.BAG_TYPE + "  " + "AIP\n").getBytes());
+            objDigest.write((PackerFactory.OBJECT_TYPE + "  " + "community\n").getBytes());
+            objDigest.write((PackerFactory.OBJECT_ID + "  " + community.getHandle() + "\n").getBytes());
+            List<Community> parents = community.getParentCommunities();
+            if (parents != null && !parents.isEmpty()) {
+                objDigest.write((PackerFactory.OWNER_ID + "  " + parents.get(0).getHandle() + "\n").getBytes());
             }
         }
-        xwriter.endStanza();
-        xwriter.close();
+        final String objFileDigest = Utils.toHex(messageDigest.digest());
+        checksums.put(objfile.toFile(), objFileDigest);
+
+        // then metadata
+        final Path manifestXml = dataDir.resolve("metadata.xml");
+        final Map<String, String> metadata = Arrays.stream(fields).collect(Collectors.toMap(
+            Function.identity(), key -> communityService.getMetadata(community, key)));
+
+        final String xmlDigest = BagItPacker.writeXmlMeta(metadata, manifestXml, messageDigest);
+        checksums.put(manifestXml.toFile(), xmlDigest);
+
         // also add logo if it exists
+        // todo: capture digest
         Bitstream logo = community.getLogo();
-        if (logo != null)
-        {
-            bag.addData("logo", logo.getSize(), bitstreamService.retrieve(Curator.curationContext(), logo));
+        if (logo != null) {
+            final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
+            final Path logoPath = dataDir.resolve("logo");
+            Files.copy(logoIS, logoPath);
         }
-        bag.close();
-        File archive = bag.deflate(archFmt);
-        // clean up undeflated bag
-        bag.empty();
-        return archive;
+
+        bag.registerChecksums("md5", checksums);
+        try {
+            bag.write();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return packDir;
     }
 
     @Override
