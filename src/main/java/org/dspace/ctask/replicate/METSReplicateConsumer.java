@@ -64,7 +64,7 @@ import static org.dspace.event.Event.*;
  * # consumer to manage content replication (Replication Task Suite add-on)
  * event.consumer.replicate.class = org.dspace.ctask.replicate.METSReplicateConsumer
  * event.consumer.replicate.filters = Community|Collection|Item|Group|EPerson+All
- * 
+ *
  * @author tdonohue
  * @author richardrodgers
  */
@@ -103,6 +103,8 @@ public class METSReplicateConsumer implements Consumer {
     private List<String> delTasks = null;
     // create deletion catalogs?
     private boolean catalogDeletes = false;
+    // Group where all AIPs are stored
+    private final String storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     // Group where object deletion catalog/records are stored
     private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
@@ -269,7 +271,7 @@ public class METSReplicateConsumer implements Consumer {
                         }
                     }
                     break;
-                
+
                 case REMOVE: //REMOVE = Remove an object from a container or group
                 case DELETE: //DELETE = Delete an object (actually destroy it)
                     // For REMOVE & DELETE, the Handle of object being deleted is found in Event Detail
@@ -327,7 +329,7 @@ public class METSReplicateConsumer implements Consumer {
             }
             taskPMap.clear();
         }
-       
+
         // if there any uncommitted deletions, record them now
         if (delObjId != null)
         {
@@ -459,25 +461,34 @@ public class METSReplicateConsumer implements Consumer {
         // write out deletion catalog if defined
         if (catalogDeletes)
         {
-            //Create a deletion catalog (in BagIt format) of all deleted objects
-            Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
-            try
+            //First, check if this object has an AIP in storage
+            boolean found = repMan.objectExists(storeGroupName, delObjId);
+
+            // If the object has an AIP, then create a deletion catalog
+            // If there's no AIP, then there's no need for a deletion
+            // catalog as the object isn't backed up & cannot be restored!
+            if(found)
             {
-                // Create a new deletion catalog (with default file extension / format)
-                // and store it in the deletion group store
-                String catID = repMan.deletionCatalogId(delObjId, null);
-                File packDir = repMan.stage(deleteGroupName, catID);
-                File archive = packer.pack(packDir);
-                // Create a deletion catalog in deletion archive location.
-                repMan.transferObject(deleteGroupName, archive);
-            }
-            catch (AuthorizeException authE)
-            {
-                throw new IOException(authE);
-            }
-            catch (SQLException sqlE)
-            {
-                throw new IOException(sqlE);
+                //Create a deletion catalog (in BagIt format) of all deleted objects
+                Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
+                try
+                {
+                    // Create a new deletion catalog (with default file extension / format)
+                    // and store it in the deletion group store
+                    String catID = repMan.deletionCatalogId(delObjId, null);
+                    File packDir = repMan.stage(deleteGroupName, catID);
+                    File archive = packer.pack(packDir);
+                    // Create a deletion catalog in deletion archive location.
+                    repMan.transferObject(deleteGroupName, archive);
+                }
+                catch (AuthorizeException authE)
+                {
+                    throw new IOException(authE);
+                }
+                catch (SQLException sqlE)
+                {
+                    throw new IOException(sqlE);
+                }
             }
         }
         // reset for next events
@@ -555,7 +566,7 @@ public class METSReplicateConsumer implements Consumer {
             }
         }
     }
-    
+
     /**
      * Parse the list of Consumer tasks to perform.  This list of tasks
      * is in the 'replicate.cfg' file.
@@ -589,7 +600,7 @@ public class METSReplicateConsumer implements Consumer {
                     {
                         modQTasks = new ArrayList<String>();
                     }
-                    modQTasks.add(task);   
+                    modQTasks.add(task);
                 }
                 else if ("del".equals(propName))
                 {
@@ -597,12 +608,12 @@ public class METSReplicateConsumer implements Consumer {
                     {
                         delTasks = new ArrayList<String>();
                     }
-                    delTasks.add(task);   
+                    delTasks.add(task);
                 }
             }
             //Otherwise (if the task ends in "+p"),
             //  it should be added to the list of tasks to perform immediately
-            else 
+            else
             {
                 String sTask = task.substring(0, task.lastIndexOf("+p"));
                 if ("add".equals(propName))
@@ -627,7 +638,7 @@ public class METSReplicateConsumer implements Consumer {
                     if ("catalog".equals(sTask))
                     {
                         catalogDeletes = true;
-                    } 
+                    }
                 }
             }
         }
