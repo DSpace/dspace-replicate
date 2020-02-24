@@ -7,8 +7,16 @@
  */
 package org.dspace.pack.bagit;
 
-import java.io.FileFilter;
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OTHER_IDS;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.PackerFactory.WITHDRAWN;
+
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -18,15 +26,17 @@ import java.util.List;
 import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.*;
-
+import org.dspace.content.Bitstream;
+import org.dspace.content.Bundle;
+import org.dspace.content.Collection;
+import org.dspace.content.Item;
+import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
-import static org.dspace.pack.PackerFactory.*;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -41,9 +51,9 @@ public class ItemPacker implements Packer
 
     private Item item = null;
     private String archFmt = null;
-    private List<String> filterBundles = new ArrayList<String>();
+    private List<String> filterBundles = new ArrayList<>();
     private boolean exclude = true;
-    private List<RefFilter> refFilters = new ArrayList<RefFilter>();
+    private List<RefFilter> refFilters = new ArrayList<>();
 
     public ItemPacker(Item item, String archFmt)
     {
@@ -71,7 +81,7 @@ public class ItemPacker implements Packer
         fwriter.writeProperty(OBJECT_TYPE, "item");
         fwriter.writeProperty(OBJECT_ID, item.getHandle());
         // get collections
-        StringBuilder linked = new StringBuilder();
+        StringBuilder linked = new StringBuilder(); // todo: what is the purpose of this?
         for (Collection coll : item.getCollections())
         {
             if (itemService.isOwningCollection(item, coll))
@@ -118,6 +128,9 @@ public class ItemPacker implements Packer
             {
                 // only bundle metadata is the primary bitstream - remember it
                 // and place in bitstream metadata if defined
+                // TODO: THIS CAN NPE
+                // TODO: log item uuids and bundle uuids, try to figure out what is attempting to be written
+                //       maybe compare to mets export
                 UUID primaryId = bundle.getPrimaryBitstream().getID();
                 for (Bitstream bs : bundle.getBitstreams())
                 {
