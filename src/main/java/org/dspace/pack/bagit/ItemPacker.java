@@ -23,7 +23,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -128,10 +127,6 @@ public class ItemPacker implements Packer
             {
                 // only bundle metadata is the primary bitstream - remember it
                 // and place in bitstream metadata if defined
-                // TODO: THIS CAN NPE
-                // TODO: log item uuids and bundle uuids, try to figure out what is attempting to be written
-                //       maybe compare to mets export
-                UUID primaryId = bundle.getPrimaryBitstream().getID();
                 for (Bitstream bs : bundle.getBitstreams())
                 {
                     // write metadata to xml file
@@ -144,7 +139,7 @@ public class ItemPacker implements Packer
                     writer.writeValue("source", bs.getSource());
                     writer.writeValue("description", bs.getDescription());
                     writer.writeValue("sequence_id", seqId);
-                    if (bs.getID() == primaryId)
+                    if (bs.equals(bundle.getPrimaryBitstream()))
                     {
                        writer.writeValue("bundle_primary", "true"); 
                     }
