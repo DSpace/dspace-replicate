@@ -7,10 +7,6 @@
  */
 package org.dspace.pack.bagit;
 
-import static org.dspace.pack.PackerFactory.BAG_TYPE;
-import static org.dspace.pack.PackerFactory.OBJECT_ID;
-import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
-import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OTHER_IDS;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.PackerFactory.WITHDRAWN;
@@ -19,23 +15,40 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
+import org.apache.commons.io.Charsets;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Item;
-import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
+import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
+import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagWriter;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -73,97 +86,121 @@ public class ItemPacker implements Packer
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException
     {
-        Bag bag = new Bag(packDir);
-        // set base object properties
-        Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
-        fwriter.writeProperty(BAG_TYPE, "AIP");
-        fwriter.writeProperty(OBJECT_TYPE, "item");
-        fwriter.writeProperty(OBJECT_ID, item.getHandle());
-        // get collections
-        StringBuilder linked = new StringBuilder(); // todo: what is the purpose of this?
-        for (Collection coll : item.getCollections())
-        {
-            if (itemService.isOwningCollection(item, coll))
-            {
-                fwriter.writeProperty(OWNER_ID, coll.getHandle());
-            }
-            else
-            {
-                linked.append(coll.getHandle()).append(",");
-            }
+        final MessageDigest messageDigest;
+        final Path dataDir = packDir.toPath().resolve("data");
+        final HashMap<File, String> checksums = new HashMap<>();
+        BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            // should never happen with known algs
+            throw new IOException(e.getMessage(), e);
         }
-        String linkedStr = linked.toString();
-        if (linkedStr.length() > 0)
-        {
-            fwriter.writeProperty(OTHER_IDS, linkedStr.substring(0, linkedStr.length() - 1));
-        }
-        if (item.isWithdrawn())
-        {
-            fwriter.writeProperty(WITHDRAWN, "true");
-        }
-        fwriter.close();
 
-        // start with metadata
-        Bag.XmlWriter writer = bag.xmlWriter("metadata.xml");
-        // first user metadata
-        writer.startStanza("metadata");
-        Bag.Value value = new Bag.Value();
-        List<MetadataValue> vals = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (MetadataValue val : vals)
-        {
-            value.addAttr("schema", val.getMetadataField().getMetadataSchema().getName());
-            value.addAttr("element", val.getMetadataField().getElement());
-            value.addAttr("qualifier", val.getMetadataField().getQualifier());
-            value.addAttr("language", val.getLanguage());
-            value.val = val.getValue();
-            writer.writeValue(value);
+        // set base object properties
+        // todo: capture digest... in a better way
+        final Path objfile = dataDir.resolve(PackerFactory.OBJFILE);
+        try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
+             final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
+
+            objDigest.write((PackerFactory.BAG_TYPE + "  " + "AIP\n").getBytes());
+            objDigest.write((PackerFactory.OBJECT_TYPE + "  " + "item\n").getBytes());
+            objDigest.write((PackerFactory.OBJECT_ID + "  " + item.getHandle() + "\n").getBytes());
+
+            StringBuilder linked = new StringBuilder();
+            for (Collection coll : item.getCollections()) {
+                if (itemService.isOwningCollection(item, coll)) {
+                    objDigest.write((OWNER_ID + "  " + coll.getHandle() + "\n").getBytes());
+                } else {
+                    linked.append(coll.getHandle()).append(",");
+                }
+            }
+            if (linked.length() > 0) {
+                // todo: why substring?? is this not just printing the entire string...
+                objDigest.write((OTHER_IDS + "  " + linked.substring(0, linked.length() - 1) + "\n").getBytes());
+            }
+            if (item.isWithdrawn()) {
+                objDigest.write((WITHDRAWN + "  true\n").getBytes());
+            }
         }
-        writer.endStanza();
-        writer.close();
+
+        final String objFileDigest = Utils.toHex(messageDigest.digest());
+        checksums.put(objfile.toFile(), objFileDigest);
+
+        // first user metadata
+        List<Bag.Value> xmlValues = itemService
+            .getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY).stream()
+            .map(metadataValue -> {
+                Bag.Value value = new Bag.Value();
+                value.addAttr("schema", metadataValue.getMetadataField().getMetadataSchema().getName());
+                value.addAttr("element", metadataValue.getMetadataField().getElement());
+                value.addAttr("qualifier", metadataValue.getMetadataField().getQualifier());
+                value.addAttr("language", metadataValue.getLanguage());
+                value.val = metadataValue.getValue();
+                return value;
+            }).collect(Collectors.toList());
+
+        final Path userXml = dataDir.resolve("metadata.xml");
+        final String xmlDigest = writeXmlMetadata(xmlValues, userXml, messageDigest);
+        checksums.put(userXml.toFile(), xmlDigest);
+
         // proceed to bundles, in sub-directories, filtering
-        for (Bundle bundle : item.getBundles())
-        {
-            if (accept(bundle.getName()))
-            {
+        for (Bundle bundle : item.getBundles()) {
+            if (accept(bundle.getName())) {
                 // only bundle metadata is the primary bitstream - remember it
                 // and place in bitstream metadata if defined
-                for (Bitstream bs : bundle.getBitstreams())
-                {
+                for (Bitstream bs : bundle.getBitstreams()) {
                     // write metadata to xml file
-                    String seqId = String.valueOf(bs.getSequenceID());
-                    String relPath = bundle.getName() + "/";
-                    writer = bag.xmlWriter(relPath + seqId + "-metadata.xml");
-                    writer.startStanza("metadata");
+                    final String seqId = String.valueOf(bs.getSequenceID());
+                    final String relPath = bundle.getName() + "/";
+                    final Path bitstreamXml = dataDir.resolve(relPath + seqId + "-metadata.xml");
+
                     // field access is hard-coded in Bitstream class, ugh!
-                    writer.writeValue("name", bs.getName());
-                    writer.writeValue("source", bs.getSource());
-                    writer.writeValue("description", bs.getDescription());
-                    writer.writeValue("sequence_id", seqId);
-                    if (bs.equals(bundle.getPrimaryBitstream()))
-                    {
-                       writer.writeValue("bundle_primary", "true"); 
+                    HashMap<String, String> valueMap = new HashMap<>();
+                    valueMap.put("name", bs.getName());
+                    valueMap.put("source", bs.getSource());
+                    valueMap.put("description", bs.getDescription());
+                    valueMap.put("sequence_id", seqId);
+
+                    if (bs.equals(bundle.getPrimaryBitstream())) {
+                        valueMap.put("bundle_primary", "true");
                     }
-                    writer.endStanza();
-                    writer.close();
+                    final String bsXmlDigest = writeXmlMetadata(valueMap, bitstreamXml, messageDigest);
+                    checksums.put(bitstreamXml.toFile(), bsXmlDigest);
+
                     // write the bitstream itself, unless reference filter applies
                     String url = byReference(bundle, bs);
-                    if (url != null)
-                    {
+                    if (url != null) {
+                        // todo: this is a fetch.txt... need to handle writing it
                         // add reference to bag
-                        bag.addDataRef(relPath + seqId, bs.getSize(), url);
-                    }
-                    else
-                    {
+                        // bag.addDataRef(relPath + seqId, bs.getSize(), url);
+                    } else {
                         // add bytes to bag
-                        bag.addData(relPath + seqId, bs.getSize(), bitstreamService.retrieve(Curator.curationContext(), bs));
+                        messageDigest.reset();
+                        final Path dataFile = dataDir.resolve(relPath + seqId);
+                        final InputStream is = bitstreamService.retrieve(Curator.curationContext(), bs);
+
+                        try (OutputStream fout = Files.newOutputStream(dataFile);
+                             DigestOutputStream dout = new DigestOutputStream(fout, messageDigest)) {
+                            Utils.copy(is, dout);
+                        }
+
+                        final String fileChecksum = Utils.toHex(messageDigest.digest());
+                        checksums.put(dataFile.toFile(), fileChecksum);
                     }
                 }
             }
         }
-        bag.close();
-        File archive = bag.deflate(archFmt);
-        bag.empty();
-        return archive;
+
+        bag.registerChecksums("md5", checksums);
+        try {
+            bag.write();
+        } catch (NoSuchAlgorithmException e) {
+            // should never happen...
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return packDir;
     }
 
     @Override
@@ -334,4 +371,66 @@ public class ItemPacker implements Packer
             url = parts[2];
         }
     }
+
+    private String writeXmlMetadata(final List<Bag.Value> metadata, final Path manifestXml,
+                                    final MessageDigest messageDigest) throws IOException {
+        messageDigest.reset();
+        Files.createDirectories(manifestXml.getParent());
+        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
+        try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
+             final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
+            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
+                                                                                     Charsets.UTF_8.toString());
+            xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
+            xmlWriter.writeStartElement("metadata");
+            for (Bag.Value value : metadata) {
+                xmlWriter.writeStartElement("value");
+                for (String attrName : value.attrs.keySet()) {
+                    String attrVal = value.attrs.get(attrName);
+                    if (attrVal != null) {
+                        xmlWriter.writeAttribute(attrName, attrVal);
+                    }
+                }
+                xmlWriter.writeCharacters(value.val);
+                xmlWriter.writeEndElement();
+            }
+            xmlWriter.writeEndElement();
+            xmlWriter.writeEndDocument();
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return Utils.toHex(messageDigest.digest());
+    }
+
+    private String writeXmlMetadata(final Map<String, String> metadata, final Path manifestXml,
+                                    final MessageDigest messageDigest) throws IOException {
+        messageDigest.reset();
+        Files.createDirectories(manifestXml.getParent());
+        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
+        try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
+             final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
+            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
+                                                                                     Charsets.UTF_8.toString());
+            xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
+            xmlWriter.writeStartElement("metadata");
+            for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                final String key = entry.getKey();
+                final String value = entry.getValue();
+                if (key != null && value != null) {
+                    xmlWriter.writeStartElement("value");
+                    xmlWriter.writeAttribute("name", key);
+                    xmlWriter.writeCharacters(value);
+                    xmlWriter.writeEndElement();
+                }
+            }
+            xmlWriter.writeEndElement();
+            xmlWriter.writeEndDocument();
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return Utils.toHex(messageDigest.digest());
+    }
+
 }
