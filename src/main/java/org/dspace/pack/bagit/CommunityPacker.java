@@ -7,6 +7,8 @@
  */
 package org.dspace.pack.bagit;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,8 +26,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
+import org.apache.commons.io.Charsets;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
@@ -110,10 +115,11 @@ public class CommunityPacker implements Packer
 
         // then metadata
         final Path manifestXml = dataDir.resolve("metadata.xml");
-        final Map<String, String> metadata = Arrays.stream(fields).collect(Collectors.toMap(
-            Function.identity(), key -> communityService.getMetadata(community, key)));
+        final Map<String, String> metadata =
+            Arrays.stream(fields)
+                  .collect(toMap(Function.identity(), key -> communityService.getMetadata(community, key)));
 
-        final String xmlDigest = BagItPacker.writeXmlMeta(metadata, manifestXml, messageDigest);
+        final String xmlDigest = writeXmlMetadata(metadata, manifestXml, messageDigest);
         checksums.put(manifestXml.toFile(), xmlDigest);
 
         // also add logo if it exists
@@ -197,4 +203,50 @@ public class CommunityPacker implements Packer
     {
         throw new UnsupportedOperationException("Not supported yet.");
     }
+
+    /**
+     * Write the metadata.xml file
+     *
+     * This is being copied a few times while code is being reorganized. No need to attempt DRY before we know how
+     * things will look
+     *
+     * @param metadata The map of metadata key/value pairs to write
+     * @param manifestXml the Path of the metadata.xml file to write
+     * @param messageDigest the MessageDigest for tracking the digest of the written stream
+     * @return the checksum of the manifest.xml
+     * @throws IOException if there's any exception
+     */
+    public static String writeXmlMetadata(final Map<String, String> metadata, final Path manifestXml,
+                                          final MessageDigest messageDigest) throws IOException {
+        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
+
+        messageDigest.reset();
+        try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
+             final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
+            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
+                                                                                     Charsets.UTF_8.toString());
+            xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
+            xmlWriter.writeStartElement("metadata");
+            for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                final String key = entry.getKey();
+                final String value = entry.getValue();
+                if (key != null && value != null) {
+                    xmlWriter.writeStartElement("value");
+                    xmlWriter.writeAttribute("name", key);
+                    xmlWriter.writeCharacters(value);
+                    xmlWriter.writeEndElement();
+                }
+            }
+            xmlWriter.writeEndElement();
+            xmlWriter.writeEndDocument();
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        final String digest = Utils.toHex(messageDigest.digest());
+        messageDigest.reset();
+
+        return digest;
+    }
+
 }
