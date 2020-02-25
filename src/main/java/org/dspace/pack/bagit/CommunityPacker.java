@@ -123,12 +123,16 @@ public class CommunityPacker implements Packer
         checksums.put(manifestXml.toFile(), xmlDigest);
 
         // also add logo if it exists
-        // todo: capture digest
         Bitstream logo = community.getLogo();
         if (logo != null) {
             final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
             final Path logoPath = dataDir.resolve("logo");
-            Files.copy(logoIS, logoPath);
+            try (OutputStream os = Files.newOutputStream(logoPath);
+                 DigestOutputStream dos = new DigestOutputStream(os, messageDigest)) {
+                messageDigest.reset();
+                Utils.copy(logoIS, dos);
+                checksums.put(logoPath.toFile(), Utils.toHex(messageDigest.digest()));
+            }
         }
 
         bag.registerChecksums("md5", checksums);
