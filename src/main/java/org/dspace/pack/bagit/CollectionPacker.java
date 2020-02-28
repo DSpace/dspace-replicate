@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +44,7 @@ import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
@@ -98,18 +98,17 @@ public class CollectionPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
-        final MessageDigest messageDigest;
+        final BagItDigest digest = BagItDigest.MD5;
+        final MessageDigest messageDigest = digest.messageDigest();
+        // todo -> BagProfileConstants + DATA_DIR
         final Path dataDir = packDir.toPath().resolve("data");
-        final BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
+
+        // todo: this might fail, might want to push to BagProfile
         final URL url = this.getClass().getResource(bagProfile);
         final BagProfile profile = new BagProfile(url.openStream());
+
         // todo - on bag init add: tag files, bag metadata, track size written
-        try {
-            messageDigest = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            // should never happen with known algs
-            throw new IOException(e.getMessage(), e);
-        }
+        final BagWriter bag = new BagWriter(packDir, Collections.singleton(digest.bagitName()));
 
         final Map<File, String> checksums = new HashMap<>();
 
@@ -120,6 +119,7 @@ public class CollectionPacker implements Packer
         try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
              final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
 
+            // todo: AIP/collection constants
             objDigest.write((PackerFactory.BAG_TYPE + "  " + "AIP\n").getBytes());
             objDigest.write((PackerFactory.OBJECT_TYPE + "  " + "collection\n").getBytes());
             objDigest.write((PackerFactory.OBJECT_ID + "  " + collection.getHandle() + "\n").getBytes());
@@ -133,6 +133,7 @@ public class CollectionPacker implements Packer
 
         // then metadata
         messageDigest.reset();
+        // todo: filename constants
         final Path manifestXml = dataDir.resolve("metadata.xml");
         final Map<String, String> metadata =
             Arrays.stream(fields)
@@ -154,12 +155,8 @@ public class CollectionPacker implements Packer
             }
         }
 
-        try {
-            bag.registerChecksums("md5", checksums);
-            bag.write();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException(e.getMessage(), e);
-        }
+        bag.registerChecksums(digest.bagitName(), checksums);
+        bag.write();
 
         // todo: cleanup bag
         BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
