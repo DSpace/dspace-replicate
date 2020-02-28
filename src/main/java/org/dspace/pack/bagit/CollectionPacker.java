@@ -76,6 +76,7 @@ public class CollectionPacker implements Packer
 
     private Collection collection = null;
     private String archFmt = null;
+    private final String bagProfile = "/profiles/beyondtherepository.json";
     // TODO: Add bag profile name
     // TODO: Add.... anything else?
 
@@ -100,7 +101,7 @@ public class CollectionPacker implements Packer
         final MessageDigest messageDigest;
         final Path dataDir = packDir.toPath().resolve("data");
         final BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
-        final URL url = this.getClass().getResource("/profiles/" + "default.json");
+        final URL url = this.getClass().getResource(bagProfile);
         final BagProfile profile = new BagProfile(url.openStream());
         // todo - on bag init add: tag files, bag metadata, track size written
         try {

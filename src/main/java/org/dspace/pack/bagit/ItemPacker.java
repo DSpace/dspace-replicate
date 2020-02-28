@@ -16,6 +16,7 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -48,7 +49,10 @@ import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
+import org.duraspace.bagit.SerializationSupport;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -66,6 +70,7 @@ public class ItemPacker implements Packer
     private List<String> filterBundles = new ArrayList<>();
     private boolean exclude = true;
     private List<RefFilter> refFilters = new ArrayList<>();
+    private final String bagProfile = "/profiles/beyondtherepository.json";
 
     public ItemPacker(Item item, String archFmt)
     {
@@ -87,9 +92,14 @@ public class ItemPacker implements Packer
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException
     {
         final MessageDigest messageDigest;
+        final URL url = this.getClass().getResource(bagProfile);
+        final BagProfile profile = new BagProfile(url.openStream());
+
         final Path dataDir = packDir.toPath().resolve("data");
         final HashMap<File, String> checksums = new HashMap<>();
+        // todo - on bag init add: tag files, bag metadata, track size written
         BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
+
         try {
             messageDigest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
@@ -156,8 +166,8 @@ public class ItemPacker implements Packer
                     checksums.put(bitstreamXml.toFile(), bsXmlDigest);
 
                     // write the bitstream itself, unless reference filter applies
-                    String url = byReference(bundle, bs);
-                    if (url != null) {
+                    String fetchUrl = byReference(bundle, bs);
+                    if (fetchUrl != null) {
                         // todo: this is a fetch.txt... need to handle writing it
                         // add reference to bag
                         // bag.addDataRef(relPath + seqId, bs.getSize(), url);
@@ -182,12 +192,12 @@ public class ItemPacker implements Packer
         bag.registerChecksums("md5", checksums);
         try {
             bag.write();
+            BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
+            return serializer.serialize(packDir.toPath()).toFile();
         } catch (NoSuchAlgorithmException e) {
             // should never happen...
             throw new IOException(e.getMessage(), e);
         }
-
-        return packDir;
     }
 
     @Override

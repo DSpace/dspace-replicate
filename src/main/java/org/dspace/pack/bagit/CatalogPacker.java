@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -35,7 +36,10 @@ import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
+import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CatalogPacker packs and unpacks Object catalogs in Bagit format. These
@@ -53,6 +57,7 @@ public class CatalogPacker implements Packer
     private List<String> members = null;
     // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
     private String archFmt = configurationService.getProperty("replicate.packer.archfmt");
+    private final String bagProfile = "/profiles/beyondtherepository.json";
 
     public CatalogPacker(String objectId)
     {
@@ -79,8 +84,13 @@ public class CatalogPacker implements Packer
     @Override
     public File pack(File packDir) throws IOException {
         final MessageDigest messageDigest;
+        final URL url = this.getClass().getResource(bagProfile);
+        final BagProfile profile = new BagProfile(url.openStream());
+
         final Path dataDir = packDir.toPath().resolve("data");
         final HashMap<File, String> checksums = new HashMap<>();
+
+        // todo - on bag init add: tag files, bag metadata, track size written
         BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
         try {
             messageDigest = MessageDigest.getInstance("MD5");
@@ -123,13 +133,13 @@ public class CatalogPacker implements Packer
         try {
             bag.registerChecksums("md5", checksums);
             bag.write();
+
+            BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
+            // todo: clean up bag remnants
+            return serializer.serialize(packDir.toPath()).toFile();
         } catch (NoSuchAlgorithmException e) {
             throw new IOException(e.getMessage(), e);
         }
-        // todo: serialize
-        // todo: clean up undeflated bag
-
-        return packDir;
     }
 
     @Override

@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -42,7 +43,10 @@ import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
+import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -66,7 +70,8 @@ public class CommunityPacker implements Packer
 
     private Community community = null;
     private String archFmt = null;
-    
+    private final String bagProfile = "/profiles/beyondtherepository.json";
+
     public CommunityPacker(Community community, String archFmt)
     {
         this.community = community;
@@ -87,6 +92,8 @@ public class CommunityPacker implements Packer
     public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
         final MessageDigest messageDigest;
         final Path dataDir = packDir.toPath().resolve("data");
+        final URL url = this.getClass().getResource(bagProfile);
+        final BagProfile profile = new BagProfile(url.openStream());
         final BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
         // todo - on bag init add: tag files, bag metadata, track size written
         try {
@@ -138,11 +145,11 @@ public class CommunityPacker implements Packer
         bag.registerChecksums("md5", checksums);
         try {
             bag.write();
+            BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
+            return serializer.serialize(packDir.toPath()).toFile();
         } catch (NoSuchAlgorithmException e) {
             throw new IOException(e.getMessage(), e);
         }
-
-        return packDir;
     }
 
     @Override
