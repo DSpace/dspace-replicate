@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +42,7 @@ import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
@@ -90,18 +90,15 @@ public class CommunityPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
-        final MessageDigest messageDigest;
-        final Path dataDir = packDir.toPath().resolve("data");
+        final BagItDigest digest = BagItDigest.MD5;
+        final MessageDigest messageDigest = digest.messageDigest();
+
         final URL url = this.getClass().getResource(bagProfile);
         final BagProfile profile = new BagProfile(url.openStream());
-        final BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
+
+        final Path dataDir = packDir.toPath().resolve("data");
         // todo - on bag init add: tag files, bag metadata, track size written
-        try {
-            messageDigest = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            // should never happen with known algs
-            throw new IOException(e.getMessage(), e);
-        }
+        final BagWriter bag = new BagWriter(packDir, Collections.singleton(digest.bagitName()));
 
         final Map<File, String> checksums = new HashMap<>();
 
@@ -142,14 +139,10 @@ public class CommunityPacker implements Packer
             }
         }
 
-        bag.registerChecksums("md5", checksums);
-        try {
-            bag.write();
-            BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-            return serializer.serialize(packDir.toPath()).toFile();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException(e.getMessage(), e);
-        }
+        bag.registerChecksums(digest.bagitName(), checksums);
+        bag.write();
+        BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
+        return serializer.serialize(packDir.toPath()).toFile();
     }
 
     @Override
