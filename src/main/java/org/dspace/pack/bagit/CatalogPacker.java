@@ -7,18 +7,35 @@
  */
 package org.dspace.pack.bagit;
 
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.CREATE_TS;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
+import org.dspace.core.Utils;
 import org.dspace.pack.Packer;
+import org.dspace.pack.PackerFactory;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
-
-import static org.dspace.pack.PackerFactory.*;
+import org.duraspace.bagit.BagWriter;
 
 /**
  * CatalogPacker packs and unpacks Object catalogs in Bagit format. These
@@ -60,36 +77,59 @@ public class CatalogPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws IOException
-    {
-        Bag bag = new Bag(packDir);
-        // set base object properties
-        Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
-        fwriter.writeProperty(BAG_TYPE, "MAN");
-        fwriter.writeProperty(OBJECT_TYPE, "deletion");
-        fwriter.writeProperty(OBJECT_ID, objectId);
-        if (ownerId != null)
-        {
-            fwriter.writeProperty(OWNER_ID, ownerId);
+    public File pack(File packDir) throws IOException {
+        final MessageDigest messageDigest;
+        final Path dataDir = packDir.toPath().resolve("data");
+        final HashMap<File, String> checksums = new HashMap<>();
+        BagWriter bag = new BagWriter(packDir, Collections.singleton("md5"));
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            // should never happen with known algs
+            throw new IOException(e.getMessage(), e);
         }
-        fwriter.writeProperty(CREATE_TS,
-                              String.valueOf(System.currentTimeMillis()));
-        fwriter.close();
-        // just serialize member list if non-empty
-        if (members.size() > 0)
-        {
-            fwriter = bag.flatWriter("members");
-            for (String member : members)
-            {
-                fwriter.writeLine(member);
+
+        final Path objfile = dataDir.resolve(PackerFactory.OBJFILE);
+        try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
+             final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
+
+            objDigest.write((BAG_TYPE + "  " + "MAN\n").getBytes());
+            objDigest.write((OBJECT_TYPE + "  " + "deletion\n").getBytes());
+            objDigest.write((OBJECT_ID + "  " + objectId + "\n").getBytes());
+
+            if (ownerId != null) {
+                objDigest.write((OWNER_ID + "  " + ownerId + "\n").getBytes());
             }
-            fwriter.close();
+
+            objDigest.write((CREATE_TS + "  " + System.currentTimeMillis() + "\n").getBytes());
         }
-        bag.close();
-        File archive = bag.deflate(archFmt);
-        // clean up undeflated bag
-        bag.empty();
-        return archive;
+        final String objDigest = Utils.toHex(messageDigest.digest());
+        checksums.put(objfile.toFile(), objDigest);
+
+        messageDigest.reset();
+
+        if (members.size() > 0) {
+            final Path membersFile = dataDir.resolve("members");
+            try (final OutputStream os = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
+                 final DigestOutputStream membersOs = new DigestOutputStream(os, messageDigest)) {
+                for (String member : members) {
+                    membersOs.write((member + "\n").getBytes());
+                }
+            }
+            final String memberDigest = Utils.toHex(messageDigest.digest());
+            checksums.put(membersFile.toFile(), memberDigest);
+        }
+
+        try {
+            bag.registerChecksums("md5", checksums);
+            bag.write();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+        // todo: serialize
+        // todo: clean up undeflated bag
+
+        return packDir;
     }
 
     @Override
