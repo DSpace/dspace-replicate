@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -40,6 +39,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Item;
+import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
@@ -127,21 +127,8 @@ public class ItemPacker implements Packer
         final String objFileDigest = Utils.toHex(messageDigest.digest());
         checksums.put(objfile.toFile(), objFileDigest);
 
-        // first user metadata
-        List<Bag.Value> xmlValues = itemService
-            .getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY).stream()
-            .map(metadataValue -> {
-                Bag.Value value = new Bag.Value();
-                value.addAttr("schema", metadataValue.getMetadataField().getMetadataSchema().getName());
-                value.addAttr("element", metadataValue.getMetadataField().getElement());
-                value.addAttr("qualifier", metadataValue.getMetadataField().getQualifier());
-                value.addAttr("language", metadataValue.getLanguage());
-                value.val = metadataValue.getValue();
-                return value;
-            }).collect(Collectors.toList());
-
         final Path userXml = dataDir.resolve("metadata.xml");
-        final String xmlDigest = writeXmlMetadata(xmlValues, userXml, messageDigest);
+        final String xmlDigest = writeItemMetadata(userXml, messageDigest);
         checksums.put(userXml.toFile(), xmlDigest);
 
         // proceed to bundles, in sub-directories, filtering
@@ -372,8 +359,20 @@ public class ItemPacker implements Packer
         }
     }
 
-    private String writeXmlMetadata(final List<Bag.Value> metadata, final Path manifestXml,
-                                    final MessageDigest messageDigest) throws IOException {
+    private void writeXml(final XMLStreamWriter writer, final Map<String, String> attributes,
+                          final String body) throws XMLStreamException {
+        writer.writeStartElement("value");
+        for (String attrName : attributes.keySet()) {
+            String attrVal = attributes.get(attrName);
+            if (attrVal != null) {
+                writer.writeAttribute(attrName, attrVal);
+            }
+        }
+        writer.writeCharacters(body);
+        writer.writeEndElement();
+    }
+
+    private String writeItemMetadata(final Path manifestXml, final MessageDigest messageDigest) throws IOException {
         messageDigest.reset();
         Files.createDirectories(manifestXml.getParent());
         final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
@@ -383,17 +382,19 @@ public class ItemPacker implements Packer
                                                                                      Charsets.UTF_8.toString());
             xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
             xmlWriter.writeStartElement("metadata");
-            for (Bag.Value value : metadata) {
-                xmlWriter.writeStartElement("value");
-                for (String attrName : value.attrs.keySet()) {
-                    String attrVal = value.attrs.get(attrName);
-                    if (attrVal != null) {
-                        xmlWriter.writeAttribute(attrName, attrVal);
-                    }
-                }
-                xmlWriter.writeCharacters(value.val);
-                xmlWriter.writeEndElement();
+
+            // Map<String, Map<String, String>>
+            // first user metadata
+            List<MetadataValue> metadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+            for (MetadataValue metadatum : metadata) {
+                final HashMap<String, String> values = new HashMap<>();
+                values.put("schema", metadatum.getMetadataField().getMetadataSchema().getName());
+                values.put("element", metadatum.getMetadataField().getElement());
+                values.put("qualifier", metadatum.getMetadataField().getQualifier());
+                values.put("language", metadatum.getLanguage());
+                writeXml(xmlWriter, values, metadatum.getValue());
             }
+
             xmlWriter.writeEndElement();
             xmlWriter.writeEndDocument();
         } catch (XMLStreamException e) {
@@ -414,6 +415,8 @@ public class ItemPacker implements Packer
                                                                                      Charsets.UTF_8.toString());
             xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
             xmlWriter.writeStartElement("metadata");
+
+
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
                 final String key = entry.getKey();
                 final String value = entry.getValue();
