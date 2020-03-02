@@ -129,8 +129,21 @@ public class CatalogPacker implements Packer
         bag.registerChecksums(digest.bagitName(), checksums);
         bag.write();
         BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        // todo: clean up bag remnants
-        return serializer.serialize(packDir.toPath()).toFile();
+        Path serializedBag = serializer.serialize(packDir.toPath());
+        removeWork(packDir);
+        return serializedBag.toFile();
+    }
+
+    private void removeWork(File file) {
+        for (File files : file.listFiles()) {
+            if (file.isDirectory()) {
+                removeWork(files);
+            } else {
+                files.delete();
+            }
+        }
+
+        file.delete();
     }
 
     @Override
@@ -161,6 +174,8 @@ public class CatalogPacker implements Packer
         // clean up bag
         bag.empty();
     }
+
+
 
     @Override
     public long size(String method)
