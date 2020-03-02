@@ -86,7 +86,7 @@ public class CollectionPacker implements Packer
         final Properties objProperties = new Properties();
         objProperties.setProperty(PackerFactory.BAG_TYPE, "AIP");
         objProperties.setProperty(PackerFactory.OBJECT_TYPE, "collection");
-        objProperties.setProperty(PackerFactory.OWNER_ID, collection.getHandle());
+        objProperties.setProperty(PackerFactory.OBJECT_ID, collection.getHandle());
         final Community parent = collection.getCommunities().get(0);
         if (parent != null) {
             objProperties.setProperty(PackerFactory.OWNER_ID, parent.getHandle());
