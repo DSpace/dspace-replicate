@@ -7,30 +7,18 @@
  */
 package org.dspace.pack.bagit;
 
-import static java.util.stream.Collectors.toMap;
+import static java.util.Collections.emptyList;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
+import java.util.Properties;
 
-import org.apache.commons.io.Charsets;
+import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
@@ -40,15 +28,9 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
-import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.BagSerializer;
-import org.duraspace.bagit.BagWriter;
-import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -98,82 +80,29 @@ public class CollectionPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
-        final BagItDigest digest = BagItDigest.MD5;
-        final MessageDigest messageDigest = digest.messageDigest();
-        // todo -> BagProfileConstants + DATA_DIR
-        final Path dataDir = packDir.toPath().resolve("data");
+        final Bitstream logo = collection.getLogo();
 
-        // todo: this might fail, might want to push to BagProfile
-        final URL url = this.getClass().getResource(bagProfile);
-        final BagProfile profile = new BagProfile(url.openStream());
-
-        // todo - on bag init add: tag files, bag metadata, track size written
-        final BagWriter bag = new BagWriter(packDir, Collections.singleton(digest.bagitName()));
-
-        final Map<File, String> checksums = new HashMap<>();
-
-        // Write the OBJFILE
-        // set base object properties
-        // todo: capture digest... in a better way
-        final Path objfile = dataDir.resolve(PackerFactory.OBJFILE);
-        try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
-             final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
-
-            // todo: AIP/collection constants
-            objDigest.write((PackerFactory.BAG_TYPE + "  " + "AIP\n").getBytes());
-            objDigest.write((PackerFactory.OBJECT_TYPE + "  " + "collection\n").getBytes());
-            objDigest.write((PackerFactory.OBJECT_ID + "  " + collection.getHandle() + "\n").getBytes());
-            Community parent = collection.getCommunities().get(0);
-            if (parent != null) {
-                objDigest.write((PackerFactory.OWNER_ID + "  " + parent.getHandle() + "\n").getBytes());
-            }
+        // collect the object.properties
+        final Properties objProperties = new Properties();
+        objProperties.setProperty(PackerFactory.BAG_TYPE, "AIP");
+        objProperties.setProperty(PackerFactory.OBJECT_TYPE, "collection");
+        objProperties.setProperty(PackerFactory.OWNER_ID, collection.getHandle());
+        final Community parent = collection.getCommunities().get(0);
+        if (parent != null) {
+            objProperties.setProperty(PackerFactory.OWNER_ID, parent.getHandle());
         }
-        final String objFileDigest = Utils.toHex(messageDigest.digest());
-        checksums.put(objfile.toFile(), objFileDigest);
+        final Map<String, Properties> properties = ImmutableMap.of(PackerFactory.OBJFILE, objProperties);
 
-        // then metadata
-        messageDigest.reset();
-        // todo: filename constants
-        final Path manifestXml = dataDir.resolve("metadata.xml");
-        final Map<String, String> metadata =
-            Arrays.stream(fields)
-                  .collect(toMap(Function.identity(), key -> collectionService.getMetadata(collection, key)));
-
-        final String xmlDigest = writeXmlMetadata(metadata, manifestXml, messageDigest);
-        checksums.put(manifestXml.toFile(), xmlDigest);
-
-        // also add logo if it exists
-        Bitstream logo = collection.getLogo();
-        if (logo != null) {
-            final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
-            final Path logoPath = dataDir.resolve("logo");
-            try (OutputStream os = Files.newOutputStream(logoPath);
-                 DigestOutputStream dos = new DigestOutputStream(os, messageDigest)) {
-                messageDigest.reset();
-                Utils.copy(logoIS, dos);
-                checksums.put(logoPath.toFile(), Utils.toHex(messageDigest.digest()));
-            }
+        // collect the xml metadata
+        final List<XmlElement> elements = new ArrayList<>();
+        for (String field : fields) {
+            final String metadata = collectionService.getMetadata(collection, field);
+            final XmlElement element = new XmlElement(metadata, ImmutableMap.of("name", field));
+            elements.add(element);
         }
 
-        bag.registerChecksums(digest.bagitName(), checksums);
-        bag.write();
-
-        BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        Path serializedBag = serializer.serialize(packDir.toPath());
-        removeWork(packDir);
-        return serializedBag.toFile();
-    }
-
-    private void removeWork(File file) {
-        for (File files : file.listFiles()) {
-            if (file.isDirectory()) {
-                removeWork(files);
-            } else {
-                files.delete();
-            }
-        }
-
-        file.delete();
+        BagItAipWriter writer = new BagItAipWriter(packDir, archFmt, logo, properties, elements, emptyList());
+        return writer.packageAip();
     }
 
     @Override
@@ -246,51 +175,6 @@ public class CollectionPacker implements Packer
     public void setReferenceFilter(String filter)
     {
         throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    /**
-     * Write the metadata.xml file
-     *
-     * This is being copied a few times while code is being reorganized. No need to attempt DRY before we know how
-     * things will look
-     *
-     * @param metadata The map of metadata key/value pairs to write
-     * @param manifestXml the Path of the metadata.xml file to write
-     * @param messageDigest the MessageDigest for tracking the digest of the written stream
-     * @return the checksum of the manifest.xml
-     * @throws IOException if there's any exception
-     */
-    private String writeXmlMetadata(final Map<String, String> metadata, final Path manifestXml,
-                                    final MessageDigest messageDigest) throws IOException {
-        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
-
-        messageDigest.reset();
-        try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
-             final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
-            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
-                                                                                     Charsets.UTF_8.toString());
-            xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
-            xmlWriter.writeStartElement("metadata");
-            for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                final String key = entry.getKey();
-                final String value = entry.getValue();
-                if (key != null && value != null) {
-                    xmlWriter.writeStartElement("value");
-                    xmlWriter.writeAttribute("name", key);
-                    xmlWriter.writeCharacters(value);
-                    xmlWriter.writeEndElement();
-                }
-            }
-            xmlWriter.writeEndElement();
-            xmlWriter.writeEndDocument();
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        final String digest = Utils.toHex(messageDigest.digest());
-        messageDigest.reset();
-
-        return digest;
     }
 
 }
