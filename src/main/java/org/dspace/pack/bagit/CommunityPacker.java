@@ -142,7 +142,22 @@ public class CommunityPacker implements Packer
         bag.registerChecksums(digest.bagitName(), checksums);
         bag.write();
         BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        return serializer.serialize(packDir.toPath()).toFile();
+        Path serializedBag = serializer.serialize(packDir.toPath());
+        removeWork(packDir);
+        return serializedBag.toFile();
+    }
+
+
+    private void removeWork(File file) {
+        for (File files : file.listFiles()) {
+            if (file.isDirectory()) {
+                removeWork(files);
+            } else {
+                files.delete();
+            }
+        }
+
+        file.delete();
     }
 
     @Override
