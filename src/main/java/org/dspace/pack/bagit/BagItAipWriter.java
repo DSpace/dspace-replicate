@@ -92,16 +92,21 @@ public class BagItAipWriter {
     }
 
     public File packageAip() throws IOException, SQLException, AuthorizeException {
-        // setup BagWriter and the like
-        final BagItDigest digest = BagItDigest.MD5;
-        final MessageDigest messageDigest = digest.messageDigest();
+        // check if the Bag was already being worked on
         final Path dataDir = directory.toPath().resolve(DATA_DIR);
+        if (Files.exists(dataDir)) {
+            throw new IllegalStateException("Unable to create bag " + directory.toPath().getFileName() +
+                                            ", data directory already exists!");
+        }
 
+        // setup the BagProfile and BagWriter
         // todo: this might fail, might want to push to BagProfile
         final URL url = this.getClass().getResource(bagProfile);
         final BagProfile profile = new BagProfile(url.openStream());
 
         // todo - on bag init add: tag files, bag metadata, track size written
+        final BagItDigest digest = BagItDigest.MD5;
+        final MessageDigest messageDigest = digest.messageDigest();
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest.bagitName()));
 
         // Write the base object properties
