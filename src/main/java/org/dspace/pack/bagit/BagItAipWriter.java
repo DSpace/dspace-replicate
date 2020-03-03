@@ -161,7 +161,8 @@ public class BagItAipWriter {
             final Bitstream bitstream = bagBitstream.getBitstream();
             final String seqId = String.valueOf(bitstream.getSequenceID());
             final Path bitstreamXml = bsDirectory.resolve(seqId + "-metadata.xml");
-            writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
+            final String bsXmlDigest = writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
+            checksums.put(bitstreamXml.toFile(), bsXmlDigest);
 
             if (bagBitstream.getFetchUrl() != null) {
                 // todo: handle fetch
