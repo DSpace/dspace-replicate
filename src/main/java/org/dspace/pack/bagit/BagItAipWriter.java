@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.xml.stream.XMLOutputFactory;
@@ -236,7 +237,9 @@ public class BagItAipWriter {
      * @param directory the directory to delete
      */
     private void delete(File directory) {
-        for (File file : directory.listFiles()) {
+        // protect against being sent a file instead of a directory
+        File[] files = Optional.ofNullable(directory.listFiles()).orElseGet(() -> new File[0]);
+        for (File file : files) {
             if (file.isDirectory()) {
                 delete(file);
             } else {
