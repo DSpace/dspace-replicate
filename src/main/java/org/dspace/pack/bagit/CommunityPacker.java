@@ -7,29 +7,27 @@
  */
 package org.dspace.pack.bagit;
 
-import static java.util.stream.Collectors.toMap;
+import static java.util.Collections.emptyList;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Properties;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.Charsets;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -42,11 +40,6 @@ import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.BagSerializer;
-import org.duraspace.bagit.BagWriter;
-import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -90,74 +83,30 @@ public class CommunityPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
-        final BagItDigest digest = BagItDigest.MD5;
-        final MessageDigest messageDigest = digest.messageDigest();
+        final Bitstream logo = community.getLogo();
 
-        final URL url = this.getClass().getResource(bagProfile);
-        final BagProfile profile = new BagProfile(url.openStream());
-
-        final Path dataDir = packDir.toPath().resolve("data");
-        // todo - on bag init add: tag files, bag metadata, track size written
-        final BagWriter bag = new BagWriter(packDir, Collections.singleton(digest.bagitName()));
-
-        final Map<File, String> checksums = new HashMap<>();
-
-        final Path objfile = dataDir.resolve(PackerFactory.OBJFILE);
-        try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
-             final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
-
-            objDigest.write((PackerFactory.BAG_TYPE + "  " + "AIP\n").getBytes());
-            objDigest.write((PackerFactory.OBJECT_TYPE + "  " + "community\n").getBytes());
-            objDigest.write((PackerFactory.OBJECT_ID + "  " + community.getHandle() + "\n").getBytes());
-            List<Community> parents = community.getParentCommunities();
-            if (parents != null && !parents.isEmpty()) {
-                objDigest.write((PackerFactory.OWNER_ID + "  " + parents.get(0).getHandle() + "\n").getBytes());
-            }
+        Map<String, Properties> propertiesMap = new HashMap<>();
+        // object.properties
+        final Properties objProperties = new Properties();
+        objProperties.setProperty(PackerFactory.BAG_TYPE , "AIP");
+        objProperties.setProperty(PackerFactory.OBJECT_TYPE , "community");
+        objProperties.setProperty(PackerFactory.OBJECT_ID , community.getHandle());
+        List<Community> parents = community.getParentCommunities();
+        if (parents != null && !parents.isEmpty()) {
+            objProperties.setProperty(PackerFactory.OWNER_ID , parents.get(0).getHandle());
         }
-        final String objFileDigest = Utils.toHex(messageDigest.digest());
-        checksums.put(objfile.toFile(), objFileDigest);
+        propertiesMap.put(PackerFactory.OBJFILE, objProperties);
 
-        // then metadata
-        final Path manifestXml = dataDir.resolve("metadata.xml");
-        final Map<String, String> metadata =
-            Arrays.stream(fields)
-                  .collect(toMap(Function.identity(), key -> communityService.getMetadata(community, key)));
-
-        final String xmlDigest = writeXmlMetadata(metadata, manifestXml, messageDigest);
-        checksums.put(manifestXml.toFile(), xmlDigest);
-
-        // also add logo if it exists
-        Bitstream logo = community.getLogo();
-        if (logo != null) {
-            final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
-            final Path logoPath = dataDir.resolve("logo");
-            try (OutputStream os = Files.newOutputStream(logoPath);
-                 DigestOutputStream dos = new DigestOutputStream(os, messageDigest)) {
-                messageDigest.reset();
-                Utils.copy(logoIS, dos);
-                checksums.put(logoPath.toFile(), Utils.toHex(messageDigest.digest()));
-            }
+        // collect the xml metadata
+        final List<XmlElement> elements = new ArrayList<>();
+        for (String field : fields) {
+            final String metadata = communityService.getMetadata(community, field);
+            final XmlElement element = new XmlElement(metadata, ImmutableMap.of("name", field));
+            elements.add(element);
         }
 
-        bag.registerChecksums(digest.bagitName(), checksums);
-        bag.write();
-        BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        Path serializedBag = serializer.serialize(packDir.toPath());
-        removeWork(packDir);
-        return serializedBag.toFile();
-    }
-
-
-    private void removeWork(File file) {
-        for (File files : file.listFiles()) {
-            if (file.isDirectory()) {
-                removeWork(files);
-            } else {
-                files.delete();
-            }
-        }
-
-        file.delete();
+        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, propertiesMap, elements, emptyList());
+        return aipWriter.packageAip();
     }
 
     @Override
