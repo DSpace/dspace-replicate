@@ -13,24 +13,31 @@ import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import com.google.common.io.CountingOutputStream;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
+import org.duraspace.bagit.BagConfig;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.BagProfileConstants;
 import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
 import org.duraspace.bagit.SerializationSupport;
@@ -48,6 +55,9 @@ public class BagItAipWriter {
     private final String METADATA_XML = "metadata.xml";
     private final String bagProfile = "/profiles/beyondtherepository.json";
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
+
+    private final AtomicLong successBytes = new AtomicLong();
+    private final AtomicLong successFiles = new AtomicLong();
     private final Map<File, String> checksums = new HashMap<>();
 
     /**
@@ -117,13 +127,17 @@ public class BagItAipWriter {
             }
 
             try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
-                 final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
+                 final CountingOutputStream countingOs = new CountingOutputStream(objOS);
+                 final DigestOutputStream objDigest = new DigestOutputStream(countingOs, messageDigest)) {
                 final Properties properties = fileProperties.get(filename);
                 for (String property : properties.stringPropertyNames()) {
                     final String value = properties.getProperty(property);
                     final String line = property + "  " + value + "\n";
                     objDigest.write(line.getBytes());
                 }
+
+                successFiles.incrementAndGet();
+                successBytes.addAndGet(countingOs.getCount());
             }
             final String objFileDigest = Utils.toHex(messageDigest.digest());
             checksums.put(objfile.toFile(), objFileDigest);
@@ -158,8 +172,12 @@ public class BagItAipWriter {
                 final InputStream is = bitstreamService.retrieve(Curator.curationContext(), bitstream);
 
                 try (OutputStream fout = Files.newOutputStream(dataFile);
-                     DigestOutputStream dout = new DigestOutputStream(fout, messageDigest)) {
+                     CountingOutputStream countingOs = new CountingOutputStream(fout);
+                     DigestOutputStream dout = new DigestOutputStream(countingOs, messageDigest)) {
                     Utils.copy(is, dout);
+
+                    successBytes.addAndGet(countingOs.getCount());
+                    successFiles.incrementAndGet();
                 }
 
                 final String fileChecksum = Utils.toHex(messageDigest.digest());
@@ -169,18 +187,25 @@ public class BagItAipWriter {
 
         // also add logo if it exists
         if (logo != null) {
+            messageDigest.reset();
             final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
             final Path logoPath = dataDir.resolve(LOGO_FILE);
+
             try (OutputStream os = Files.newOutputStream(logoPath);
-                 DigestOutputStream dos = new DigestOutputStream(os, messageDigest)) {
-                messageDigest.reset();
+                 CountingOutputStream countingOs = new CountingOutputStream(os);
+                 DigestOutputStream dos = new DigestOutputStream(countingOs, messageDigest)) {
                 Utils.copy(logoIS, dos);
-                checksums.put(logoPath.toFile(), Utils.toHex(messageDigest.digest()));
+
+                successFiles.incrementAndGet();
+                successBytes.addAndGet(countingOs.getCount());
             }
+            checksums.put(logoPath.toFile(), Utils.toHex(messageDigest.digest()));
         }
 
         // Finalize the Bag (write + serialize)
+        // todo: get extra tag/bag-info data through some configuration
         bag.registerChecksums(digest.bagitName(), checksums);
+        bag.addTags(BagConfig.BAG_INFO_KEY, generateBagInfo());
         bag.write();
 
         BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
@@ -188,6 +213,15 @@ public class BagItAipWriter {
         delete(directory);
 
         return serializedBag.toFile();
+    }
+
+    private Map<String, String> generateBagInfo() {
+        final Map<String, String> bagInfo = new HashMap<>();
+        bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, bagProfile);
+        bagInfo.put("Bag-Size", FileUtils.byteCountToDisplaySize(successBytes.get()));
+        bagInfo.put("Payload-Oxum", successBytes.toString() + "." + successFiles.toString());
+        bagInfo.put("Bagging-Date", DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now()));
+        return Collections.emptyMap();
     }
 
     private void delete(File directory) {
@@ -211,7 +245,8 @@ public class BagItAipWriter {
         final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
         messageDigest.reset();
         try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
-             final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
+             final CountingOutputStream countingOs = new CountingOutputStream(xmlOut);
+             final DigestOutputStream xmlDigestOut = new DigestOutputStream(countingOs, messageDigest)) {
             final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
                                                                                      Charsets.UTF_8.toString());
             xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
@@ -232,15 +267,14 @@ public class BagItAipWriter {
 
             xmlWriter.writeEndElement();
             xmlWriter.writeEndDocument();
+
+            successBytes.addAndGet(countingOs.getCount());
+            successFiles.incrementAndGet();
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage(), e);
         }
 
-        final String digest = Utils.toHex(messageDigest.digest());
-        messageDigest.reset();
-
-        // todo: save checksum here?
-        return digest;
+        return Utils.toHex(messageDigest.digest());
     }
 
 }
