@@ -146,9 +146,9 @@ public class BagItAipWriter {
 
         // then metadata
         messageDigest.reset();
-        final Path manifestXml = dataDir.resolve(METADATA_XML);
-        final String xmlDigest = writeXmlMetadata(metadata, manifestXml, messageDigest);
-        checksums.put(manifestXml.toFile(), xmlDigest);
+        final Path metadataXml = dataDir.resolve(METADATA_XML);
+        final String xmlDigest = writeXmlMetadata(metadata, metadataXml, messageDigest);
+        checksums.put(metadataXml.toFile(), xmlDigest);
 
         // write any bitstreams
         for (BagBitstream bagBitstream : bitstreams) {
@@ -161,7 +161,7 @@ public class BagItAipWriter {
             // todo: save checksum
             final Bitstream bitstream = bagBitstream.getBitstream();
             final String seqId = String.valueOf(bitstream.getSequenceID());
-            final Path bitstreamXml = bsDirectory.resolve(seqId + "-metadata.xml");
+            final Path bitstreamXml = bsDirectory.resolve(seqId + "-" + METADATA_XML);
             final String bsXmlDigest = writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
             checksums.put(bitstreamXml.toFile(), bsXmlDigest);
 
@@ -251,24 +251,24 @@ public class BagItAipWriter {
     }
 
     /**
-     * Write the xml {@code elements} to the given {@code manifestXml} file. After writing the message digest of the
+     * Write the xml {@code elements} to the given {@code metadataXml} file. After writing the message digest of the
      * written xml file is returned.
      *
      * @param elements the {@link XmlElement}s to write to the file
-     * @param manifestXml the {@link Path} to the xml file
+     * @param metadataXml the {@link Path} to the xml file
      * @param messageDigest the {@link MessageDigest} tracking the digest of the file
      * @return the value of the {@link MessageDigest}
-     * @throws IOException if there are any errors writing to the {@code manifestXml}
+     * @throws IOException if there are any errors writing to the {@code metadataXml}
      */
-    private String writeXmlMetadata(final List<XmlElement> elements, final Path manifestXml,
+    private String writeXmlMetadata(final List<XmlElement> elements, final Path metadataXml,
                                     final MessageDigest messageDigest) throws IOException {
-        if (Files.notExists(manifestXml.getParent())) {
-            Files.createDirectories(manifestXml.getParent());
+        if (Files.notExists(metadataXml.getParent())) {
+            Files.createDirectories(metadataXml.getParent());
         }
 
         final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
         messageDigest.reset();
-        try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
+        try (final OutputStream xmlOut = Files.newOutputStream(metadataXml, StandardOpenOption.CREATE_NEW);
              final CountingOutputStream countingOs = new CountingOutputStream(xmlOut);
              final DigestOutputStream xmlDigestOut = new DigestOutputStream(countingOs, messageDigest)) {
             final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
