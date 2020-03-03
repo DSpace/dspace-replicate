@@ -107,6 +107,10 @@ public class BagItAipWriter {
         // Write the base object properties
         for (String filename : fileProperties.keySet()) {
             final Path objfile = dataDir.resolve(filename);
+            if (Files.notExists(objfile.getParent())) {
+                Files.createDirectories(objfile.getParent());
+            }
+
             try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
                  final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
                 final Properties properties = fileProperties.get(filename);
@@ -128,19 +132,24 @@ public class BagItAipWriter {
 
         // write any bitstreams
         for (BagBitstream bagBitstream : bitstreams) {
+            // create the bundle directory
             final String bundle = bagBitstream.getBundle();
+            final Path bsDirectory = dataDir.resolve(bundle);
+            Files.createDirectories(bsDirectory);
+
+            // write the bitstream metadata
+            // todo: save checksum
+            final Bitstream bitstream = bagBitstream.getBitstream();
+            final String seqId = String.valueOf(bitstream.getSequenceID());
+            final Path bitstreamXml = bsDirectory.resolve(seqId + "-metadata.xml");
+            writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
+
             if (bagBitstream.getFetchUrl() != null) {
                 // todo: handle fetch
             } else {
-                // bitstream metadata
-                final Bitstream bitstream = bagBitstream.getBitstream();
-                final String seqId = String.valueOf(bitstream.getSequenceID());
-                final Path bitstreamXml = dataDir.resolve(bundle).resolve(seqId + "-metadata.xml");
-                writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
-
-                // bitstream... stream
+                // copy the bitstream
                 messageDigest.reset();
-                final Path dataFile = dataDir.resolve(bundle + seqId);
+                final Path dataFile = bsDirectory.resolve(seqId);
                 final InputStream is = bitstreamService.retrieve(Curator.curationContext(), bitstream);
 
                 try (OutputStream fout = Files.newOutputStream(dataFile);
@@ -190,8 +199,11 @@ public class BagItAipWriter {
 
     private String writeXmlMetadata(final List<XmlElement> elements, final Path manifestXml,
                                     final MessageDigest messageDigest) throws IOException {
-        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
+        if (Files.notExists(manifestXml.getParent())) {
+            Files.createDirectories(manifestXml.getParent());
+        }
 
+        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
         messageDigest.reset();
         try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
              final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
@@ -201,58 +213,18 @@ public class BagItAipWriter {
             xmlWriter.writeStartElement("metadata");
 
             for (XmlElement element : elements) {
-                xmlWriter.writeStartElement("value");
-                for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
-                    xmlWriter.writeAttribute(attribute.getKey(), attribute.getValue());
-                }
-                xmlWriter.writeCharacters(element.getBody());
-                xmlWriter.writeEndElement();
-            }
-
-            xmlWriter.writeEndElement();
-            xmlWriter.writeEndDocument();
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        final String digest = Utils.toHex(messageDigest.digest());
-        messageDigest.reset();
-
-        return digest;
-    }
-
-    /**
-     * Write the metadata.xml file
-     *
-     * This is being copied a few times while code is being reorganized. No need to attempt DRY before we know how
-     * things will look
-     *
-     * @param metadata The map of metadata key/value pairs to write
-     * @param manifestXml the Path of the metadata.xml file to write
-     * @param messageDigest the MessageDigest for tracking the digest of the written stream
-     * @return the checksum of the manifest.xml
-     * @throws IOException if there's any exception
-    private String writeXmlMetadata(final List<XmlElement> metadata, final Path manifestXml,
-                                    final MessageDigest messageDigest) throws IOException {
-        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
-
-        messageDigest.reset();
-        try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
-             final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
-            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
-                                                                                     Charsets.UTF_8.toString());
-            xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
-            xmlWriter.writeStartElement("metadata");
-            for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                final String key = entry.getKey();
-                final String value = entry.getValue();
-                if (key != null && value != null) {
+                if (element.getBody() != null) {
                     xmlWriter.writeStartElement("value");
-                    xmlWriter.writeAttribute("name", key);
-                    xmlWriter.writeCharacters(value);
+                    for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
+                        if (attribute.getKey() != null && attribute.getValue() != null) {
+                            xmlWriter.writeAttribute(attribute.getKey(), attribute.getValue());
+                        }
+                    }
+                    xmlWriter.writeCharacters(element.getBody());
                     xmlWriter.writeEndElement();
                 }
             }
+
             xmlWriter.writeEndElement();
             xmlWriter.writeEndDocument();
         } catch (XMLStreamException e) {
@@ -262,8 +234,8 @@ public class BagItAipWriter {
         final String digest = Utils.toHex(messageDigest.digest());
         messageDigest.reset();
 
+        // todo: save checksum here?
         return digest;
     }
-     */
 
 }
