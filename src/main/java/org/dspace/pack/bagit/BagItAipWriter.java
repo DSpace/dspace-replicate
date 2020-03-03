@@ -228,7 +228,7 @@ public class BagItAipWriter {
         bagInfo.put("Bag-Size", FileUtils.byteCountToDisplaySize(successBytes.get()));
         bagInfo.put("Payload-Oxum", successBytes.toString() + "." + successFiles.toString());
         bagInfo.put("Bagging-Date", DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now()));
-        return Collections.emptyMap();
+        return bagInfo;
     }
 
     /**
