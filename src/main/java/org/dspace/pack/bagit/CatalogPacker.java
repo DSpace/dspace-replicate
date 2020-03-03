@@ -7,6 +7,7 @@
  */
 package org.dspace.pack.bagit;
 
+import static java.util.Collections.emptyList;
 import static org.dspace.pack.PackerFactory.BAG_TYPE;
 import static org.dspace.pack.PackerFactory.CREATE_TS;
 import static org.dspace.pack.PackerFactory.OBJECT_ID;
@@ -17,29 +18,17 @@ import static org.dspace.pack.PackerFactory.OWNER_ID;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
+import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
-import org.dspace.core.Utils;
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.pack.Packer;
-import org.dspace.pack.PackerFactory;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
-import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.BagSerializer;
-import org.duraspace.bagit.BagWriter;
-import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CatalogPacker packs and unpacks Object catalogs in Bagit format. These
@@ -82,68 +71,29 @@ public class CatalogPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws IOException {
-        final BagItDigest digest = BagItDigest.MD5;
-        final MessageDigest messageDigest = digest.messageDigest();
-
-        final URL url = this.getClass().getResource(bagProfile);
-        final BagProfile profile = new BagProfile(url.openStream());
-
-        final Path dataDir = packDir.toPath().resolve("data");
-        final HashMap<File, String> checksums = new HashMap<>();
-
-        // todo - on bag init add: tag files, bag metadata, track size written
-        BagWriter bag = new BagWriter(packDir, Collections.singleton(digest.bagitName()));
-
-        final Path objfile = dataDir.resolve(PackerFactory.OBJFILE);
-        try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
-             final DigestOutputStream objDigest = new DigestOutputStream(objOS, messageDigest)) {
-
-            objDigest.write((BAG_TYPE + "  " + "MAN\n").getBytes());
-            objDigest.write((OBJECT_TYPE + "  " + "deletion\n").getBytes());
-            objDigest.write((OBJECT_ID + "  " + objectId + "\n").getBytes());
-
-            if (ownerId != null) {
-                objDigest.write((OWNER_ID + "  " + ownerId + "\n").getBytes());
-            }
-
-            objDigest.write((CREATE_TS + "  " + System.currentTimeMillis() + "\n").getBytes());
+    public File pack(File packDir) throws IOException, SQLException, AuthorizeException {
+        final Map<String, Properties> propertiesMap = new HashMap<>();
+        // object.properties
+        final Properties objProperties = new Properties();
+        objProperties.setProperty(BAG_TYPE, "MAN");
+        objProperties.setProperty(OBJECT_TYPE, "deletion");
+        objProperties.setProperty(OBJECT_ID, objectId);
+        objProperties.setProperty(CREATE_TS, String.valueOf(System.currentTimeMillis()));
+        if (ownerId != null) {
+            objProperties.setProperty(OWNER_ID, ownerId);
         }
-        final String objDigest = Utils.toHex(messageDigest.digest());
-        checksums.put(objfile.toFile(), objDigest);
+        propertiesMap.put(OBJFILE, objProperties);
 
-        messageDigest.reset();
-
+        // members...properties
         if (members.size() > 0) {
-            final Path membersFile = dataDir.resolve("members");
-            try (final OutputStream os = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
-                 final DigestOutputStream membersOs = new DigestOutputStream(os, messageDigest)) {
-                for (String member : members) {
-                    membersOs.write((member + "\n").getBytes());
-                }
-            }
-            final String memberDigest = Utils.toHex(messageDigest.digest());
-            checksums.put(membersFile.toFile(), memberDigest);
+            // todo: I don't think properties makes sense for this...
+            final Properties membersProperties = new Properties();
+            members.forEach(member -> membersProperties.setProperty(member, ""));
+            propertiesMap.put("members", membersProperties);
         }
 
-        bag.registerChecksums(digest.bagitName(), checksums);
-        bag.write();
-        BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        Path serializedBag = serializer.serialize(packDir.toPath());
-        removeWork(packDir);
-        return serializedBag.toFile();
-    }
-
-    private void removeWork(File file) {
-        for (File files : file.listFiles()) {
-            if (file.isDirectory()) {
-                removeWork(files);
-            } else {
-                files.delete();
-            }
-        }
-
-        file.delete();
+        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, propertiesMap, emptyList(), emptyList());
+        return aipWriter.packageAip();
     }
 
     @Override
