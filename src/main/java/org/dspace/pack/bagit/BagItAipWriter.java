@@ -216,6 +216,11 @@ public class BagItAipWriter {
         return serializedBag.toFile();
     }
 
+    /**
+     * Get system generated bag-info fields
+     *
+     * @return A {@link Map} of the bag-info fields to their values
+     */
     private Map<String, String> generateBagInfo() {
         final Map<String, String> bagInfo = new HashMap<>();
         bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, bagProfile);
@@ -225,6 +230,11 @@ public class BagItAipWriter {
         return Collections.emptyMap();
     }
 
+    /**
+     * Delete a directory and it's files/subdirectories
+     *
+     * @param directory the directory to delete
+     */
     private void delete(File directory) {
         for (File file : directory.listFiles()) {
             if (file.isDirectory()) {
@@ -237,6 +247,16 @@ public class BagItAipWriter {
         directory.delete();
     }
 
+    /**
+     * Write the xml {@code elements} to the given {@code manifestXml} file. After writing the message digest of the
+     * written xml file is returned.
+     *
+     * @param elements the {@link XmlElement}s to write to the file
+     * @param manifestXml the {@link Path} to the xml file
+     * @param messageDigest the {@link MessageDigest} tracking the digest of the file
+     * @return the value of the {@link MessageDigest}
+     * @throws IOException if there are any errors writing to the {@code manifestXml}
+     */
     private String writeXmlMetadata(final List<XmlElement> elements, final Path manifestXml,
                                     final MessageDigest messageDigest) throws IOException {
         if (Files.notExists(manifestXml.getParent())) {
