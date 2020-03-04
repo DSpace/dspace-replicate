@@ -19,14 +19,24 @@ import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
@@ -38,6 +48,9 @@ import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagDeserializer;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -111,30 +124,78 @@ public class CollectionPacker implements Packer
     }
 
     @Override
-    public void unpack(File archive) throws AuthorizeException, IOException, SQLException
-    {
-        if (archive == null)
-        {
+    public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
+        if (archive == null) {
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
-        Bag bag = new Bag(archive);
-        // add the metadata
-        Bag.XmlReader reader = bag.xmlReader("metadata.xml");
-        if (reader != null && reader.findStanza("metadata"))
-        {
-            Bag.Value value = null;
-            while((value = reader.nextValue()) != null)
-            {
-                collectionService.setMetadata(Curator.curationContext(), collection, value.name, value.val);
-            }
-            reader.close();
+
+        final Path bagPath;
+        if (archive.isFile()) {
+            // todo: this might fail, might want to push to BagProfile
+            final URL url = this.getClass().getResource(bagProfile);
+            final BagProfile profile = new BagProfile(url.openStream());
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
+            bagPath = deserializer.deserialize(archive.toPath());
+        } else {
+            bagPath = archive.toPath();
         }
-          // also install logo or set to null
-        collectionService.setLogo(Curator.curationContext(), collection, bag.dataStream("logo"));
-        // now write data back to DB
+
+        final XMLStreamReader reader;
+        final XMLInputFactory factory = XMLInputFactory.newFactory();
+        final Path metadataXml = bagPath.resolve("data").resolve("metadata.xml");
+        try {
+            reader = factory.createXMLStreamReader(Files.newInputStream(metadataXml));
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        List<XmlElement> elements = new ArrayList<>();
+        try {
+            // todo: push this somewhere else
+            while (reader.hasNext()) {
+                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                    reader.getLocalName().equalsIgnoreCase("metadata")) {
+                    String body = null;
+                    Map<String, String> attributes = null;
+                    while (reader.hasNext()) {
+                        switch (reader.next()) {
+                            case XMLStreamConstants.START_ELEMENT:
+                                attributes = new HashMap<>();
+                                for (int i = 0; i < reader.getAttributeCount(); i++) {
+                                    attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+                                }
+                                break;
+                            case XMLStreamConstants.ATTRIBUTE:
+                                break;
+                            case XMLStreamConstants.CHARACTERS:
+                                body = reader.getText();
+                                break;
+                            case XMLStreamConstants.END_ELEMENT:
+                                elements.add(new XmlElement(body, attributes));
+                                break;
+                        }
+                    }
+                }
+            }
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        for (XmlElement element : elements) {
+            final String name = element.getAttributes().get("name");
+            final String value = element.getBody();
+            collectionService.setMetadata(Curator.curationContext(), collection, name, value);
+        }
+
+        final Path logo = bagPath.resolve("data").resolve("logo");
+        // todo: do we need to set to null?
+        if (Files.exists(logo)) {
+            collectionService.setLogo(Curator.curationContext(), collection, Files.newInputStream(logo));
+        }
+
         collectionService.update(Curator.curationContext(), collection);
-         // clean up bag
-        bag.empty();
+
+        FileUtils.deleteDirectory(bagPath.toFile());
     }
 
     @Override
