@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -86,9 +85,8 @@ public class BagItAipWriter {
 
     /**
      * A Mapping of filenames to the properties
-     * todo: this is a little weird, maybe encapsulate properties some other way
      */
-    private final Map<String, Properties> fileProperties;
+    private final Map<String, List<String>> properties;
 
     /**
      * Key-Value xml properties
@@ -100,13 +98,24 @@ public class BagItAipWriter {
      */
     private final List<BagBitstream> bitstreams;
 
-    public BagItAipWriter(File directory, String archFmt, Bitstream logo, Map<String, Properties> fileProperties,
+    /**
+     * Constructor for a {@link BagItAipWriter}. Takes all the information needed in order to write an AIP for dspace
+     * consumption.
+     *
+     * @param directory the root {@link File} which the bag will be written to
+     * @param archFmt the serialization format when archiving the bag to a single file
+     * @param logo the {@link Bitstream} of the logo, or null
+     * @param properties a {@link Map} which maps a filename with a list of lines to write to the file
+     * @param metadata a {@link List} of {@link XmlElement}s to write to the bags data/metadata.xml
+     * @param bitstreams a {@link List} of {@link BagBitstream}s which should be written as payload files for the bag
+     */
+    public BagItAipWriter(File directory, String archFmt, Bitstream logo, Map<String, List<String>> properties,
                           List<XmlElement> metadata, List<BagBitstream> bitstreams) {
         this.logo = logo;
         this.archFmt = checkNotNull(archFmt);
         this.directory = checkNotNull(directory);
         this.metadata = checkNotNull(metadata);
-        this.fileProperties = checkNotNull(fileProperties);
+        this.properties = checkNotNull(properties);
         this.bitstreams = bitstreams != null ? bitstreams : Collections.<BagBitstream>emptyList();
     }
 
@@ -128,8 +137,8 @@ public class BagItAipWriter {
         final MessageDigest messageDigest = digest.messageDigest();
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest.bagitName()));
 
-        // Write the base object properties
-        for (String filename : fileProperties.keySet()) {
+        // Write the base properties files for the bag
+        for (String filename : properties.keySet()) {
             final Path objfile = dataDir.resolve(filename);
             if (Files.notExists(objfile.getParent())) {
                 Files.createDirectories(objfile.getParent());
@@ -138,11 +147,10 @@ public class BagItAipWriter {
             try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
                  final CountingOutputStream countingOs = new CountingOutputStream(objOS);
                  final DigestOutputStream objDigest = new DigestOutputStream(countingOs, messageDigest)) {
-                final Properties properties = fileProperties.get(filename);
-                for (String property : properties.stringPropertyNames()) {
-                    final String value = properties.getProperty(property);
-                    final String line = property + "  " + value + "\n";
+                final List<String> lines = this.properties.get(filename);
+                for (String line : lines) {
                     objDigest.write(line.getBytes());
+                    objDigest.write("\n".getBytes());
                 }
 
                 successFiles.incrementAndGet();
