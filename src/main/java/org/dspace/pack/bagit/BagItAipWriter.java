@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -61,7 +60,6 @@ public class BagItAipWriter {
     private final String DATA_DIR = "data";
     private final String LOGO_FILE = "logo";
     private final String METADATA_XML = "metadata.xml";
-    private final String bagProfile = "/profiles/beyondtherepository.json";
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     private final AtomicLong successBytes = new AtomicLong();
@@ -128,13 +126,9 @@ public class BagItAipWriter {
         }
 
         // setup the BagProfile and BagWriter
-        // todo: this might fail, might want to push to BagProfile
-        final URL url = this.getClass().getResource(bagProfile);
-        final BagProfile profile = new BagProfile(url.openStream());
-
-        // todo - on bag init add: tag files, bag metadata, track size written
         final BagItDigest digest = BagItDigest.MD5;
         final MessageDigest messageDigest = digest.messageDigest();
+        final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest.bagitName()));
 
         // Write the base properties files for the bag
@@ -174,7 +168,6 @@ public class BagItAipWriter {
             Files.createDirectories(bsDirectory);
 
             // write the bitstream metadata
-            // todo: save checksum
             final Bitstream bitstream = bagBitstream.getBitstream();
             final String seqId = String.valueOf(bitstream.getSequenceID());
             final Path bitstreamXml = bsDirectory.resolve(seqId + "-" + METADATA_XML);
@@ -240,10 +233,11 @@ public class BagItAipWriter {
      */
     private Map<String, String> generateBagInfo() {
         final Map<String, String> bagInfo = new HashMap<>();
-        bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, bagProfile);
-        bagInfo.put("Bag-Size", FileUtils.byteCountToDisplaySize(successBytes.get()));
-        bagInfo.put("Payload-Oxum", successBytes.toString() + "." + successFiles.toString());
-        bagInfo.put("Bagging-Date", ISODateTimeFormat.date().print(LocalDate.now()));
+        final BagProfile.BuiltIn btr = BagProfile.BuiltIn.BEYOND_THE_REPOSITORY;
+        bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, btr.getIdentifier());
+        bagInfo.put(BagConfig.BAG_SIZE_KEY, FileUtils.byteCountToDisplaySize(successBytes.get()));
+        bagInfo.put(BagConfig.PAYLOAD_OXUM_KEY, successBytes.toString() + "." + successFiles.toString());
+        bagInfo.put(BagConfig.BAGGING_DATE_KEY, ISODateTimeFormat.date().print(LocalDate.now()));
         return bagInfo;
     }
 
