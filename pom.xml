@@ -250,11 +250,6 @@
           <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-            <version>1.20</version>
-        </dependency>
-        <dependency>
             <groupId>org.duraspace</groupId>
             <artifactId>bagit-support</artifactId>
             <version>${bagit-support.version}</version>
