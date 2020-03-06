@@ -84,8 +84,8 @@ public class CommunityPacker implements Packer
         Map<String, Properties> propertiesMap = new HashMap<>();
         // object.properties
         final Properties objProperties = new Properties();
-        objProperties.setProperty(PackerFactory.BAG_TYPE , "AIP");
-        objProperties.setProperty(PackerFactory.OBJECT_TYPE , "community");
+        objProperties.setProperty(PackerFactory.BAG_TYPE , BagItAipWriter.BAG_AIP);
+        objProperties.setProperty(PackerFactory.OBJECT_TYPE , BagItAipWriter.OBJ_TYPE_COMMUNITY);
         objProperties.setProperty(PackerFactory.OBJECT_ID , community.getHandle());
         List<Community> parents = community.getParentCommunities();
         if (parents != null && !parents.isEmpty()) {
@@ -97,7 +97,7 @@ public class CommunityPacker implements Packer
         final List<XmlElement> elements = new ArrayList<>();
         for (String field : fields) {
             final String metadata = communityService.getMetadata(community, field);
-            final XmlElement element = new XmlElement(metadata, ImmutableMap.of("name", field));
+            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(BagItAipWriter.XML_NAME_KEY, field));
             elements.add(element);
         }
 

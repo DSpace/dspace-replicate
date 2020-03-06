@@ -7,6 +7,7 @@
  */
 package org.dspace.pack.bagit;
 
+import static java.lang.Boolean.TRUE;
 import static org.dspace.pack.PackerFactory.OTHER_IDS;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.PackerFactory.WITHDRAWN;
@@ -49,6 +50,17 @@ public class ItemPacker implements Packer
     private BundleService bundleService = ContentServiceFactory.getInstance().getBundleService();
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
+    // XML constants
+    private static final String SCHEMA = "schema";
+    private static final String ELEMENT = "element";
+    private static final String QUALIFIER = "qualifier";
+    private static final String LANGUAGE = "language";
+    private static final String NAME = "name";
+    private static final String SOURCE = "source";
+    private static final String DESCRIPTION = "description";
+    private static final String SEQUENCE_ID = "sequence_id";
+    private static final String BUNDLE_PRIMARY = "bundle_primary";
+
     private Item item = null;
     private String archFmt = null;
     private List<String> filterBundles = new ArrayList<>();
@@ -78,8 +90,8 @@ public class ItemPacker implements Packer
 
         // object properties
         final Properties objProperties = new Properties();
-        objProperties.setProperty(PackerFactory.BAG_TYPE, "AIP");
-        objProperties.setProperty(PackerFactory.OBJECT_TYPE, "item");
+        objProperties.setProperty(PackerFactory.BAG_TYPE, BagItAipWriter.BAG_AIP);
+        objProperties.setProperty(PackerFactory.OBJECT_TYPE, BagItAipWriter.OBJ_TYPE_ITEM);
         objProperties.setProperty(PackerFactory.OBJECT_ID, item.getHandle());
 
         StringBuilder linked = new StringBuilder();
@@ -95,7 +107,7 @@ public class ItemPacker implements Packer
             objProperties.setProperty(OTHER_IDS, linked.substring(0, linked.length() - 1));
         }
         if (item.isWithdrawn()) {
-            objProperties.setProperty(WITHDRAWN, "true");
+            objProperties.setProperty(WITHDRAWN, TRUE.toString());
         }
         propertiesMap.put(PackerFactory.OBJFILE, objProperties);
 
@@ -104,10 +116,10 @@ public class ItemPacker implements Packer
         final List<MetadataValue> metadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
         for (MetadataValue value : metadata) {
             final HashMap<String, String> attributes = new HashMap<>();
-            attributes.put("schema", value.getMetadataField().getMetadataSchema().getName());
-            attributes.put("element", value.getMetadataField().getElement());
-            attributes.put("qualifier", value.getMetadataField().getQualifier());
-            attributes.put("language", value.getLanguage());
+            attributes.put(SCHEMA, value.getMetadataField().getMetadataSchema().getName());
+            attributes.put(ELEMENT, value.getMetadataField().getElement());
+            attributes.put(QUALIFIER, value.getMetadataField().getQualifier());
+            attributes.put(LANGUAGE, value.getLanguage());
             metadataElements.add(new XmlElement(value.getValue(), attributes));
         }
 
@@ -123,12 +135,12 @@ public class ItemPacker implements Packer
 
                     // field access is hard-coded in Bitstream class, ugh!
                     List<XmlElement> bsElements = new ArrayList<>();
-                    bsElements.add(new XmlElement(bs.getName(), ImmutableMap.of("name", "name")));
-                    bsElements.add(new XmlElement(bs.getSource(), ImmutableMap.of("name", "source")));
-                    bsElements.add(new XmlElement(bs.getDescription(), ImmutableMap.of("name", "description")));
-                    bsElements.add(new XmlElement(seqId, ImmutableMap.of("name", "sequence_id")));
+                    bsElements.add(new XmlElement(bs.getName(), ImmutableMap.of(NAME, NAME)));
+                    bsElements.add(new XmlElement(bs.getSource(), ImmutableMap.of(NAME, SOURCE)));
+                    bsElements.add(new XmlElement(bs.getDescription(), ImmutableMap.of(NAME, DESCRIPTION)));
+                    bsElements.add(new XmlElement(seqId, ImmutableMap.of(NAME, SEQUENCE_ID)));
                     if (bs.equals(bundle.getPrimaryBitstream())) {
-                        bsElements.add(new XmlElement("true", ImmutableMap.of("name", "bundle_primary")));
+                        bsElements.add(new XmlElement(TRUE.toString(), ImmutableMap.of(NAME, BUNDLE_PRIMARY)));
                     }
 
                     // write the bitstream itself, unless reference filter applies
