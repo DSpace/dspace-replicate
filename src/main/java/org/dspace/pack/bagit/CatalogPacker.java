@@ -74,8 +74,8 @@ public class CatalogPacker implements Packer
         final Map<String, Properties> propertiesMap = new HashMap<>();
         // object.properties
         final Properties objProperties = new Properties();
-        objProperties.setProperty(BAG_TYPE, "MAN");
-        objProperties.setProperty(OBJECT_TYPE, "deletion");
+        objProperties.setProperty(BAG_TYPE, BagItAipWriter.BAG_MAN);
+        objProperties.setProperty(OBJECT_TYPE, BagItAipWriter.OBJ_TYPE_DELETION);
         objProperties.setProperty(OBJECT_ID, objectId);
         objProperties.setProperty(CREATE_TS, String.valueOf(System.currentTimeMillis()));
         if (ownerId != null) {

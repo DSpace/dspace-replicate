@@ -50,6 +50,15 @@ import org.joda.time.format.ISODateTimeFormat;
  */
 public class BagItAipWriter {
 
+    // Constants used in the packers
+    public static final String BAG_AIP = "AIP";
+    public static final String BAG_MAN = "man";
+    public static final String OBJ_TYPE_ITEM = "item";
+    public static final String OBJ_TYPE_DELETION = "deletion";
+    public static final String OBJ_TYPE_COMMUNITY = "community";
+    public static final String OBJ_TYPE_COLLECTION = "collection";
+    public static final String XML_NAME_KEY = "name";
+
     private final String DATA_DIR = "data";
     private final String LOGO_FILE = "logo";
     private final String METADATA_XML = "metadata.xml";
