@@ -7,8 +7,6 @@
  */
 package org.dspace.pack.bagit;
 
-import static java.util.Collections.emptyList;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -19,6 +17,7 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,6 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
-import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.CommunityService;
 import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
@@ -49,7 +47,6 @@ import org.dspace.pack.PackerFactory;
 public class CommunityPacker implements Packer
 {
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // NB - these values must remain synchronized with DB schema -
     // they represent the persistent object state
@@ -63,7 +60,6 @@ public class CommunityPacker implements Packer
 
     private Community community = null;
     private String archFmt = null;
-    private final String bagProfile = "/profiles/beyondtherepository.json";
 
     public CommunityPacker(Community community, String archFmt)
     {
@@ -105,7 +101,8 @@ public class CommunityPacker implements Packer
             elements.add(element);
         }
 
-        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, propertiesMap, elements, emptyList());
+        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, propertiesMap, elements,
+                                                      Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }
 

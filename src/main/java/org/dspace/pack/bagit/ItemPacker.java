@@ -54,7 +54,6 @@ public class ItemPacker implements Packer
     private List<String> filterBundles = new ArrayList<>();
     private boolean exclude = true;
     private List<RefFilter> refFilters = new ArrayList<>();
-    private final String bagProfile = "/profiles/beyondtherepository.json";
 
     public ItemPacker(Item item, String archFmt)
     {

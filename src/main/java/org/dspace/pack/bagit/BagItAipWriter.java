@@ -13,13 +13,10 @@ import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.xml.stream.XMLOutputFactory;
@@ -42,6 +39,8 @@ import org.duraspace.bagit.BagProfileConstants;
 import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
 import org.duraspace.bagit.SerializationSupport;
+import org.joda.time.LocalDate;
+import org.joda.time.format.ISODateTimeFormat;
 
 /**
  * Handle the actual copying and writing of files into a Bag
@@ -99,7 +98,7 @@ public class BagItAipWriter {
         this.directory = checkNotNull(directory);
         this.metadata = checkNotNull(metadata);
         this.fileProperties = checkNotNull(fileProperties);
-        this.bitstreams = bitstreams != null ? bitstreams : Collections.emptyList();
+        this.bitstreams = bitstreams != null ? bitstreams : Collections.<BagBitstream>emptyList();
     }
 
     public File packageAip() throws IOException, SQLException, AuthorizeException {
@@ -227,7 +226,7 @@ public class BagItAipWriter {
         bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, bagProfile);
         bagInfo.put("Bag-Size", FileUtils.byteCountToDisplaySize(successBytes.get()));
         bagInfo.put("Payload-Oxum", successBytes.toString() + "." + successFiles.toString());
-        bagInfo.put("Bagging-Date", DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now()));
+        bagInfo.put("Bagging-Date", ISODateTimeFormat.date().print(LocalDate.now()));
         return bagInfo;
     }
 
@@ -238,12 +237,14 @@ public class BagItAipWriter {
      */
     private void delete(File directory) {
         // protect against being sent a file instead of a directory
-        File[] files = Optional.ofNullable(directory.listFiles()).orElseGet(() -> new File[0]);
-        for (File file : files) {
-            if (file.isDirectory()) {
-                delete(file);
-            } else {
-                file.delete();
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    delete(file);
+                } else {
+                    file.delete();
+                }
             }
         }
 
