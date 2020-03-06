@@ -7,7 +7,6 @@
  */
 package org.dspace.pack.bagit;
 
-import static java.util.Collections.emptyList;
 import static org.dspace.pack.PackerFactory.BAG_TYPE;
 import static org.dspace.pack.PackerFactory.CREATE_TS;
 import static org.dspace.pack.PackerFactory.OBJECT_ID;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +46,6 @@ public class CatalogPacker implements Packer
     private List<String> members = null;
     // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
     private String archFmt = configurationService.getProperty("replicate.packer.archfmt");
-    private final String bagProfile = "/profiles/beyondtherepository.json";
 
     public CatalogPacker(String objectId)
     {
@@ -88,11 +87,15 @@ public class CatalogPacker implements Packer
         if (members.size() > 0) {
             // todo: I don't think properties makes sense for this...
             final Properties membersProperties = new Properties();
-            members.forEach(member -> membersProperties.setProperty(member, ""));
+            for (String member : members) {
+                membersProperties.setProperty(member, "");
+            }
             propertiesMap.put("members", membersProperties);
         }
 
-        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, propertiesMap, emptyList(), emptyList());
+        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, propertiesMap,
+                                                      Collections.<XmlElement>emptyList(),
+                                                      Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }
 

@@ -7,12 +7,11 @@
  */
 package org.dspace.pack.bagit;
 
-import static java.util.Collections.emptyList;
-
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,6 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.factory.ContentServiceFactory;
-import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
@@ -41,7 +39,6 @@ public class CollectionPacker implements Packer
 {
     private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
-    private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // NB - these values must remain synchronized with DB schema
     // they represent the persistent object state
@@ -58,9 +55,6 @@ public class CollectionPacker implements Packer
 
     private Collection collection = null;
     private String archFmt = null;
-    private final String bagProfile = "/profiles/beyondtherepository.json";
-    // TODO: Add bag profile name
-    // TODO: Add.... anything else?
 
     public CollectionPacker(Collection collection, String archFmt)
     {
@@ -101,7 +95,8 @@ public class CollectionPacker implements Packer
             elements.add(element);
         }
 
-        BagItAipWriter writer = new BagItAipWriter(packDir, archFmt, logo, properties, elements, emptyList());
+        BagItAipWriter writer = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
+                                                   Collections.<BagBitstream>emptyList());
         return writer.packageAip();
     }
 
@@ -112,7 +107,6 @@ public class CollectionPacker implements Packer
         {
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
-        /*
         Bag bag = new Bag(archive);
         // add the metadata
         Bag.XmlReader reader = bag.xmlReader("metadata.xml");
@@ -131,7 +125,6 @@ public class CollectionPacker implements Packer
         collectionService.update(Curator.curationContext(), collection);
          // clean up bag
         bag.empty();
-         */
     }
 
     @Override
