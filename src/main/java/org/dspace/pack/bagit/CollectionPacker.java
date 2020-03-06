@@ -77,15 +77,15 @@ public class CollectionPacker implements Packer
         final Bitstream logo = collection.getLogo();
 
         // collect the object.properties
-        final Properties objProperties = new Properties();
-        objProperties.setProperty(PackerFactory.BAG_TYPE, BagItAipWriter.BAG_AIP);
-        objProperties.setProperty(PackerFactory.OBJECT_TYPE, BagItAipWriter.OBJ_TYPE_COLLECTION);
-        objProperties.setProperty(PackerFactory.OBJECT_ID, collection.getHandle());
+        final List<String> objectProperties = new ArrayList<>();
+        objectProperties.add(PackerFactory.BAG_TYPE + "  " + BagItAipWriter.BAG_AIP);
+        objectProperties.add(PackerFactory.OBJECT_TYPE + "  " + BagItAipWriter.OBJ_TYPE_COLLECTION);
+        objectProperties.add(PackerFactory.OBJECT_ID + "  " + collection.getHandle());
         final Community parent = collection.getCommunities().get(0);
         if (parent != null) {
-            objProperties.setProperty(PackerFactory.OWNER_ID, parent.getHandle());
+            objectProperties.add(PackerFactory.OWNER_ID + "  " + parent.getHandle());
         }
-        final Map<String, Properties> properties = ImmutableMap.of(PackerFactory.OBJFILE, objProperties);
+        final Map<String, List<String>> properties = ImmutableMap.of(PackerFactory.OBJFILE, objectProperties);
 
         // collect the xml metadata
         final List<XmlElement> elements = new ArrayList<>();

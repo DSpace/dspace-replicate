@@ -71,29 +71,25 @@ public class CatalogPacker implements Packer
 
     @Override
     public File pack(File packDir) throws IOException, SQLException, AuthorizeException {
-        final Map<String, Properties> propertiesMap = new HashMap<>();
+        final Map<String, List<String>> properties = new HashMap<>();
         // object.properties
-        final Properties objProperties = new Properties();
-        objProperties.setProperty(BAG_TYPE, BagItAipWriter.BAG_MAN);
-        objProperties.setProperty(OBJECT_TYPE, BagItAipWriter.OBJ_TYPE_DELETION);
-        objProperties.setProperty(OBJECT_ID, objectId);
-        objProperties.setProperty(CREATE_TS, String.valueOf(System.currentTimeMillis()));
+        final List<String> objectProperties = new ArrayList<>();
+        objectProperties.add(BAG_TYPE + "  " +  BagItAipWriter.BAG_MAN);
+        objectProperties.add(OBJECT_TYPE + "  " +  BagItAipWriter.OBJ_TYPE_DELETION);
+        objectProperties.add(OBJECT_ID + "  " +  objectId);
+        objectProperties.add(CREATE_TS + "  " +  String.valueOf(System.currentTimeMillis()));
         if (ownerId != null) {
-            objProperties.setProperty(OWNER_ID, ownerId);
+            objectProperties.add(OWNER_ID + "  " +  ownerId);
         }
-        propertiesMap.put(OBJFILE, objProperties);
+        properties.put(OBJFILE, objectProperties);
 
         // members...properties
         if (members.size() > 0) {
             // todo: I don't think properties makes sense for this...
-            final Properties membersProperties = new Properties();
-            for (String member : members) {
-                membersProperties.setProperty(member, "");
-            }
-            propertiesMap.put("members", membersProperties);
+            properties.put("members", members);
         }
 
-        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, propertiesMap,
+        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties,
                                                       Collections.<XmlElement>emptyList(),
                                                       Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();

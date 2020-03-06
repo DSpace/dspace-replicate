@@ -81,17 +81,17 @@ public class CommunityPacker implements Packer
     public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
         final Bitstream logo = community.getLogo();
 
-        Map<String, Properties> propertiesMap = new HashMap<>();
         // object.properties
-        final Properties objProperties = new Properties();
-        objProperties.setProperty(PackerFactory.BAG_TYPE , BagItAipWriter.BAG_AIP);
-        objProperties.setProperty(PackerFactory.OBJECT_TYPE , BagItAipWriter.OBJ_TYPE_COMMUNITY);
-        objProperties.setProperty(PackerFactory.OBJECT_ID , community.getHandle());
+        List<String> objectProperties = new ArrayList<>();
+        objectProperties.add(PackerFactory.BAG_TYPE + "  " + BagItAipWriter.BAG_AIP);
+        objectProperties.add(PackerFactory.OBJECT_TYPE + "  " + BagItAipWriter.OBJ_TYPE_COMMUNITY);
+        objectProperties.add(PackerFactory.OBJECT_ID + "  " + community.getHandle());
+
         List<Community> parents = community.getParentCommunities();
         if (parents != null && !parents.isEmpty()) {
-            objProperties.setProperty(PackerFactory.OWNER_ID , parents.get(0).getHandle());
+            objectProperties.add(PackerFactory.OWNER_ID + "  " + parents.get(0).getHandle());
         }
-        propertiesMap.put(PackerFactory.OBJFILE, objProperties);
+        Map<String, List<String>> properties = ImmutableMap.of(PackerFactory.OBJFILE, objectProperties);
 
         // collect the xml metadata
         final List<XmlElement> elements = new ArrayList<>();
@@ -101,7 +101,7 @@ public class CommunityPacker implements Packer
             elements.add(element);
         }
 
-        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, propertiesMap, elements,
+        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
                                                       Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }

@@ -85,31 +85,28 @@ public class ItemPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
-        // todo: still a lot of hard coded values to remove
-        final Map<String, Properties> propertiesMap = new HashMap<>();
-
         // object properties
-        final Properties objProperties = new Properties();
-        objProperties.setProperty(PackerFactory.BAG_TYPE, BagItAipWriter.BAG_AIP);
-        objProperties.setProperty(PackerFactory.OBJECT_TYPE, BagItAipWriter.OBJ_TYPE_ITEM);
-        objProperties.setProperty(PackerFactory.OBJECT_ID, item.getHandle());
+        final List<String> objectProperties = new ArrayList<>();
+        objectProperties.add(PackerFactory.BAG_TYPE + "  " + BagItAipWriter.BAG_AIP);
+        objectProperties.add(PackerFactory.OBJECT_TYPE + "  " + BagItAipWriter.OBJ_TYPE_ITEM);
+        objectProperties.add(PackerFactory.OBJECT_ID + "  " + item.getHandle());
 
         StringBuilder linked = new StringBuilder();
         for (Collection coll : item.getCollections()) {
             if (itemService.isOwningCollection(item, coll)) {
-                objProperties.setProperty(OWNER_ID, coll.getHandle());
+                objectProperties.add(OWNER_ID + "  " + coll.getHandle());
             } else {
                 linked.append(coll.getHandle()).append(",");
             }
         }
         if (linked.length() > 0) {
             // todo: why substring?? is this not just printing the entire string...
-            objProperties.setProperty(OTHER_IDS, linked.substring(0, linked.length() - 1));
+            objectProperties.add(OTHER_IDS + "  " + linked.substring(0, linked.length() - 1));
         }
         if (item.isWithdrawn()) {
-            objProperties.setProperty(WITHDRAWN, TRUE.toString());
+            objectProperties.add(WITHDRAWN + "  " + TRUE.toString());
         }
-        propertiesMap.put(PackerFactory.OBJFILE, objProperties);
+        ImmutableMap<String, List<String>> properties = ImmutableMap.of(PackerFactory.OBJFILE, objectProperties);
 
         // metadata.xml
         final List<XmlElement> metadataElements = new ArrayList<>();
@@ -154,7 +151,7 @@ public class ItemPacker implements Packer
             }
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, propertiesMap, metadataElements,
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadataElements,
                                                             bitstreams);
         return aipWriter.packageAip();
     }
