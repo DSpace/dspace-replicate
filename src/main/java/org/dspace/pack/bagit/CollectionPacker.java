@@ -181,6 +181,7 @@ public class CollectionPacker implements Packer
             throw new IOException(e.getMessage(), e);
         }
 
+        // todo: this can completely break the metadata of a collection in dspace
         for (XmlElement element : elements) {
             final String name = element.getAttributes().get("name");
             final String value = element.getBody();

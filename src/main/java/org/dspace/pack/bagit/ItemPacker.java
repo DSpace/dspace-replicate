@@ -19,16 +19,24 @@ import static org.dspace.pack.bagit.BagItAipWriter.*;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
@@ -41,6 +49,10 @@ import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
+import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagDeserializer;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.SerializationSupport;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -159,52 +171,69 @@ public class ItemPacker implements Packer
         return aipWriter.packageAip();
     }
 
+    final Logger logger = Logger.getLogger(ItemPacker.class);
+
     @Override
-    public void unpack(File archive) throws AuthorizeException, IOException, SQLException
-    {
-        if (archive == null || ! archive.exists())
-        {
+    public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
+        if (archive == null || ! archive.exists()) {
             throw new IOException("Missing archive for item: " + item.getHandle());
         }
+
+        final Path bagPath;
+        if (archive.isFile()) {
+            // todo: this might fail, might want to push to BagProfile
+            final URL url = this.getClass().getResource(bagProfile);
+            final BagProfile profile = new BagProfile(url.openStream());
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
+            bagPath = deserializer.deserialize(archive.toPath());
+        } else {
+            bagPath = archive.toPath();
+        }
+
+        // bag.listDataFiles -> data.listFiles
+        // filter files
+        // bundleService.create(file.getname)
+        // bs = file.listFiles (non-xml)
+        // bs + "-metadata.xml" (resolve metadata)
+        // load bs
+        DirectoryStream<Path> directories = Files.newDirectoryStream(bagPath.resolve("data"), Files::isDirectory);
+        for (Path bitstream : directories) {
+            logger.info("" + bitstream);
+        }
+
+        if (true) {
+            throw new AssertionError("Beep beep");
+        }
+
+        final Path metadataXml = bagPath.resolve("data").resolve("metadata.xml");
+        final List<XmlElement> metadata = readXml(metadataXml);
+        for (XmlElement element : metadata) {
+            final Map<String, String> attrs = element.getAttributes();
+            itemService.addMetadata(Curator.curationContext(), item,
+                                    attrs.get("schema"),
+                                    attrs.get("element"),
+                                    attrs.get("qualifier"),
+                                    attrs.get("language"),
+                                    element.getBody());
+        }
+
+        /*
         Bag bag = new Bag(archive);
         // add the metadata first
-        Bag.XmlReader reader = bag.xmlReader("metadata.xml");
-        if (reader != null && reader.findStanza("metadata"))
-        {
-            Bag.Value value = null;
-            while((value = reader.nextValue()) != null)
-            {
-                itemService.addMetadata(Curator.curationContext(),
-                                 item,
-                                 value.attrs.get("schema"),
-                                 value.attrs.get("element"),
-                                 value.attrs.get("qualifier"),
-                                 value.attrs.get("language"),
-                                 value.val);
-            }
-            reader.close();
-        }
         // proceed to bundle data & metadata
-        for (File bfile : bag.listDataFiles())
-        {
+        for (File bfile : bag.listDataFiles()) {
             // only bundles are directories
-            if (! bfile.isDirectory())
-            {
+            if (bfile.isFile()) {
                 continue;
             }
             Bundle bundle = bundleService.create(Curator.curationContext(), item, bfile.getName());
-            for (File file : bfile.listFiles(new FileFilter() {
-                            public boolean accept(File file) {
-                                return ! file.getName().endsWith(".xml");
-                            }
-            })) {
+            for (File file : bfile.listFiles(file -> ! file.getName().endsWith(".xml"))) {
                 String relPath = bundle.getName() + File.separator + file.getName();
                 InputStream in = bag.dataStream(relPath);
-                if (in != null)
-                {
+                if (in != null) {
                     Bitstream bs = bitstreamService.create(Curator.curationContext(), bundle, in);
                     // now set bitstream metadata
-                    reader = bag.xmlReader(relPath + "-metadata.xml");
+                    Bag.XmlReader reader = bag.xmlReader(relPath + "-metadata.xml");
                     if (reader != null && reader.findStanza("metadata"))
                     {
                         Bag.Value value = null;
@@ -248,6 +277,51 @@ public class ItemPacker implements Packer
         }
         // clean up bag
         bag.empty();
+         */
+    }
+
+    private List<XmlElement> readXml(Path metadata) throws IOException {
+        final XMLStreamReader reader;
+        final XMLInputFactory factory = XMLInputFactory.newFactory();
+        try {
+            reader = factory.createXMLStreamReader(Files.newInputStream(metadata));
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        List<XmlElement> elements = new ArrayList<>();
+        try {
+            // todo: push this somewhere else
+            while (reader.hasNext()) {
+                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                    reader.getLocalName().equalsIgnoreCase("metadata")) {
+                    String body = null;
+                    Map<String, String> attributes = null;
+                    while (reader.hasNext()) {
+                        switch (reader.next()) {
+                            case XMLStreamConstants.START_ELEMENT:
+                                attributes = new HashMap<>();
+                                for (int i = 0; i < reader.getAttributeCount(); i++) {
+                                    attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+                                }
+                                break;
+                            case XMLStreamConstants.ATTRIBUTE:
+                                break;
+                            case XMLStreamConstants.CHARACTERS:
+                                body = reader.getText();
+                                break;
+                            case XMLStreamConstants.END_ELEMENT:
+                                elements.add(new XmlElement(body, attributes));
+                                break;
+                        }
+                    }
+                }
+            }
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return elements;
     }
 
     @Override
