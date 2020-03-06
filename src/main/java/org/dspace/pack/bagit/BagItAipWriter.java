@@ -141,7 +141,7 @@ public class BagItAipWriter {
             try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
                  final CountingOutputStream countingOs = new CountingOutputStream(objOS);
                  final DigestOutputStream objDigest = new DigestOutputStream(countingOs, messageDigest)) {
-                final List<String> lines = this.properties.get(filename);
+                final List<String> lines = properties.get(filename);
                 for (String line : lines) {
                     objDigest.write(line.getBytes());
                     objDigest.write("\n".getBytes());
