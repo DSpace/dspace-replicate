@@ -138,11 +138,13 @@ public class BagItAipWriter {
      * @throws AuthorizeException if there is a problem querying {@link BitstreamService#retrieve(Context, Bitstream)}
      */
     public File packageAip() throws IOException, SQLException, AuthorizeException {
+        final Context curationContext = Curator.curationContext();
+
         // check if the Bag was already being worked on
         final Path dataDir = directory.toPath().resolve(DATA_DIR);
         if (Files.exists(dataDir)) {
             throw new IllegalStateException("Unable to create bag " + directory.toPath().getFileName() +
-                                            ", data directory already exists!");
+                                            ", data directory already exists!: " + dataDir.toString());
         }
 
         // setup the BagProfile and BagWriter
@@ -198,7 +200,7 @@ public class BagItAipWriter {
                 // copy the bitstream
                 messageDigest.reset();
                 final Path dataFile = bitstreamDirectory.resolve(seqId);
-                final InputStream is = bitstreamService.retrieve(Curator.curationContext(), bitstream);
+                final InputStream is = bitstreamService.retrieve(curationContext, bitstream);
 
                 try (OutputStream output = Files.newOutputStream(dataFile);
                      CountingOutputStream countingOS = new CountingOutputStream(output);
@@ -217,7 +219,7 @@ public class BagItAipWriter {
         // also add logo if it exists
         if (logo != null) {
             messageDigest.reset();
-            final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
+            final InputStream logoIS = bitstreamService.retrieve(curationContext, logo);
             final Path logoPath = dataDir.resolve(LOGO_FILE);
 
             try (OutputStream output = Files.newOutputStream(logoPath);
