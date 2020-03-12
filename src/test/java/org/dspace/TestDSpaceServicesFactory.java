@@ -15,6 +15,8 @@ import org.dspace.utils.DSpace;
  */
 public class TestDSpaceServicesFactory extends DSpaceServicesFactory {
 
+    public static final String DSPACE_SERVICES_FACTORY = "dSpaceServicesFactory";
+
     @Override
     public CachingService getCachingService() {
         throw new UnsupportedOperationException();
