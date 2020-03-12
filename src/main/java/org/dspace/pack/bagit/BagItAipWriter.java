@@ -175,8 +175,7 @@ public class BagItAipWriter {
         // then metadata
         messageDigest.reset();
         final Path metadataXml = dataDir.resolve(METADATA_XML);
-        final String xmlDigest = writeXmlMetadata(metadata, metadataXml, messageDigest);
-        checksums.put(metadataXml.toFile(), xmlDigest);
+        writeXmlMetadata(metadata, metadataXml, messageDigest);
 
         // write any bitstreams
         for (BagBitstream bagBitstream : bitstreams) {
@@ -189,8 +188,7 @@ public class BagItAipWriter {
             final Bitstream bitstream = bagBitstream.getBitstream();
             final String seqId = String.valueOf(bitstream.getSequenceID());
             final Path bitstreamXml = bitstreamDirectory.resolve(seqId + "-" + METADATA_XML);
-            final String bsXmlDigest = writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
-            checksums.put(bitstreamXml.toFile(), bsXmlDigest);
+            writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
 
             if (bagBitstream.getFetchUrl() != null) {
                 throw new UnsupportedOperationException("fetch.txt for bags is not supported at this time");
@@ -287,11 +285,10 @@ public class BagItAipWriter {
      * @param elements the {@link XmlElement}s to write to the file
      * @param metadata the {@link Path} to the xml file
      * @param messageDigest the {@link MessageDigest} tracking the digest of the file
-     * @return the value of the {@link MessageDigest}
      * @throws IOException if there are any errors writing to the {@code metadata}
      */
-    private String writeXmlMetadata(final List<XmlElement> elements, final Path metadata,
-                                    final MessageDigest messageDigest) throws IOException {
+    private void writeXmlMetadata(final List<XmlElement> elements, final Path metadata,
+                                  final MessageDigest messageDigest) throws IOException {
         if (Files.notExists(metadata.getParent())) {
             Files.createDirectories(metadata.getParent());
         }
@@ -324,11 +321,10 @@ public class BagItAipWriter {
 
             successBytes.addAndGet(countingOS.getCount());
             successFiles.incrementAndGet();
+            checksums.put(metadata.toFile(), Utils.toHex(messageDigest.digest()));
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage(), e);
         }
-
-        return Utils.toHex(messageDigest.digest());
     }
 
 }
