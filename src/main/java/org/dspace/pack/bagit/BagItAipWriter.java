@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace.pack.bagit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -28,6 +35,7 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
+import org.dspace.core.Context;
 import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.duraspace.bagit.BagConfig;
@@ -41,7 +49,9 @@ import org.joda.time.LocalDate;
 import org.joda.time.format.ISODateTimeFormat;
 
 /**
- * Handle the actual copying and writing of files into a Bag
+ * The BagItAipWriter handles the packaging of DSpaceObjects into their respective bags. It processes the metadata and
+ * bitstreams given to it by the various {@link org.dspace.pack.Packer}s in order to write the object.properties,
+ * metadata.xml, etc for each AIP.
  *
  * @author mikejritter
  * @since 2020-03-02
@@ -117,6 +127,14 @@ public class BagItAipWriter {
         this.bitstreams = bitstreams != null ? bitstreams : Collections.<BagBitstream>emptyList();
     }
 
+    /**
+     * Create a serialized BagIt bag using the parameters the BagItAipWriter was instantiated with
+     *
+     * @return the location of the serialized bag, as a {@link File}
+     * @throws IOException if there are any errors writing to the bag
+     * @throws SQLException if there is a problem querying {@link BitstreamService#retrieve(Context, Bitstream)}
+     * @throws AuthorizeException if there is a problem querying {@link BitstreamService#retrieve(Context, Bitstream)}
+     */
     public File packageAip() throws IOException, SQLException, AuthorizeException {
         // check if the Bag was already being worked on
         final Path dataDir = directory.toPath().resolve(DATA_DIR);
