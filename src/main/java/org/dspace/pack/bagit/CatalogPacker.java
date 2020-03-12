@@ -13,6 +13,7 @@ import static org.dspace.pack.PackerFactory.OBJECT_ID;
 import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
 import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.bagit.BagItAipWriter.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,18 +75,17 @@ public class CatalogPacker implements Packer
         final Map<String, List<String>> properties = new HashMap<>();
         // object.properties
         final List<String> objectProperties = new ArrayList<>();
-        objectProperties.add(BAG_TYPE + "  " +  BagItAipWriter.BAG_MAN);
-        objectProperties.add(OBJECT_TYPE + "  " +  BagItAipWriter.OBJ_TYPE_DELETION);
-        objectProperties.add(OBJECT_ID + "  " +  objectId);
-        objectProperties.add(CREATE_TS + "  " +  String.valueOf(System.currentTimeMillis()));
+        objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_MAN);
+        objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_DELETION);
+        objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + objectId);
+        objectProperties.add(CREATE_TS + PROPERTIES_DELIMITER + System.currentTimeMillis());
         if (ownerId != null) {
-            objectProperties.add(OWNER_ID + "  " +  ownerId);
+            objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + ownerId);
         }
         properties.put(OBJFILE, objectProperties);
 
         // members...properties
         if (members.size() > 0) {
-            // todo: I don't think properties makes sense for this...
             properties.put("members", members);
         }
 

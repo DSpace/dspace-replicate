@@ -7,34 +7,31 @@
  */
 package org.dspace.pack.bagit;
 
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COMMUNITY;
+import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
+import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.io.Charsets;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
-import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
@@ -83,21 +80,21 @@ public class CommunityPacker implements Packer
 
         // object.properties
         List<String> objectProperties = new ArrayList<>();
-        objectProperties.add(PackerFactory.BAG_TYPE + "  " + BagItAipWriter.BAG_AIP);
-        objectProperties.add(PackerFactory.OBJECT_TYPE + "  " + BagItAipWriter.OBJ_TYPE_COMMUNITY);
-        objectProperties.add(PackerFactory.OBJECT_ID + "  " + community.getHandle());
+        objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
+        objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_COMMUNITY);
+        objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + community.getHandle());
 
         List<Community> parents = community.getParentCommunities();
         if (parents != null && !parents.isEmpty()) {
-            objectProperties.add(PackerFactory.OWNER_ID + "  " + parents.get(0).getHandle());
+            objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + parents.get(0).getHandle());
         }
-        Map<String, List<String>> properties = ImmutableMap.of(PackerFactory.OBJFILE, objectProperties);
+        Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // collect the xml metadata
         final List<XmlElement> elements = new ArrayList<>();
         for (String field : fields) {
             final String metadata = communityService.getMetadata(community, field);
-            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(BagItAipWriter.XML_NAME_KEY, field));
+            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(XML_NAME_KEY, field));
             elements.add(element);
         }
 
@@ -167,51 +164,6 @@ public class CommunityPacker implements Packer
     public void setReferenceFilter(String filter)
     {
         throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    /**
-     * Write the metadata.xml file
-     *
-     * This is being copied a few times while code is being reorganized. No need to attempt DRY before we know how
-     * things will look
-     *
-     * @param metadata The map of metadata key/value pairs to write
-     * @param manifestXml the Path of the metadata.xml file to write
-     * @param messageDigest the MessageDigest for tracking the digest of the written stream
-     * @return the checksum of the manifest.xml
-     * @throws IOException if there's any exception
-     */
-    public static String writeXmlMetadata(final Map<String, String> metadata, final Path manifestXml,
-                                          final MessageDigest messageDigest) throws IOException {
-        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
-
-        messageDigest.reset();
-        try (final OutputStream xmlOut = Files.newOutputStream(manifestXml, StandardOpenOption.CREATE_NEW);
-             final DigestOutputStream xmlDigestOut = new DigestOutputStream(xmlOut, messageDigest)) {
-            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
-                                                                                     Charsets.UTF_8.toString());
-            xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
-            xmlWriter.writeStartElement("metadata");
-            for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                final String key = entry.getKey();
-                final String value = entry.getValue();
-                if (key != null && value != null) {
-                    xmlWriter.writeStartElement("value");
-                    xmlWriter.writeAttribute("name", key);
-                    xmlWriter.writeCharacters(value);
-                    xmlWriter.writeEndElement();
-                }
-            }
-            xmlWriter.writeEndElement();
-            xmlWriter.writeEndDocument();
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        final String digest = Utils.toHex(messageDigest.digest());
-        messageDigest.reset();
-
-        return digest;
     }
 
 }

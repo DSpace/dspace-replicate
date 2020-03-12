@@ -8,9 +8,15 @@
 package org.dspace.pack.bagit;
 
 import static java.lang.Boolean.TRUE;
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OTHER_IDS;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.PackerFactory.WITHDRAWN;
+import static org.dspace.pack.bagit.BagItAipWriter.*;
+import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -35,7 +41,6 @@ import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
-import org.dspace.pack.PackerFactory;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -85,26 +90,26 @@ public class ItemPacker implements Packer
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
         // object properties
         final List<String> objectProperties = new ArrayList<>();
-        objectProperties.add(PackerFactory.BAG_TYPE + "  " + BagItAipWriter.BAG_AIP);
-        objectProperties.add(PackerFactory.OBJECT_TYPE + "  " + BagItAipWriter.OBJ_TYPE_ITEM);
-        objectProperties.add(PackerFactory.OBJECT_ID + "  " + item.getHandle());
+        objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
+        objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_ITEM);
+        objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + item.getHandle());
 
         StringBuilder linked = new StringBuilder();
         for (Collection coll : item.getCollections()) {
             if (itemService.isOwningCollection(item, coll)) {
-                objectProperties.add(OWNER_ID + "  " + coll.getHandle());
+                objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + coll.getHandle());
             } else {
                 linked.append(coll.getHandle()).append(",");
             }
         }
         if (linked.length() > 0) {
             // todo: why substring?? is this not just printing the entire string...
-            objectProperties.add(OTHER_IDS + "  " + linked.substring(0, linked.length() - 1));
+            objectProperties.add(OTHER_IDS + PROPERTIES_DELIMITER + linked.substring(0, linked.length() - 1));
         }
         if (item.isWithdrawn()) {
-            objectProperties.add(WITHDRAWN + "  " + TRUE.toString());
+            objectProperties.add(WITHDRAWN + PROPERTIES_DELIMITER + TRUE.toString());
         }
-        ImmutableMap<String, List<String>> properties = ImmutableMap.of(PackerFactory.OBJFILE, objectProperties);
+        ImmutableMap<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // metadata.xml
         final List<XmlElement> metadataElements = new ArrayList<>();
