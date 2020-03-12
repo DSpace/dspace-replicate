@@ -7,6 +7,16 @@
  */
 package org.dspace.pack.bagit;
 
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COLLECTION;
+import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
+import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
+
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -15,7 +25,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
@@ -78,20 +87,20 @@ public class CollectionPacker implements Packer
 
         // collect the object.properties
         final List<String> objectProperties = new ArrayList<>();
-        objectProperties.add(PackerFactory.BAG_TYPE + "  " + BagItAipWriter.BAG_AIP);
-        objectProperties.add(PackerFactory.OBJECT_TYPE + "  " + BagItAipWriter.OBJ_TYPE_COLLECTION);
-        objectProperties.add(PackerFactory.OBJECT_ID + "  " + collection.getHandle());
+        objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
+        objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_COLLECTION);
+        objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + collection.getHandle());
         final Community parent = collection.getCommunities().get(0);
         if (parent != null) {
-            objectProperties.add(PackerFactory.OWNER_ID + "  " + parent.getHandle());
+            objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + parent.getHandle());
         }
-        final Map<String, List<String>> properties = ImmutableMap.of(PackerFactory.OBJFILE, objectProperties);
+        final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // collect the xml metadata
         final List<XmlElement> elements = new ArrayList<>();
         for (String field : fields) {
             final String metadata = collectionService.getMetadata(collection, field);
-            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(BagItAipWriter.XML_NAME_KEY, field));
+            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(XML_NAME_KEY, field));
             elements.add(element);
         }
 

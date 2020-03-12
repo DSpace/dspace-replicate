@@ -66,6 +66,7 @@ public class BagItAipWriter {
     public static final String OBJ_TYPE_COMMUNITY = "community";
     public static final String OBJ_TYPE_COLLECTION = "collection";
     public static final String XML_NAME_KEY = "name";
+    public static final String PROPERTIES_DELIMITER = "  ";
 
     private final String DATA_DIR = "data";
     private final String LOGO_FILE = "logo";
