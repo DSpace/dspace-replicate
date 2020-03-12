@@ -58,7 +58,7 @@ import org.joda.time.format.ISODateTimeFormat;
  */
 public class BagItAipWriter {
 
-    // Constants used in the packers
+    // Constants used by the Packers
     public static final String BAG_AIP = "AIP";
     public static final String BAG_MAN = "man";
     public static final String OBJ_TYPE_ITEM = "item";
@@ -151,25 +151,25 @@ public class BagItAipWriter {
 
         // Write the base properties files for the bag
         for (String filename : properties.keySet()) {
-            final Path objfile = dataDir.resolve(filename);
-            if (Files.notExists(objfile.getParent())) {
-                Files.createDirectories(objfile.getParent());
+            final Path propertiesFile = dataDir.resolve(filename);
+            if (Files.notExists(propertiesFile.getParent())) {
+                Files.createDirectories(propertiesFile.getParent());
             }
 
-            try (final OutputStream objOS = Files.newOutputStream(objfile, StandardOpenOption.CREATE_NEW);
-                 final CountingOutputStream countingOs = new CountingOutputStream(objOS);
-                 final DigestOutputStream objDigest = new DigestOutputStream(countingOs, messageDigest)) {
+            try (final OutputStream output = Files.newOutputStream(propertiesFile, StandardOpenOption.CREATE_NEW);
+                 final CountingOutputStream countingOS = new CountingOutputStream(output);
+                 final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
                 final List<String> lines = properties.get(filename);
                 for (String line : lines) {
-                    objDigest.write(line.getBytes());
-                    objDigest.write("\n".getBytes());
+                    digestOS.write(line.getBytes());
+                    digestOS.write("\n".getBytes());
                 }
 
                 successFiles.incrementAndGet();
-                successBytes.addAndGet(countingOs.getCount());
+                successBytes.addAndGet(countingOS.getCount());
             }
             final String objFileDigest = Utils.toHex(messageDigest.digest());
-            checksums.put(objfile.toFile(), objFileDigest);
+            checksums.put(propertiesFile.toFile(), objFileDigest);
         }
 
         // then metadata
@@ -182,30 +182,30 @@ public class BagItAipWriter {
         for (BagBitstream bagBitstream : bitstreams) {
             // create the bundle directory
             final String bundle = bagBitstream.getBundle();
-            final Path bsDirectory = dataDir.resolve(bundle);
-            Files.createDirectories(bsDirectory);
+            final Path bitstreamDirectory = dataDir.resolve(bundle);
+            Files.createDirectories(bitstreamDirectory);
 
             // write the bitstream metadata
             final Bitstream bitstream = bagBitstream.getBitstream();
             final String seqId = String.valueOf(bitstream.getSequenceID());
-            final Path bitstreamXml = bsDirectory.resolve(seqId + "-" + METADATA_XML);
+            final Path bitstreamXml = bitstreamDirectory.resolve(seqId + "-" + METADATA_XML);
             final String bsXmlDigest = writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
             checksums.put(bitstreamXml.toFile(), bsXmlDigest);
 
             if (bagBitstream.getFetchUrl() != null) {
-                // todo: handle fetch
+                throw new UnsupportedOperationException("fetch.txt for bags is not supported at this time");
             } else {
                 // copy the bitstream
                 messageDigest.reset();
-                final Path dataFile = bsDirectory.resolve(seqId);
+                final Path dataFile = bitstreamDirectory.resolve(seqId);
                 final InputStream is = bitstreamService.retrieve(Curator.curationContext(), bitstream);
 
-                try (OutputStream fout = Files.newOutputStream(dataFile);
-                     CountingOutputStream countingOs = new CountingOutputStream(fout);
-                     DigestOutputStream dout = new DigestOutputStream(countingOs, messageDigest)) {
-                    Utils.copy(is, dout);
+                try (OutputStream output = Files.newOutputStream(dataFile);
+                     CountingOutputStream countingOS = new CountingOutputStream(output);
+                     DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
+                    Utils.copy(is, digestOS);
 
-                    successBytes.addAndGet(countingOs.getCount());
+                    successBytes.addAndGet(countingOS.getCount());
                     successFiles.incrementAndGet();
                 }
 
@@ -220,13 +220,13 @@ public class BagItAipWriter {
             final InputStream logoIS = bitstreamService.retrieve(Curator.curationContext(), logo);
             final Path logoPath = dataDir.resolve(LOGO_FILE);
 
-            try (OutputStream os = Files.newOutputStream(logoPath);
-                 CountingOutputStream countingOs = new CountingOutputStream(os);
-                 DigestOutputStream dos = new DigestOutputStream(countingOs, messageDigest)) {
-                Utils.copy(logoIS, dos);
+            try (OutputStream output = Files.newOutputStream(logoPath);
+                 CountingOutputStream countingOS = new CountingOutputStream(output);
+                 DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
+                Utils.copy(logoIS, digestOS);
 
                 successFiles.incrementAndGet();
-                successBytes.addAndGet(countingOs.getCount());
+                successBytes.addAndGet(countingOS.getCount());
             }
             checksums.put(logoPath.toFile(), Utils.toHex(messageDigest.digest()));
         }
@@ -281,27 +281,27 @@ public class BagItAipWriter {
     }
 
     /**
-     * Write the xml {@code elements} to the given {@code metadataXml} file. After writing the message digest of the
+     * Write the xml {@code elements} to the given {@code metadata} file. After writing the message digest of the
      * written xml file is returned.
      *
      * @param elements the {@link XmlElement}s to write to the file
-     * @param metadataXml the {@link Path} to the xml file
+     * @param metadata the {@link Path} to the xml file
      * @param messageDigest the {@link MessageDigest} tracking the digest of the file
      * @return the value of the {@link MessageDigest}
-     * @throws IOException if there are any errors writing to the {@code metadataXml}
+     * @throws IOException if there are any errors writing to the {@code metadata}
      */
-    private String writeXmlMetadata(final List<XmlElement> elements, final Path metadataXml,
+    private String writeXmlMetadata(final List<XmlElement> elements, final Path metadata,
                                     final MessageDigest messageDigest) throws IOException {
-        if (Files.notExists(metadataXml.getParent())) {
-            Files.createDirectories(metadataXml.getParent());
+        if (Files.notExists(metadata.getParent())) {
+            Files.createDirectories(metadata.getParent());
         }
 
         final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
         messageDigest.reset();
-        try (final OutputStream xmlOut = Files.newOutputStream(metadataXml, StandardOpenOption.CREATE_NEW);
-             final CountingOutputStream countingOs = new CountingOutputStream(xmlOut);
-             final DigestOutputStream xmlDigestOut = new DigestOutputStream(countingOs, messageDigest)) {
-            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(xmlDigestOut,
+        try (final OutputStream output = Files.newOutputStream(metadata, StandardOpenOption.CREATE_NEW);
+             final CountingOutputStream countingOS = new CountingOutputStream(output);
+             final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
+            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(digestOS,
                                                                                      Charsets.UTF_8.toString());
             xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
             xmlWriter.writeStartElement("metadata");
@@ -322,7 +322,7 @@ public class BagItAipWriter {
             xmlWriter.writeEndElement();
             xmlWriter.writeEndDocument();
 
-            successBytes.addAndGet(countingOs.getCount());
+            successBytes.addAndGet(countingOS.getCount());
             successFiles.incrementAndGet();
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage(), e);
