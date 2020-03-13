@@ -90,8 +90,9 @@ public class CollectionPacker implements Packer
         objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
         objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_COLLECTION);
         objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + collection.getHandle());
-        final Community parent = collection.getCommunities().get(0);
-        if (parent != null) {
+        final List<Community> communities = collection.getCommunities();
+        if (!communities.isEmpty()) {
+            final Community parent = communities.get(0);
             objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + parent.getHandle());
         }
         final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
