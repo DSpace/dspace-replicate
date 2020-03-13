@@ -18,13 +18,13 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.collect.ImmutableMap;
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.dspace.content.Bitstream;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.pack.PackerFactory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 

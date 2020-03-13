@@ -7,13 +7,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.util.UUID;
 
 import org.dspace.TestConfigurationService;
 import org.dspace.TestContentServiceFactory;
 import org.dspace.TestDSpaceKernelImpl;
 import org.dspace.TestDSpaceServicesFactory;
 import org.dspace.TestServiceManager;
+import org.dspace.content.DSpaceObject;
 import org.dspace.core.DBConnection;
 import org.dspace.event.factory.EventServiceFactory;
 import org.dspace.event.service.EventService;
@@ -47,6 +51,7 @@ public abstract class BagItPackerTest {
     public void setup() throws SQLException {
         ServiceManager serviceManager = new TestServiceManager();
         ConfigurationService configurationService = new TestConfigurationService();
+        configurationService.setProperty("replicate.packer.archfmt", archFmt);
 
         serviceManager.registerService(DBConnection.class.getName(), dbConnection);
         serviceManager.registerService(ConfigurationService.class.getName(), configurationService);
@@ -67,5 +72,21 @@ public abstract class BagItPackerTest {
         verify(eventServiceFactory, atLeastOnce()).getEventService();
     }
 
+    /**
+     * Initialize a DSpace JPA entity with a random UUID
+     *
+     * @param clazz the {@link Class} to initialize
+     * @param <T> the type of the class
+     * @return the initialized object
+     */
+    protected <T extends DSpaceObject> T initJpa(Class<T> clazz) throws ReflectiveOperationException {
+        Constructor<T> constructor = clazz.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        T t = constructor.newInstance((Object []) null);
+        Field id = DSpaceObject.class.getDeclaredField("id");
+        id.setAccessible(true);
+        id.set(t, UUID.randomUUID());
+        return t;
+    }
 
 }
