@@ -25,7 +25,7 @@
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
         <duracloud.version>6.1.1</duracloud.version>
         <!-- DuraCloud BagIt Support Library -->
-        <bagit-support.version>0.0.1-SNAPSHOT</bagit-support.version>
+        <bagit-support.version>0.0.1</bagit-support.version>
     </properties>
 
     <build>
