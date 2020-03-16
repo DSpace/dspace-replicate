@@ -19,6 +19,7 @@ import org.dspace.TestDSpaceServicesFactory;
 import org.dspace.TestServiceManager;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.DBConnection;
+import org.dspace.core.ReloadableEntity;
 import org.dspace.event.factory.EventServiceFactory;
 import org.dspace.event.service.EventService;
 import org.dspace.kernel.DSpaceKernel;
@@ -73,19 +74,39 @@ public abstract class BagItPackerTest {
     }
 
     /**
-     * Initialize a DSpace JPA entity with a random UUID
+     * Initialize a DSpaceObject JPA entity with a random UUID
      *
      * @param clazz the {@link Class} to initialize
      * @param <T> the type of the class
      * @return the initialized object
+     * @throws ReflectiveOperationException when the class cannot be instantiated
      */
-    protected <T extends DSpaceObject> T initJpa(Class<T> clazz) throws ReflectiveOperationException {
+    protected <T extends DSpaceObject> T initDSO(Class<T> clazz) throws ReflectiveOperationException {
         Constructor<T> constructor = clazz.getDeclaredConstructor();
         constructor.setAccessible(true);
         T t = constructor.newInstance((Object []) null);
         Field id = DSpaceObject.class.getDeclaredField("id");
         id.setAccessible(true);
         id.set(t, UUID.randomUUID());
+        return t;
+    }
+
+    /**
+     * Initialize a {@link ReloadableEntity<Integer>} and set the id to 1
+     *
+     * @param clazz the class to initialize
+     * @param <T> the type of the class
+     * @return the initialized object
+     * @throws ReflectiveOperationException when the class cannot be instantiated
+     */
+    protected <T extends ReloadableEntity<Integer>> T initReloadable(Class<T> clazz)
+        throws ReflectiveOperationException {
+        Constructor<T> constructor = clazz.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        T t = constructor.newInstance((Object []) null);
+        Field id = clazz.getDeclaredField("id");
+        id.setAccessible(true);
+        id.set(t, 1);
         return t;
     }
 

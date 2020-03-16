@@ -30,7 +30,7 @@ public class CommunityPackerTest extends BagItPackerTest {
         final Path output = Paths.get(resources.toURI().resolve("community-packer-test"));
 
         // setup Community entity
-        final Community community = initJpa(Community.class);
+        final Community community = initDSO(Community.class);
         assertNotNull(community);
         assertNotNull(community.getID());
 

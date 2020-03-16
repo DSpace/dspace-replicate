@@ -37,7 +37,7 @@ public class CollectionPackerTest extends BagItPackerTest {
         final Path output = Paths.get(resources.toURI().resolve("collection-packer-test"));
 
         // init test Collection
-        final Collection collection = initJpa(Collection.class);
+        final Collection collection = initDSO(Collection.class);
         assertNotNull(collection);
         assertNotNull(collection.getID());
         assertNotNull(collection.getCommunities());
