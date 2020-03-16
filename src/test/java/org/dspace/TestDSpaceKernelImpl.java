@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace;
 
 import javax.management.Attribute;
@@ -19,6 +26,7 @@ import org.dspace.services.ConfigurationService;
  * Test kernel which can be given a {@link ServiceManager} and {@link ConfigurationService} so that we can mock objects
  * which make use of factories and static calls
  *
+ * @author mikejritter
  */
 public class TestDSpaceKernelImpl implements DSpaceKernel, DynamicMBean, CommonLifecycle<DSpaceKernel> {
 
@@ -40,11 +48,12 @@ public class TestDSpaceKernelImpl implements DSpaceKernel, DynamicMBean, CommonL
 
     @Override
     public void setAttribute(Attribute attribute) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public AttributeList getAttributes(String[] strings) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -90,12 +99,10 @@ public class TestDSpaceKernelImpl implements DSpaceKernel, DynamicMBean, CommonL
 
     @Override
     public void start() {
-
     }
 
     @Override
     public void stop() {
-
     }
 
     @Override

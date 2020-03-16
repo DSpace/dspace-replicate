@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace;
 
 import java.util.ArrayList;
@@ -10,6 +17,7 @@ import org.dspace.kernel.ServiceManager;
 /**
  * Service manager which stores registered services in memory and returns them for use
  *
+ * @author mikejritter
  */
 public class TestServiceManager implements ServiceManager {
 
@@ -53,11 +61,11 @@ public class TestServiceManager implements ServiceManager {
 
     @Override
     public void unregisterService(String name) {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void pushConfig(Map<String, Object> settings) {
-
+        throw new UnsupportedOperationException();
     }
 }

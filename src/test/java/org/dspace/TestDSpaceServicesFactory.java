@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace;
 
 import org.dspace.kernel.ServiceManager;
@@ -11,7 +18,10 @@ import org.dspace.services.factory.DSpaceServicesFactory;
 import org.dspace.utils.DSpace;
 
 /**
+ * {@link DSpaceServicesFactory} so that we can retrieve the {@link ConfigurationService} and {@link ServiceManager}.
+ * All other operations are unsupported.
  *
+ * @author mikejritter
  */
 public class TestDSpaceServicesFactory extends DSpaceServicesFactory {
 

@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +24,11 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
 import org.junit.Test;
 
+/**
+ * Tests for {@link CommunityPacker}
+ *
+ * @author mikejritter
+ */
 public class CommunityPackerTest extends BagItPackerTest {
 
     private final ImmutableList<String> fields = ImmutableList.of("name", "short_description", "introductory_text",

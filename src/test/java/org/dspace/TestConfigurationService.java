@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace;
 
 import java.util.List;
@@ -9,6 +16,7 @@ import org.dspace.services.ConfigurationService;
 /**
  * Configuration service which holds values in memory
  *
+ * @author mikejritter
  */
 public class TestConfigurationService implements ConfigurationService {
     final Properties properties = new Properties();

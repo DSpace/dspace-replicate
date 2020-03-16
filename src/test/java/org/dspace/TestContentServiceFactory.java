@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace;
 
 import static org.mockito.Mockito.mock;
@@ -23,8 +30,9 @@ import org.dspace.content.service.SupervisedItemService;
 import org.dspace.content.service.WorkspaceItemService;
 
 /**
- * The bottom of the food chain. Return mocks.
+ * A {@link ContentServiceFactory} which returns mock services
  *
+ * @author mikejritter
  */
 public class TestContentServiceFactory extends ContentServiceFactory {
 

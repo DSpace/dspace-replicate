@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace.pack.bagit;
 
 import static org.dspace.TestContentServiceFactory.CONTENT_SERVICE_FACTORY;
@@ -30,8 +37,12 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * Base class for all BagIt packing/unpacking tests
+ * Base class for all BagIt packing/unpacking tests. This performs initial setup so that the DSpaceKernel is not null
+ * and so that some of the that are used through static contexts or have static initializers (e.g.
+ * {@link org.dspace.services.factory.DSpaceServicesFactory}, {@link org.dspace.core.Context}) can initialize and
+ * retrieve any classes which are necessary for basic operations.
  *
+ * @author mikejritter
  */
 public abstract class BagItPackerTest {
 
@@ -42,11 +53,6 @@ public abstract class BagItPackerTest {
     private final EventServiceFactory eventServiceFactory = mock(EventServiceFactory.class);
 
     protected final String archFmt = "zip";
-    protected final String objectType = "test-bag";
-    protected final String bundleName = "test-bundle";
-    protected final String xmlBody = "test-xml-body";
-    protected final String xmlAttr = "test-xml-attr";
-    protected final String xmlAttrName = "name";
 
     @Before
     public void setup() throws SQLException {
