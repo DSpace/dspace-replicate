@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.assertj.core.util.Files;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
@@ -189,6 +190,66 @@ public class ItemPackerTest extends BagItPackerTest {
         assertThat(packedOutput).isFile();
 
         packedOutput.delete();
+    }
+
+    @Test
+    public void testFetchThrowsException() throws Exception {
+        final String bitstreamTitle = "title";
+        final String bitstreamRegex = "title|source|description";
+
+        // setup output
+        final URL resources = CollectionPackerTest.class.getClassLoader().getResource("");
+        assertNotNull(resources);
+        final Path output = Paths.get(resources.toURI().resolve("item-packer-with-fetch"));
+
+        // Item entity
+        final Item item = initDSO(Item.class);
+        item.getBundles().add(bundle);
+
+        // all the interactions we expect to occur
+        when(itemService.getMetadata(eq(item), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY)))
+            .thenReturn(Collections.singletonList(metadataValue));
+
+        when(bitstreamService.getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
+                                                    matches(bitstreamRegex), isNull(String.class),
+                                                    eq(Item.ANY))).thenReturn(PRIMARY_NAME);
+
+        when(bitstreamService.getMetadataFirstValue(eq(licenseBitstream), eq(DC_SCHEMA),
+                                                    matches(bitstreamRegex), isNull(String.class),
+                                                    eq(Item.ANY))).thenReturn(LICENSE_NAME);
+
+        when(bitstreamService.retrieve(any(Context.class), eq(primaryBitstream)))
+            .thenReturn(new ByteArrayInputStream(PRIMARY_NAME.getBytes()));
+        when(bitstreamService.retrieve(any(Context.class), eq(licenseBitstream)))
+            .thenReturn(new ByteArrayInputStream(LICENSE_NAME.getBytes()));
+
+        when(bundleService.getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle), isNull(String.class),
+                                                 eq(Item.ANY))).thenReturn(BUNDLE_NAME);
+
+        // and perform the packaging
+        licenseBitstream.setSizeBytes(1L);
+        primaryBitstream.setSizeBytes(1L);
+        final ItemPacker packer = new ItemPacker(item, archFmt);
+        packer.setReferenceFilter(BUNDLE_NAME + " 1 https://localhost/fetch");
+        try {
+            packer.pack(output.toFile());
+        } catch (UnsupportedOperationException e) {
+            assertNotNull(e);
+        }
+
+        // verify all the interactions we outlined above
+        // 1 bundle.getName when looping the bundle, 2 from the ReferenceFilter
+        verify(bundleService, times(3)).getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle),
+                                                              isNull(String.class), eq(Item.ANY));
+        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
+                                                                 matches(bitstreamRegex),
+                                                                 isNull(String.class), eq(Item.ANY));
+        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(licenseBitstream), eq(DC_SCHEMA),
+                                                                 matches(bitstreamRegex),
+                                                                 isNull(String.class), eq(Item.ANY));
+        verify(itemService, times(1)).getMetadata(eq(item), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY));
+
+        Files.delete(output.toFile());
     }
 
     /**
