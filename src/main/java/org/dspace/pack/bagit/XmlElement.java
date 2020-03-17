@@ -27,7 +27,7 @@ public class XmlElement {
      * @param body the body of the xml element
      * @param attributes the attributes for the xml element
      */
-    public XmlElement(String body, Map<String, String> attributes) {
+    public XmlElement(final String body, final Map<String, String> attributes) {
         this.body = body;
         this.attributes = attributes;
     }

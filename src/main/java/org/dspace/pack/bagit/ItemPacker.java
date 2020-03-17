@@ -87,14 +87,14 @@ public class ItemPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
+    public File pack(final File packDir) throws AuthorizeException, IOException, SQLException {
         // object properties
         final List<String> objectProperties = new ArrayList<>();
         objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
         objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_ITEM);
         objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + item.getHandle());
 
-        StringBuilder linked = new StringBuilder();
+        final StringBuilder linked = new StringBuilder();
         for (Collection coll : item.getCollections()) {
             if (itemService.isOwningCollection(item, coll)) {
                 objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + coll.getHandle());
@@ -103,13 +103,12 @@ public class ItemPacker implements Packer
             }
         }
         if (linked.length() > 0) {
-            // todo: why substring?? is this not just printing the entire string...
             objectProperties.add(OTHER_IDS + PROPERTIES_DELIMITER + linked.substring(0, linked.length() - 1));
         }
         if (item.isWithdrawn()) {
             objectProperties.add(WITHDRAWN + PROPERTIES_DELIMITER + TRUE.toString());
         }
-        ImmutableMap<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
+        final ImmutableMap<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // metadata.xml
         final List<XmlElement> metadataElements = new ArrayList<>();
@@ -134,7 +133,7 @@ public class ItemPacker implements Packer
                     final String seqId = String.valueOf(bs.getSequenceID());
 
                     // field access is hard-coded in Bitstream class, ugh!
-                    List<XmlElement> bsElements = new ArrayList<>();
+                    final List<XmlElement> bsElements = new ArrayList<>();
                     bsElements.add(new XmlElement(bs.getName(), ImmutableMap.of(NAME, NAME)));
                     bsElements.add(new XmlElement(bs.getSource(), ImmutableMap.of(NAME, SOURCE)));
                     bsElements.add(new XmlElement(bs.getDescription(), ImmutableMap.of(NAME, DESCRIPTION)));
@@ -144,7 +143,7 @@ public class ItemPacker implements Packer
                     }
 
                     // write the bitstream itself, unless reference filter applies
-                    String fetchUrl = byReference(bundle, bs);
+                    final String fetchUrl = byReference(bundle, bs);
                     if (fetchUrl != null) {
                         bitstreams.add(new BagBitstream(fetchUrl, bundle.getName(), bsElements));
                     } else {
