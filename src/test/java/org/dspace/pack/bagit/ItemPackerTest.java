@@ -26,11 +26,14 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
+import org.dspace.content.Collection;
 import org.dspace.content.Item;
 import org.dspace.content.MetadataField;
 import org.dspace.content.MetadataSchema;
@@ -40,6 +43,7 @@ import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
+import org.dspace.handle.Handle;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -125,13 +129,26 @@ public class ItemPackerTest extends BagItPackerTest {
         assertNotNull(resources);
         final Path output = Paths.get(resources.toURI().resolve("item-packer-test"));
 
-        // Item entity, todo linked collections
+        // Item entity
         final Item item = initDSO(Item.class);
         item.getBundles().add(bundle);
 
+        // Related collections
+        final Collection owning = createCollection("owning");
+        final Collection linked = createCollection("linked");
+
+        final Set<Collection> collections = new HashSet<>();
+        collections.add(owning);
+        collections.add(linked);
+        final Field collectionsField = Item.class.getDeclaredField("collections");
+        collectionsField.setAccessible(true);
+        collectionsField.set(item, collections);
+
         // all the interactions we expect to occur
+        when(itemService.isOwningCollection(eq(item), eq(owning))).thenReturn(true);
+        when(itemService.isOwningCollection(eq(item), eq(linked))).thenReturn(false);
         when(itemService.getMetadata(eq(item), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY)))
-            .thenReturn(ImmutableList.of(metadataValue));
+            .thenReturn(Collections.singletonList(metadataValue));
 
         when(bitstreamService.getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
                                                     matches(bitstreamRegex), isNull(String.class),
@@ -154,6 +171,8 @@ public class ItemPackerTest extends BagItPackerTest {
         final File packedOutput = packer.pack(output.toFile());
 
         // verify all the interactions we outlined above
+        verify(itemService, times(1)).isOwningCollection(eq(item), eq(owning));
+        verify(itemService, times(1)).isOwningCollection(eq(item), eq(linked));
         verify(bundleService, times(1)).getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle),
                                                               isNull(String.class), eq(Item.ANY));
         verify(bitstreamService, times(3)).getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
@@ -170,6 +189,22 @@ public class ItemPackerTest extends BagItPackerTest {
         assertThat(packedOutput).isFile();
 
         packedOutput.delete();
+    }
+
+    /**
+     * Create a {@link Collection} with a given {@link Handle}
+     *
+     * @param handle the string value of the handle
+     * @return the collection
+     * @throws ReflectiveOperationException if the collection or handle cannot be created
+     */
+    private Collection createCollection(final String handle) throws ReflectiveOperationException {
+        final Handle handleEntity = initReloadable(Handle.class);
+        handleEntity.setHandle("owning");
+
+        final Collection owning = initDSO(Collection.class);
+        owning.addHandle(handleEntity);
+        return owning;
     }
 
 }
