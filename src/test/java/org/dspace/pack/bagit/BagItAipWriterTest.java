@@ -31,7 +31,6 @@ import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.pack.PackerFactory;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -95,9 +94,17 @@ public class BagItAipWriterTest extends BagItPackerTest {
         Files.delete(packagedAip.toPath());
     }
 
-    @Test
-    @Ignore
-    public void testWriteAipExists() {
+    @Test(expected = IllegalStateException.class)
+    public void testWriteAipExists() throws Exception {
+        final String bagName = "existing-bagit-aip";
+        final URL resources = this.getClass().getClassLoader().getResource("");
+        final Path root = Paths.get(Objects.requireNonNull(resources).toURI());
+
+        final Bitstream logo = null;
+        final File directory = root.resolve(bagName).toFile();
+
+        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, bitstreams);
+        writer.packageAip();
     }
 
 }
