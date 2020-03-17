@@ -79,16 +79,16 @@ public class CommunityPacker implements Packer
         final Bitstream logo = community.getLogo();
 
         // object.properties
-        List<String> objectProperties = new ArrayList<>();
+        final List<String> objectProperties = new ArrayList<>();
         objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
         objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_COMMUNITY);
         objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + community.getHandle());
 
-        List<Community> parents = community.getParentCommunities();
+        final List<Community> parents = community.getParentCommunities();
         if (parents != null && !parents.isEmpty()) {
             objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + parents.get(0).getHandle());
         }
-        Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
+        final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // collect the xml metadata
         final List<XmlElement> elements = new ArrayList<>();
@@ -98,8 +98,8 @@ public class CommunityPacker implements Packer
             elements.add(element);
         }
 
-        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
-                                                      Collections.<BagBitstream>emptyList());
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
+                                                            Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }
 

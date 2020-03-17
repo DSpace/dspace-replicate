@@ -118,8 +118,9 @@ public class BagItAipWriter {
      * @param metadata a {@link List} of {@link XmlElement}s to write to the bags data/metadata.xml
      * @param bitstreams a {@link List} of {@link BagBitstream}s which should be written as payload files for the bag
      */
-    public BagItAipWriter(File directory, String archFmt, Bitstream logo, Map<String, List<String>> properties,
-                          List<XmlElement> metadata, List<BagBitstream> bitstreams) {
+    public BagItAipWriter(final File directory, final String archFmt, final Bitstream logo,
+                          final Map<String, List<String>> properties, final List<XmlElement> metadata,
+                          final List<BagBitstream> bitstreams) {
         this.logo = logo;
         this.archFmt = checkNotNull(archFmt);
         this.directory = checkNotNull(directory);
@@ -236,8 +237,8 @@ public class BagItAipWriter {
         bag.addTags(BagConfig.BAG_INFO_KEY, generateBagInfo());
         bag.write();
 
-        BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        Path serializedBag = serializer.serialize(directory.toPath());
+        final BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
+        final Path serializedBag = serializer.serialize(directory.toPath());
         delete(directory);
 
         return serializedBag.toFile();
@@ -263,7 +264,7 @@ public class BagItAipWriter {
      *
      * @param directory the directory to delete
      */
-    private void delete(File directory) {
+    private void delete(final File directory) {
         // protect against being sent a file instead of a directory
         File[] files = directory.listFiles();
         if (files != null) {

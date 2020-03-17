@@ -84,14 +84,14 @@ public class CatalogPacker implements Packer
         }
         properties.put(OBJFILE, objectProperties);
 
-        // members...properties
+        // members file
         if (members.size() > 0) {
             properties.put("members", members);
         }
 
-        BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties,
-                                                      Collections.<XmlElement>emptyList(),
-                                                      Collections.<BagBitstream>emptyList());
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties,
+                                                            Collections.<XmlElement>emptyList(),
+                                                            Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }
 

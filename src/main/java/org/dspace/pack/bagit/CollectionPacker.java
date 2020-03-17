@@ -104,8 +104,8 @@ public class CollectionPacker implements Packer
             elements.add(element);
         }
 
-        BagItAipWriter writer = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
-                                                   Collections.<BagBitstream>emptyList());
+        final BagItAipWriter writer = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
+                                                         Collections.<BagBitstream>emptyList());
         return writer.packageAip();
     }
 
