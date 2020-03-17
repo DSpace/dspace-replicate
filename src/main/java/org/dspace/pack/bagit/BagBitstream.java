@@ -29,13 +29,16 @@ public class BagBitstream {
      * A {@link Bitstream} which is to be fetched rather than added to a BagIt bag
      *
      * @param fetchUrl the url to fetch the {@link Bitstream} from
+     * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
      * @param xml the metadata associated with the {@link Bitstream}
      */
-    public BagBitstream(final String fetchUrl, final String bundle, final List<XmlElement> xml) {
+    public BagBitstream(final String fetchUrl, final Bitstream bitstream, final String bundle,
+                        final List<XmlElement> xml) {
         this.xml = Preconditions.checkNotNull(xml);
         this.bundle = Preconditions.checkNotNull(bundle);
         this.fetchUrl = Preconditions.checkNotNull(fetchUrl);
+        this.bitstream = Preconditions.checkNotNull(bitstream);
     }
 
     /**

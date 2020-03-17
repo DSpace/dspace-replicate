@@ -146,7 +146,7 @@ public class ItemPacker implements Packer
                     // write the bitstream itself, unless reference filter applies
                     final String fetchUrl = byReference(bundle, bs);
                     if (fetchUrl != null) {
-                        bitstreams.add(new BagBitstream(fetchUrl, bundleName, bsElements));
+                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bsElements));
                     } else {
                         bitstreams.add(new BagBitstream(bs, bundleName, bsElements));
                     }
