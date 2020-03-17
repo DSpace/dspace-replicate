@@ -9,6 +9,8 @@ package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +35,6 @@ import org.dspace.core.Context;
 import org.dspace.pack.PackerFactory;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 /**
  * @author mikejritter
@@ -61,10 +63,7 @@ public class BagItAipWriterTest extends BagItPackerTest {
         XmlElement xmlElement = new XmlElement(xmlBody, ImmutableMap.of(xmlAttrName, xmlAttr));
         metadata = Collections.singletonList(xmlElement);
 
-        // todo: test using bitstreams
-        final Bitstream bitstream = Mockito.mock(Bitstream.class);
-        final BagBitstream bagBits = new BagBitstream(bitstream, bundleName, metadata);
-        bitstreams = Collections.singletonList(bagBits);
+        bitstreams = new ArrayList<>();
 
         bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
     }
@@ -75,17 +74,21 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final URL resources = this.getClass().getClassLoader().getResource("");
         final Path root = Paths.get(Objects.requireNonNull(resources).toURI());
 
-        final Bitstream logo = null;
+        final Bitstream logo = initDSO(Bitstream.class);
+        final Bitstream bitstream = initDSO(Bitstream.class);
+        bitstreams.add(new BagBitstream(bitstream, bundleName, Collections.<XmlElement>emptyList()));
         final File directory = root.resolve(bagName).toFile();
 
         final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, bitstreams);
 
-        when(bitstreamService.retrieve(any(Context.class), any(Bitstream.class)))
+        when(bitstreamService.retrieve(any(Context.class), eq(logo)))
+            .thenReturn(new ByteArrayInputStream("logo".getBytes()));
+        when(bitstreamService.retrieve(any(Context.class), eq(bitstream)))
             .thenReturn(new ByteArrayInputStream("hello".getBytes()));
 
         final File packagedAip = writer.packageAip();
 
-        verify(bitstreamService).retrieve(any(Context.class), any(Bitstream.class));
+        verify(bitstreamService, times(2)).retrieve(any(Context.class), any(Bitstream.class));
 
         assertThat(packagedAip).exists();
         assertThat(packagedAip).isFile();
