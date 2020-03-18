@@ -7,14 +7,21 @@
  */
 package org.dspace.ctask.replicate;
 
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OTHER_IDS;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.PackerFactory.WITHDRAWN;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -34,10 +41,10 @@ import org.dspace.embargo.factory.EmbargoServiceFactory;
 import org.dspace.embargo.service.EmbargoService;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-import org.dspace.pack.bagit.Bag;
 import org.dspace.pack.bagit.CatalogPacker;
-
-import static org.dspace.pack.PackerFactory.*;
+import org.duraspace.bagit.BagDeserializer;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.SerializationSupport;
 
 /**
  * BagItRestoreFromAIP task performs essentially an 'undelete' on an object that
@@ -137,18 +144,20 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param id Identifier of object in ObjectStore
      * @throws IOException if IO error
      */
-    private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException 
-    {
+    private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException {
         String objId = repMan.storageId(id, archFmt);
         File archive = repMan.fetchObject(storeGroupName, objId);
         if (archive != null) {
-            Bag bag = new Bag(archive);
-            InputStream bagIn = bag.dataStream(OBJFILE);
-            Properties props = new Properties();
-            props.load(bagIn);
-            bagIn.close();
+            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
+            final Path openArchive = deserializer.deserialize(archive.toPath());
+
+            final Path objectProperties = openArchive.resolve("data").resolve(OBJFILE);
+            final Properties props = new Properties();
+            props.load(Files.newInputStream(objectProperties));
+
             String type = props.getProperty(OBJECT_TYPE);
-            String ownerId = props.getProperty(OWNER_ID);
+            String ownerId =  props.getProperty(OWNER_ID);
             if ("item".equals(type)) {
                 recoverItem(ctx, archive, id, props);
             } else if ("collection".equals(type)) {
@@ -156,8 +165,9 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             } else if ("community".equals(type)) {
                 recoverCommunity(ctx, archive, id, ownerId);
             }
+
             // discard bag when done
-            bag.empty();
+            FileUtils.deleteDirectory(openArchive.toFile());
         }
     }
 
