@@ -147,7 +147,6 @@ public class CollectionPacker implements Packer
         }
 
         final Path logo = bagPath.resolve("data").resolve("logo");
-        // todo: do we need to set to null?
         if (Files.exists(logo)) {
             collectionService.setLogo(Curator.curationContext(), collection, Files.newInputStream(logo));
         }
