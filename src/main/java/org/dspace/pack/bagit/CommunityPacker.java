@@ -18,14 +18,25 @@ import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
@@ -35,6 +46,9 @@ import org.dspace.content.service.CommunityService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.duraspace.bagit.BagDeserializer;
+import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -104,29 +118,95 @@ public class CommunityPacker implements Packer
     }
 
     @Override
-    public void unpack(File archive) throws AuthorizeException, IOException, SQLException
-    {
-        if (archive == null)
-        {
+    public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
+        if (archive == null) {
             throw new IOException("Missing archive for community: " + community.getHandle());
         }
-        Bag bag = new Bag(archive);
-        // add the metadata
-        Bag.XmlReader reader = bag.xmlReader("metadata.xml");
-        if (reader != null && reader.findStanza("metadata")) {
-            Bag.Value value = null;
-            while((value = reader.nextValue()) != null)
-            {
-                communityService.setMetadata(Curator.curationContext(), community, value.name, value.val);
-            }
-            reader.close();
+
+        final Path bagPath;
+        if (archive.isFile()) {
+            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
+            final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
+            bagPath = deserializer.deserialize(archive.toPath());
+        } else {
+            bagPath = archive.toPath();
         }
-        // also install logo or set to null
-        communityService.setLogo(Curator.curationContext(), community, bag.dataStream("logo"));
-        // now write data back to DB
+
+        final List<XmlElement> xmlElements = readXml(bagPath.resolve("data/metadata.xml"));
+        for (XmlElement xmlElement : xmlElements) {
+            final String name = xmlElement.getAttributes().get("name");
+            final String value = xmlElement.getBody();
+            communityService.setMetadata(Curator.curationContext(), community, name, value);
+        }
+
+        try (InputStream is = Files.newInputStream(bagPath.resolve("data/logo"))) {
+            communityService.setLogo(Curator.curationContext(), community, is);
+        } catch (FileNotFoundException ignored) {
+        }
+
         communityService.update(Curator.curationContext(), community);
-        // clean up bag
-        bag.empty();
+
+        FileUtils.deleteDirectory(bagPath.toFile());
+    }
+
+    private List<XmlElement> readXml(Path metadata) throws IOException {
+        final XMLStreamReader reader;
+        final XMLInputFactory factory = XMLInputFactory.newFactory();
+        try {
+            reader = factory.createXMLStreamReader(Files.newInputStream(metadata));
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        final List<XmlElement> elements = new ArrayList<>();
+        try {
+            // todo: push this somewhere else
+            // search for metadata stanza
+            while (reader.hasNext()) {
+                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                    reader.getLocalName().equalsIgnoreCase("metadata")) {
+
+                    // search for value stanzas
+                    while (reader.hasNext()) {
+                        if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                            reader.getLocalName().equalsIgnoreCase("value")) {
+                            XmlElement element = readElement(reader);
+                            if (element != null) {
+                                elements.add(element);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return elements;
+    }
+
+    private XmlElement readElement(XMLStreamReader reader) throws XMLStreamException {
+        // we begin on a start element so initialize the attributes first
+        Map<String, String> attributes = new HashMap<>();
+        for (int i = 0; i < reader.getAttributeCount(); i++) {
+            attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+        }
+
+        // now iterate to find the body and end element
+        String body = null;
+        while (reader.hasNext()) {
+            switch (reader.next()) {
+                case XMLStreamConstants.CHARACTERS:
+                    body = reader.getText();
+                    break;
+                case XMLStreamConstants.END_ELEMENT:
+                    return new XmlElement(body, attributes);
+                default:
+                    break;
+            }
+        }
+
+        return null;
     }
 
     @Override
