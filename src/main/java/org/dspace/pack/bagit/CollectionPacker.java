@@ -136,48 +136,10 @@ public class CollectionPacker implements Packer
             bagPath = archive.toPath();
         }
 
-        final XMLStreamReader reader;
-        final XMLInputFactory factory = XMLInputFactory.newFactory();
         final Path metadataXml = bagPath.resolve("data").resolve("metadata.xml");
-        try {
-            reader = factory.createXMLStreamReader(Files.newInputStream(metadataXml));
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
+        List<XmlElement> elements = readXml(metadataXml);
 
-        List<XmlElement> elements = new ArrayList<>();
-        try {
-            // todo: push this somewhere else
-            while (reader.hasNext()) {
-                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                    reader.getLocalName().equalsIgnoreCase("metadata")) {
-                    String body = null;
-                    Map<String, String> attributes = null;
-                    while (reader.hasNext()) {
-                        switch (reader.next()) {
-                            case XMLStreamConstants.START_ELEMENT:
-                                attributes = new HashMap<>();
-                                for (int i = 0; i < reader.getAttributeCount(); i++) {
-                                    attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
-                                }
-                                break;
-                            case XMLStreamConstants.ATTRIBUTE:
-                                break;
-                            case XMLStreamConstants.CHARACTERS:
-                                body = reader.getText();
-                                break;
-                            case XMLStreamConstants.END_ELEMENT:
-                                elements.add(new XmlElement(body, attributes));
-                                break;
-                        }
-                    }
-                }
-            }
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        // todo: this can completely break the metadata of a collection in dspace
+        // todo: find out what happens if a metadata exists and is re-added
         for (XmlElement element : elements) {
             final String name = element.getAttributes().get("name");
             final String value = element.getBody();
@@ -193,6 +155,66 @@ public class CollectionPacker implements Packer
         collectionService.update(Curator.curationContext(), collection);
 
         FileUtils.deleteDirectory(bagPath.toFile());
+    }
+
+    private List<XmlElement> readXml(Path metadata) throws IOException {
+        final XMLStreamReader reader;
+        final XMLInputFactory factory = XMLInputFactory.newFactory();
+        try {
+            reader = factory.createXMLStreamReader(Files.newInputStream(metadata));
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        final List<XmlElement> elements = new ArrayList<>();
+        try {
+            // todo: push this somewhere else
+            // search for metadata stanza
+            while (reader.hasNext()) {
+                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                    reader.getLocalName().equalsIgnoreCase("metadata")) {
+
+                    // search for value stanzas
+                    while (reader.hasNext()) {
+                        if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                            reader.getLocalName().equalsIgnoreCase("value")) {
+                            XmlElement element = readElement(reader);
+                            if (element != null) {
+                                elements.add(element);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return elements;
+    }
+
+    private XmlElement readElement(XMLStreamReader reader) throws XMLStreamException {
+        // we begin on a start element so initialize the attributes first
+        Map<String, String> attributes = new HashMap<>();
+        for (int i = 0; i < reader.getAttributeCount(); i++) {
+            attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+        }
+
+        // now iterate to find the body and end element
+        String body = null;
+        while (reader.hasNext()) {
+            switch (reader.next()) {
+                case XMLStreamConstants.CHARACTERS:
+                    body = reader.getText();
+                    break;
+                case XMLStreamConstants.END_ELEMENT:
+                    return new XmlElement(body, attributes);
+                default:
+                    break;
+            }
+        }
+
+        return null;
     }
 
     @Override
