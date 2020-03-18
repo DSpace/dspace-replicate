@@ -35,7 +35,6 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
@@ -284,8 +283,7 @@ public class ItemPacker implements Packer
          */
     }
 
-    @VisibleForTesting
-    protected List<XmlElement> readXml(Path metadata) throws IOException {
+    private List<XmlElement> readXml(Path metadata) throws IOException {
         final XMLStreamReader reader;
         final XMLInputFactory factory = XMLInputFactory.newFactory();
         try {
@@ -294,30 +292,22 @@ public class ItemPacker implements Packer
             throw new IOException(e.getMessage(), e);
         }
 
-        List<XmlElement> elements = new ArrayList<>();
+        final List<XmlElement> elements = new ArrayList<>();
         try {
             // todo: push this somewhere else
+            // search for metadata stanza
             while (reader.hasNext()) {
                 if (reader.next() == XMLStreamConstants.START_ELEMENT &&
                     reader.getLocalName().equalsIgnoreCase("metadata")) {
-                    String body = null;
-                    Map<String, String> attributes = null;
+
+                    // search for value stanzas
                     while (reader.hasNext()) {
-                        switch (reader.next()) {
-                            case XMLStreamConstants.START_ELEMENT:
-                                attributes = new HashMap<>();
-                                for (int i = 0; i < reader.getAttributeCount(); i++) {
-                                    attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
-                                }
-                                break;
-                            case XMLStreamConstants.ATTRIBUTE:
-                                break;
-                            case XMLStreamConstants.CHARACTERS:
-                                body = reader.getText();
-                                break;
-                            case XMLStreamConstants.END_ELEMENT:
-                                elements.add(new XmlElement(body, attributes));
-                                break;
+                        if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                            reader.getLocalName().equalsIgnoreCase("value")) {
+                            XmlElement element = readElement(reader);
+                            if (element != null) {
+                                elements.add(element);
+                            }
                         }
                     }
                 }
@@ -327,6 +317,30 @@ public class ItemPacker implements Packer
         }
 
         return elements;
+    }
+
+    private XmlElement readElement(XMLStreamReader reader) throws XMLStreamException {
+        // we begin on a start element so initialize the attributes first
+        Map<String, String> attributes = new HashMap<>();
+        for (int i = 0; i < reader.getAttributeCount(); i++) {
+            attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+        }
+
+        // now iterate to find the body and end element
+        String body = null;
+        while (reader.hasNext()) {
+            switch (reader.next()) {
+                case XMLStreamConstants.CHARACTERS:
+                    body = reader.getText();
+                    break;
+                case XMLStreamConstants.END_ELEMENT:
+                    return new XmlElement(body, attributes);
+                default:
+                    break;
+            }
+        }
+
+        return null;
     }
 
     @Override
