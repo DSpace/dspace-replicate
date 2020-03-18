@@ -18,9 +18,7 @@ import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -29,7 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
@@ -139,9 +136,9 @@ public class CommunityPacker implements Packer
             communityService.setMetadata(Curator.curationContext(), community, name, value);
         }
 
-        try (InputStream is = Files.newInputStream(bagPath.resolve("data/logo"))) {
-            communityService.setLogo(Curator.curationContext(), community, is);
-        } catch (FileNotFoundException ignored) {
+        final Path logo = bagPath.resolve("data").resolve("logo");
+        if (Files.exists(logo)) {
+            communityService.setLogo(Curator.curationContext(), community, Files.newInputStream(logo));
         }
 
         communityService.update(Curator.curationContext(), community);
