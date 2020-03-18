@@ -19,7 +19,6 @@ import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -29,7 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
@@ -131,9 +129,7 @@ public class CollectionPacker implements Packer
 
         final Path bagPath;
         if (archive.isFile()) {
-            // todo: this might fail, might want to push to BagProfile
-            final URL url = this.getClass().getResource(bagProfile);
-            final BagProfile profile = new BagProfile(url.openStream());
+            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
             bagPath = deserializer.deserialize(archive.toPath());
         } else {

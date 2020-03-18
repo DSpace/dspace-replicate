@@ -15,12 +15,12 @@ import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OTHER_IDS;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.PackerFactory.WITHDRAWN;
-import static org.dspace.pack.bagit.BagItAipWriter.*;
+import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_ITEM;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +35,7 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
@@ -49,7 +50,6 @@ import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
-import org.dspace.pack.PackerFactory;
 import org.duraspace.bagit.BagDeserializer;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.SerializationSupport;
@@ -181,9 +181,7 @@ public class ItemPacker implements Packer
 
         final Path bagPath;
         if (archive.isFile()) {
-            // todo: this might fail, might want to push to BagProfile
-            final URL url = this.getClass().getResource(bagProfile);
-            final BagProfile profile = new BagProfile(url.openStream());
+            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
             bagPath = deserializer.deserialize(archive.toPath());
         } else {
@@ -196,7 +194,13 @@ public class ItemPacker implements Packer
         // bs = file.listFiles (non-xml)
         // bs + "-metadata.xml" (resolve metadata)
         // load bs
-        DirectoryStream<Path> directories = Files.newDirectoryStream(bagPath.resolve("data"), Files::isDirectory);
+        DirectoryStream<Path> directories = Files.newDirectoryStream(bagPath.resolve("data"),
+                                                                     new DirectoryStream.Filter<Path>() {
+                                                                         @Override
+                                                                         public boolean accept(Path path) {
+                                                                             return Files.isDirectory(path);
+                                                                         }
+                                                                     });
         for (Path bitstream : directories) {
             logger.info("" + bitstream);
         }
@@ -280,7 +284,8 @@ public class ItemPacker implements Packer
          */
     }
 
-    private List<XmlElement> readXml(Path metadata) throws IOException {
+    @VisibleForTesting
+    protected List<XmlElement> readXml(Path metadata) throws IOException {
         final XMLStreamReader reader;
         final XMLInputFactory factory = XMLInputFactory.newFactory();
         try {
