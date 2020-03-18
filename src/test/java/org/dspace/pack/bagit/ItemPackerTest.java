@@ -261,7 +261,7 @@ public class ItemPackerTest extends BagItPackerTest {
      */
     private Collection createCollection(final String handle) throws ReflectiveOperationException {
         final Handle handleEntity = initReloadable(Handle.class);
-        handleEntity.setHandle("owning");
+        handleEntity.setHandle(handle);
 
         final Collection owning = initDSO(Collection.class);
         owning.addHandle(handleEntity);
