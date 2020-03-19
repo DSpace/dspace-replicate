@@ -34,6 +34,7 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
+import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
@@ -107,25 +108,26 @@ public class CommunityPacker implements Packer
 
     @Override
     public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
-        if (archive == null) {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for community: " + community.getHandle());
         }
 
+        final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
 
         final List<XmlElement> xmlElements = reader.readMetadata();
         for (XmlElement xmlElement : xmlElements) {
             final String name = xmlElement.getAttributes().get("name");
             final String value = xmlElement.getBody();
-            communityService.setMetadata(Curator.curationContext(), community, name, value);
+            communityService.setMetadata(context, community, name, value);
         }
 
         final Optional<InputStream> logo = reader.readLogo();
         if (logo.isPresent()) {
-            communityService.setLogo(Curator.curationContext(), community, logo.get());
+            communityService.setLogo(context, community, logo.get());
         }
 
-        communityService.update(Curator.curationContext(), community);
+        communityService.update(context, community);
 
         reader.clean();
     }

@@ -55,6 +55,10 @@ public class BagItAipReader {
      * @throws IOException if there are any errors while deserializing the aip located at {@link Path}
      */
     public BagItAipReader(final Path bag) throws IOException {
+        if (bag == null || Files.notExists(bag)) {
+            throw new IOException("Missing archive: " + bag);
+        }
+
         // deserialize if necessary
         if (Files.isRegularFile(bag)) {
             final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);

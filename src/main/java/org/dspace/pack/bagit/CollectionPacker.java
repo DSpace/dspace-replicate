@@ -114,7 +114,7 @@ public class CollectionPacker implements Packer
 
     @Override
     public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
-        if (archive == null) {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
 

@@ -98,7 +98,7 @@ public class CatalogPacker implements Packer
 
     @Override
     public void unpack(File archive) throws IOException {
-        if (archive == null) {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for catalog: " + objectId);
         }
 
