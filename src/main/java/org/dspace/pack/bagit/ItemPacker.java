@@ -187,26 +187,26 @@ public class ItemPacker implements Packer {
             final Bundle bundle = bundleService.create(context, item, packaged.getBundle());
 
             // create a bitstream
-            final Bitstream theBitstream = bitstreamService.create(context, bundle,
-                                                                   Files.newInputStream(packaged.getBitstream()));
+            final Bitstream bitstream = bitstreamService.create(context, bundle,
+                                                                Files.newInputStream(packaged.getBitstream()));
 
             // load the bitstream metadata
             for (XmlElement element : packaged.getMetadata()) {
                 final String bitstreamField = element.getAttributes().get(NAME);
                 if (NAME.equalsIgnoreCase(bitstreamField)) {
-                    theBitstream.setName(context, element.getBody());
+                    bitstream.setName(context, element.getBody());
                 } else if (SOURCE.equalsIgnoreCase(bitstreamField)) {
-                    theBitstream.setSource(context, element.getBody());
+                    bitstream.setSource(context, element.getBody());
                 } else if (SEQUENCE_ID.equalsIgnoreCase(bitstreamField)) {
-                    theBitstream.setSequenceID(Integer.parseInt(element.getBody()));
+                    bitstream.setSequenceID(Integer.parseInt(element.getBody()));
                 } else if (DESCRIPTION.equalsIgnoreCase(bitstreamField)) {
-                    theBitstream.setDescription(context, element.getBody());
+                    bitstream.setDescription(context, element.getBody());
                 } else if (BUNDLE_PRIMARY.equalsIgnoreCase(bitstreamField)) {
-                    bundle.setPrimaryBitstreamID(theBitstream);
+                    bundle.setPrimaryBitstreamID(bitstream);
                 }
             }
 
-            bitstreamService.update(context, theBitstream);
+            bitstreamService.update(context, bitstream);
         }
 
         reader.clean();

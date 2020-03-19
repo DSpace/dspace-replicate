@@ -120,7 +120,7 @@ public class CollectionPacker implements Packer
 
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
 
-        List<XmlElement> elements = reader.readMetadata();
+        final List<XmlElement> elements = reader.readMetadata();
         for (XmlElement element : elements) {
             final String name = element.getAttributes().get("name");
             final String value = element.getBody();

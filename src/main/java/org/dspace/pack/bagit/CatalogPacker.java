@@ -105,32 +105,11 @@ public class CatalogPacker implements Packer
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
 
         // just populate properties and member list
-        Properties props = reader.readProperties();
+        final Properties props = reader.readProperties();
         ownerId = props.getProperty(OWNER_ID);
         members = reader.readFile("members");
 
         reader.clean();
-    }
-
-    /**
-     * Delete a directory and it's files/subdirectories
-     *
-     * @param directory the directory to delete
-     */
-    private void delete(final File directory) {
-        // protect against being sent a file instead of a directory
-        File[] files = directory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    delete(file);
-                } else {
-                    file.delete();
-                }
-            }
-        }
-
-        directory.delete();
     }
 
     @Override
