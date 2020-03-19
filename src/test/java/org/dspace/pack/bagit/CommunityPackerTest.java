@@ -9,11 +9,16 @@ package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
+import org.dspace.core.Context;
 import org.junit.Test;
 
 /**
@@ -64,6 +70,29 @@ public class CommunityPackerTest extends BagItPackerTest {
         assertThat(packedOutput).isFile();
 
         packedOutput.delete();
+    }
+
+    @Test
+    public void testUnpack() throws Exception {
+        // push to setup
+        final URL resources = CollectionPackerTest.class.getClassLoader().getResource("unpack");
+        assertNotNull(resources);
+
+        final Path archive = Paths.get(resources.toURI()).resolve("COMMUNITY@123456789-1.zip");
+        final Path openArchive = Paths.get(resources.toURI()).resolve("COMMUNITY@123456789-1");
+
+        final Community community = initDSO(Community.class);
+        assertNotNull(community);
+
+        final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+        final CommunityPacker packer = new CommunityPacker(community, archFmt);
+        packer.unpack(archive.toFile());
+
+        verify(communityService, times(5)).setMetadata(any(Context.class), eq(community), anyString(), anyString());
+        verify(communityService, never()).setLogo(any(Context.class), eq(community), any(InputStream.class));
+        verify(communityService, times(1)).update(any(Context.class), eq(community));
+
+        assertThat(openArchive).doesNotExist();
     }
 
 }
