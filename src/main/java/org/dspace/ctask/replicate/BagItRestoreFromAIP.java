@@ -8,19 +8,15 @@
 package org.dspace.ctask.replicate;
 
 import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
-import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OTHER_IDS;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.PackerFactory.WITHDRAWN;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
@@ -41,10 +37,8 @@ import org.dspace.embargo.factory.EmbargoServiceFactory;
 import org.dspace.embargo.service.EmbargoService;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.BagItAipReader;
 import org.dspace.pack.bagit.CatalogPacker;
-import org.duraspace.bagit.BagDeserializer;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.SerializationSupport;
 
 /**
  * BagItRestoreFromAIP task performs essentially an 'undelete' on an object that
@@ -148,16 +142,12 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
         String objId = repMan.storageId(id, archFmt);
         File archive = repMan.fetchObject(storeGroupName, objId);
         if (archive != null) {
-            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
-            final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
-            final Path openArchive = deserializer.deserialize(archive.toPath());
+            BagItAipReader reader = new BagItAipReader(archive.toPath());
 
-            final Path objectProperties = openArchive.resolve("data").resolve(OBJFILE);
-            final Properties props = new Properties();
-            props.load(Files.newInputStream(objectProperties));
+            final Properties props = reader.readProperties();
 
             String type = props.getProperty(OBJECT_TYPE);
-            String ownerId =  props.getProperty(OWNER_ID);
+            String ownerId = props.getProperty(OWNER_ID);
             if ("item".equals(type)) {
                 recoverItem(ctx, archive, id, props);
             } else if ("collection".equals(type)) {
@@ -167,7 +157,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             }
 
             // discard bag when done
-            FileUtils.deleteDirectory(openArchive.toFile());
+            reader.clean();
         }
     }
 
