@@ -24,7 +24,6 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import org.apache.commons.io.FileUtils;
 import org.duraspace.bagit.BagDeserializer;
@@ -189,14 +188,11 @@ public class BagItAipReader {
      * Read an xml file in order to read metadata for a DSpaceObject. This requires the file to conform to having a
      * metadata stanza as well as have value stanzas which store the data to read.
      *
-     * Note: This should not be used by Packers, which should instead defer to either
-     *
      * @param metadata the path to the metadata file
      * @return a list of {@link XmlElement}s read from the file
      * @throws IOException if there is an error reading the file or parsing the xml
      */
-    @VisibleForTesting
-    protected List<XmlElement> readXml(Path metadata) throws IOException {
+    private List<XmlElement> readXml(Path metadata) throws IOException {
         final XMLStreamReader reader;
         final XMLInputFactory factory = XMLInputFactory.newFactory();
         try {
