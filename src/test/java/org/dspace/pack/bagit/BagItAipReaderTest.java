@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Test;
 
 /**
@@ -18,7 +19,7 @@ import org.junit.Test;
  * @author mikejritter
  * @since 2020-03-19
  */
-public class BagItAipReaderTest {
+public class BagItAipReaderTest extends BagItPackerTest {
 
     @Test(expected = IOException.class)
     public void failIfArchiveIsNull() throws IOException {
@@ -45,6 +46,10 @@ public class BagItAipReaderTest {
         assertThat(permissions).isNotNull();
         assertThat(permissions).isEmpty();
         reader.clean();
+    }
+
+    @After
+    public void verifyMocks() {
     }
 
 }

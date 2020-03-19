@@ -29,6 +29,8 @@ import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.base.Optional;
 import org.apache.commons.io.FileUtils;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagDeserializer;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.SerializationSupport;
@@ -45,6 +47,11 @@ public class BagItAipReader {
 
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
 
+    private static final String REPLICATE_BAGIT_PROFILE = "replicate-bagit.profile";
+    private final ConfigurationService configurationService =
+        DSpaceServicesFactory.getInstance().getConfigurationService();
+
+    private final String xmlSuffix = ".xml";
     private final String dataDirectory = "data";
     private final String metadataLocation = dataDirectory + "/metadata.xml";
     private final String objectPropertiesLocation = dataDirectory + "/object.properties";
@@ -65,7 +72,8 @@ public class BagItAipReader {
 
         // deserialize if necessary
         if (Files.isRegularFile(bag)) {
-            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
+            final String profileName = configurationService.getProperty(REPLICATE_BAGIT_PROFILE, "beyondtherepository");
+            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(bag, profile);
             this.bag = deserializer.deserialize(bag);
         } else {

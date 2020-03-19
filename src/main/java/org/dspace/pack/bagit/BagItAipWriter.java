@@ -38,6 +38,8 @@ import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagConfig;
 import org.duraspace.bagit.BagItDigest;
 import org.duraspace.bagit.BagProfile;
@@ -69,10 +71,15 @@ public class BagItAipWriter {
     public static final String PROPERTIES_DELIMITER = "  ";
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
+    // Constants for this class
+    private final String bagProfileKey = "replicate-bagit.profile";
+
     private final String DATA_DIR = "data";
     private final String LOGO_FILE = "logo";
     private final String METADATA_XML = "metadata.xml";
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
+    private final ConfigurationService configurationService =
+        DSpaceServicesFactory.getInstance().getConfigurationService();
 
     private final AtomicLong successBytes = new AtomicLong();
     private final AtomicLong successFiles = new AtomicLong();
@@ -151,7 +158,8 @@ public class BagItAipWriter {
         // setup the BagProfile and BagWriter
         final BagItDigest digest = BagItDigest.MD5;
         final MessageDigest messageDigest = digest.messageDigest();
-        final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
+        final String profileName = configurationService.getProperty(bagProfileKey, "beyondtherepository");
+        final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest.bagitName()));
 
         // Write the base properties files for the bag
