@@ -13,7 +13,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -91,7 +90,7 @@ public class CollectionPackerTest extends BagItPackerTest {
         packer.unpack(archive.toFile());
 
         verify(collectionService, times(7)).setMetadata(any(Context.class), eq(collection), anyString(), anyString());
-        verify(collectionService, never()).setLogo(any(Context.class), eq(collection), any(InputStream.class));
+        verify(collectionService, times(1)).setLogo(any(Context.class), eq(collection), any(InputStream.class));
         verify(collectionService, times(1)).update(any(Context.class), eq(collection));
 
         assertThat(openArchive).doesNotExist();
