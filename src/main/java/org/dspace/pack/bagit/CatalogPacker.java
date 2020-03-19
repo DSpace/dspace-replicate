@@ -13,15 +13,12 @@ import static org.dspace.pack.PackerFactory.OBJECT_ID;
 import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
 import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
-import static org.dspace.pack.bagit.BagItAipWriter.*;
+import static org.dspace.pack.bagit.BagItAipWriter.BAG_MAN;
+import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_DELETION;
+import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,9 +31,6 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.pack.Packer;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
-import org.duraspace.bagit.BagDeserializer;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.SerializationSupport;
 
 /**
  * CatalogPacker packs and unpacks Object catalogs in Bagit format. These
@@ -108,30 +102,14 @@ public class CatalogPacker implements Packer
             throw new IOException("Missing archive for catalog: " + objectId);
         }
 
-        final Path bagPath;
-        if (archive.isFile()) {
-            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
-            final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
-            bagPath = deserializer.deserialize(archive.toPath());
-        } else {
-            bagPath = archive.toPath();
-        }
+        final BagItAipReader reader = new BagItAipReader(archive.toPath());
 
-        // just populate the member list
-        InputStream bagIn = Files.newInputStream(bagPath.resolve("data").resolve(OBJFILE));
-        Properties props = new Properties();
-        props.load(bagIn);
-        bagIn.close();
+        // just populate properties and member list
+        Properties props = reader.readProperties();
         ownerId = props.getProperty(OWNER_ID);
+        members = reader.readFile("members");
 
-        try {
-            members = Files.readAllLines(bagPath.resolve("data").resolve("members"), Charset.defaultCharset());
-        } catch (FileNotFoundException ignored) {
-            members = new ArrayList<>();
-        }
-
-        // clean up bag
-        delete(bagPath.toFile());
+        reader.clean();
     }
 
     /**

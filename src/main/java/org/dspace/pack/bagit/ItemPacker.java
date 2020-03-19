@@ -21,22 +21,15 @@ import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
@@ -50,17 +43,13 @@ import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
-import org.duraspace.bagit.BagDeserializer;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.SerializationSupport;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
  *
  * @author richardrodgers
  */
-public class ItemPacker implements Packer
-{
+public class ItemPacker implements Packer {
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
     private BundleService bundleService = ContentServiceFactory.getInstance().getBundleService();
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
@@ -173,25 +162,15 @@ public class ItemPacker implements Packer
 
     @Override
     public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
-        if (archive == null || ! archive.exists()) {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for item: " + item.getHandle());
         }
 
-        // load the BagProfile
-        final Path bagPath;
-        if (archive.isFile()) {
-            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
-            final BagDeserializer deserializer = SerializationSupport.deserializerFor(archive.toPath(), profile);
-            bagPath = deserializer.deserialize(archive.toPath());
-        } else {
-            bagPath = archive.toPath();
-        }
-
         final Context context = Curator.curationContext();
+        final BagItAipReader reader = new BagItAipReader(archive.toPath());
 
         // load the item metadata
-        final Path metadataXml = bagPath.resolve("data").resolve("metadata.xml");
-        final List<XmlElement> metadata = readXml(metadataXml);
+        final List<XmlElement> metadata = reader.readMetadata();
         for (XmlElement element : metadata) {
             final Map<String, String> attrs = element.getAttributes();
             itemService.addMetadata(context, item,
@@ -202,118 +181,35 @@ public class ItemPacker implements Packer
                                     element.getBody());
         }
 
-        // filter to find only directories (for bundle names)
-        final DirectoryStream.Filter<Path> directoryFilter = new DirectoryStream.Filter<Path>() {
-            @Override
-            public boolean accept(Path path) {
-                return Files.isDirectory(path);
-            }
-        };
+        final List<PackagedBitstream> bitstreams = reader.findBitstreams();
+        for (PackagedBitstream packaged : bitstreams) {
+            // create a bundle
+            final Bundle bundle = bundleService.create(context, item, packaged.getBundle());
 
-        // filter to find only the bitstream file
-        final DirectoryStream.Filter<Path> bitstreamFilter = new DirectoryStream.Filter<Path>() {
-            @Override
-            public boolean accept(Path path) {
-                return path.toFile().isFile() && !path.getFileName().toString().endsWith(".xml");
-            }
-        };
+            // create a bitstream
+            final Bitstream theBitstream = bitstreamService.create(context, bundle,
+                                                                   Files.newInputStream(packaged.getBitstream()));
 
-        final DirectoryStream<Path> directories = Files.newDirectoryStream(bagPath.resolve("data"), directoryFilter);
-        for (Path bundle : directories) {
-            final String bundleName = bundle.getFileName().toString();
-            final DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bundle, bitstreamFilter);
-            for (Path bitstream : bitstreams) {
-                final String bitstreamName = bitstream.getFileName().toString();
-                final Bundle theBundle = bundleService.create(context, item, bundleName);
-
-                // create a bitstream
-                final Bitstream theBitstream = bitstreamService.create(context, theBundle,
-                                                                       Files.newInputStream(bitstream));
-
-                // load the bitstream metadata
-                final Path bitstreamXml = bundle.resolve(bitstreamName + "-metadata.xml");
-                final List<XmlElement> xmlElements = readXml(bitstreamXml);
-
-                for (XmlElement element : xmlElements) {
-                    final String bitstreamField = element.getAttributes().get(NAME);
-                    if (NAME.equalsIgnoreCase(bitstreamField)) {
-                        theBitstream.setName(context, element.getBody());
-                    } else if (SOURCE.equalsIgnoreCase(bitstreamField)) {
-                        theBitstream.setSource(context, element.getBody());
-                    } else if (SEQUENCE_ID.equalsIgnoreCase(bitstreamField)){
-                        theBitstream.setSequenceID(Integer.parseInt(element.getBody()));
-                    } else if (DESCRIPTION.equalsIgnoreCase(bitstreamField)) {
-                        theBitstream.setDescription(context, element.getBody());
-                    } else if (BUNDLE_PRIMARY.equalsIgnoreCase(bitstreamField)) {
-                        theBundle.setPrimaryBitstreamID(theBitstream);
-                    }
-                }
-
-                bitstreamService.update(context, theBitstream);
-            }
-        }
-
-        FileUtils.deleteDirectory(bagPath.toFile());
-    }
-
-    private List<XmlElement> readXml(Path metadata) throws IOException {
-        final XMLStreamReader reader;
-        final XMLInputFactory factory = XMLInputFactory.newFactory();
-        try {
-            reader = factory.createXMLStreamReader(Files.newInputStream(metadata));
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        final List<XmlElement> elements = new ArrayList<>();
-        try {
-            // todo: push this somewhere else
-            // search for metadata stanza
-            while (reader.hasNext()) {
-                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                    reader.getLocalName().equalsIgnoreCase("metadata")) {
-
-                    // search for value stanzas
-                    while (reader.hasNext()) {
-                        if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                            reader.getLocalName().equalsIgnoreCase("value")) {
-                            XmlElement element = readElement(reader);
-                            if (element != null) {
-                                elements.add(element);
-                            }
-                        }
-                    }
+            // load the bitstream metadata
+            for (XmlElement element : packaged.getMetadata()) {
+                final String bitstreamField = element.getAttributes().get(NAME);
+                if (NAME.equalsIgnoreCase(bitstreamField)) {
+                    theBitstream.setName(context, element.getBody());
+                } else if (SOURCE.equalsIgnoreCase(bitstreamField)) {
+                    theBitstream.setSource(context, element.getBody());
+                } else if (SEQUENCE_ID.equalsIgnoreCase(bitstreamField)) {
+                    theBitstream.setSequenceID(Integer.parseInt(element.getBody()));
+                } else if (DESCRIPTION.equalsIgnoreCase(bitstreamField)) {
+                    theBitstream.setDescription(context, element.getBody());
+                } else if (BUNDLE_PRIMARY.equalsIgnoreCase(bitstreamField)) {
+                    bundle.setPrimaryBitstreamID(theBitstream);
                 }
             }
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
+
+            bitstreamService.update(context, theBitstream);
         }
 
-        return elements;
-    }
-
-    private XmlElement readElement(XMLStreamReader reader) throws XMLStreamException {
-        // we begin on a start element so initialize the attributes first
-        Map<String, String> attributes = new HashMap<>();
-        for (int i = 0; i < reader.getAttributeCount(); i++) {
-            attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
-        }
-
-        // now iterate to find the body and end element
-        String body = null;
-        while (reader.hasNext()) {
-            switch (reader.next()) {
-                case XMLStreamConstants.CHARACTERS:
-                    body = reader.getText();
-                    break;
-                case XMLStreamConstants.END_ELEMENT:
-                    return new XmlElement(body, attributes);
-                default:
-                    break;
-            }
-        }
-
-        return null;
+        reader.clean();
     }
 
     @Override
