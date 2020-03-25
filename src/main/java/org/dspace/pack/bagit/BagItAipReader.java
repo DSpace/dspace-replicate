@@ -28,6 +28,13 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.base.Optional;
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
+import gov.loc.repository.bagit.exceptions.MaliciousPathException;
+import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
+import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
+import gov.loc.repository.bagit.reader.BagReader;
+import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
@@ -57,6 +64,7 @@ public class BagItAipReader {
     private final String objectPropertiesLocation = dataDirectory + "/object.properties";
 
     private final Path bag;
+    private final BagProfile profile;
 
     /**
      * Constructor for a {@link BagItAipReader}. If the given path to the {@code bag} is a single file, it is assumed
@@ -70,14 +78,39 @@ public class BagItAipReader {
             throw new IOException("Missing archive: " + bag);
         }
 
+        final String profileName = configurationService.getProperty(REPLICATE_BAGIT_PROFILE, "beyondtherepository");
+        this.profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
+
         // deserialize if necessary
         if (Files.isRegularFile(bag)) {
-            final String profileName = configurationService.getProperty(REPLICATE_BAGIT_PROFILE, "beyondtherepository");
-            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(bag, profile);
             this.bag = deserializer.deserialize(bag);
         } else {
             this.bag = bag;
+        }
+    }
+
+    /**
+     * Validate that an AIP is in a BagIt format which passes both bagit-bag validation and bagit-profile validation
+     *
+     * @throws RuntimeException if there is an error during validation
+     */
+    public void validateBag() {
+        Bag locBag;
+        final BagReader bagReader = new BagReader();
+        final BagVerifier verifier = new BagVerifier() ;
+        try {
+            locBag = bagReader.read(bag);
+        } catch (UnparsableVersionException | InvalidBagitFileFormatException | UnsupportedAlgorithmException
+            | MaliciousPathException | IOException e) {
+            throw new RuntimeException("Unable to read aip as a BagIt bag! ", e);
+        }
+
+        try {
+            profile.validateBag(locBag);
+            verifier.isValid(locBag, false);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to verify BagIt bag!", e);
         }
     }
 
