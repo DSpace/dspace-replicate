@@ -40,6 +40,7 @@ public class BagItAipReaderTest {
         assertNotNull(resource);
         final Path path = Paths.get(resource.toURI()).resolve("unpack/catalog.zip");
 
+        // should an exception be thrown here? halting the process early.
         final BagItAipReader reader = new BagItAipReader(path);
         final List<String> permissions = reader.readFile("permissions");
         assertThat(permissions).isNotNull();
