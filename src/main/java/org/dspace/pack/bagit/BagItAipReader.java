@@ -47,7 +47,7 @@ public class BagItAipReader {
 
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
 
-    private static final String REPLICATE_BAGIT_PROFILE = "replicate-bagit.profile";
+    private static final String REPLICATE_BAGIT_PROFILE = "replicate.bag.profile";
     private final ConfigurationService configurationService =
         DSpaceServicesFactory.getInstance().getConfigurationService();
 

@@ -7,6 +7,7 @@
  */
 package org.dspace;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -43,7 +44,7 @@ public class TestConfigurationService implements ConfigurationService {
 
     @Override
     public List<String> getPropertyKeys(String prefix) {
-        throw new UnsupportedOperationException();
+        return Collections.emptyList();
     }
 
     @Override

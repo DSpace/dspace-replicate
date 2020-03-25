@@ -72,7 +72,7 @@ public class BagItAipWriter {
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
     // Constants for this class
-    private final String bagProfileKey = "replicate-bagit.profile";
+    private final String bagProfileKey = "replicate.bag.profile";
 
     private final String DATA_DIR = "data";
     private final String LOGO_FILE = "logo";
@@ -158,9 +158,16 @@ public class BagItAipWriter {
         // setup the BagProfile and BagWriter
         final BagItDigest digest = BagItDigest.MD5;
         final MessageDigest messageDigest = digest.messageDigest();
-        final String profileName = configurationService.getProperty(bagProfileKey, "beyondtherepository");
+        // todo: pull default out to constant
+        final String profileName = this.configurationService.getProperty(bagProfileKey, "beyondtherepository");
         final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest.bagitName()));
+
+        // set up the tag files
+        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getTagFiles();
+        for (String tag : tagFiles.keySet()) {
+            bag.addTags(tag, tagFiles.get(tag));
+        }
 
         // Write the base properties files for the bag
         for (String filename : properties.keySet()) {
