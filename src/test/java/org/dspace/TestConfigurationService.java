@@ -7,7 +7,7 @@
  */
 package org.dspace;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -44,7 +44,13 @@ public class TestConfigurationService implements ConfigurationService {
 
     @Override
     public List<String> getPropertyKeys(String prefix) {
-        return Collections.emptyList();
+        final List<String> keys = new ArrayList<>();
+        for (String property : properties.stringPropertyNames()) {
+            if (property.startsWith(prefix)) {
+                keys.add(property);
+            }
+        }
+        return keys;
     }
 
     @Override
