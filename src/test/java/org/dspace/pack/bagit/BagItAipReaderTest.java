@@ -1,6 +1,7 @@
 package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
@@ -23,7 +24,7 @@ public class BagItAipReaderTest extends BagItPackerTest {
 
     @Test(expected = IOException.class)
     public void failIfArchiveIsNull() throws IOException {
-        final BagItAipReader reader = new BagItAipReader(null);
+        new BagItAipReader(null);
     }
 
     @Test(expected = IOException.class)
@@ -32,7 +33,7 @@ public class BagItAipReaderTest extends BagItPackerTest {
         assertNotNull(resource);
 
         final Path path = Paths.get(resource.toURI()).resolve("does-not-exist");
-        final BagItAipReader reader = new BagItAipReader(path);
+        new BagItAipReader(path);
     }
 
     @Test
@@ -47,6 +48,39 @@ public class BagItAipReaderTest extends BagItPackerTest {
         assertThat(permissions).isEmpty();
         reader.clean();
     }
+
+    @Test
+    public void testInvalidBag() throws URISyntaxException, IOException {
+        final URL resource = this.getClass().getClassLoader().getResource("");
+        assertNotNull(resource);
+        final Path path = Paths.get(resource.toURI()).resolve("unpack/fail-bag-validation.zip");
+
+        final BagItAipReader reader = new BagItAipReader(path);
+        try {
+            reader.validateBag();
+            fail("Bag should not be able to be initialized");
+        } catch (RuntimeException ignored) {
+            // catch the exception so we can clean up the extracted files
+        }
+        reader.clean();
+    }
+
+    @Test
+    public void testBagProfileValidation() throws URISyntaxException, IOException {
+        final URL resource = this.getClass().getClassLoader().getResource("");
+        assertNotNull(resource);
+        final Path path = Paths.get(resource.toURI()).resolve("unpack/fail-profile-validation.zip");
+
+        final BagItAipReader reader = new BagItAipReader(path);
+        try {
+            reader.validateBag();
+            fail("Bag profile validation should have failed");
+        } catch (RuntimeException ignored) {
+            // catch the exception so we can clean up the extracted files
+        }
+        reader.clean();
+    }
+
 
     @After
     public void verifyMocks() {
