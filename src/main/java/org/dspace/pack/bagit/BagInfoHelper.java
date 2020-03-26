@@ -38,6 +38,7 @@ public class BagInfoHelper {
     });
 
     private final String TAG_KEY = "replicate.bag.tag";
+    private final String TAG_SUFFIX = ".txt";
     private final Map<String, Map<String, String>> tagFiles = new HashMap<>();
 
     @VisibleForTesting
@@ -74,11 +75,14 @@ public class BagInfoHelper {
                                                    "as replicate.bag.tag.TAG-FILE.TAG-FIELD");
             }
 
-            // grab the last two parts of the key, which should be the file name and field
-            final String file = split[keyLength - 2];
-            final String field = split[keyLength - 1];
+            // get the filename to use, and check if it needs to have a suffix attached
+            String file = split[keyLength - 2];
+            if (!file.endsWith(TAG_SUFFIX)) {
+                file = file + TAG_SUFFIX;
+            }
 
             // normalize the field to be formatted in a BagIt style, e.g. Field-Name
+            final String field = split[keyLength - 1];
             final StringBuilder bagItNormalized = new StringBuilder();
             for (String fieldPart : hyphenSplit.split(field)) {
                 bagItNormalized.append(Character.toUpperCase(fieldPart.charAt(0)));
