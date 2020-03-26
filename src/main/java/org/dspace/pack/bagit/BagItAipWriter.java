@@ -164,7 +164,7 @@ public class BagItAipWriter {
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest.bagitName()));
 
         // set up the tag files
-        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getTagFiles();
+        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getInstance().getTagFiles();
         for (String tag : tagFiles.keySet()) {
             bag.addTags(tag, tagFiles.get(tag));
         }

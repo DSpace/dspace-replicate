@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 
@@ -24,17 +27,37 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  */
 public class BagInfoHelper {
 
-    private static final String TAG_KEY = "replicate.bag.tag";
+    /**
+     * Memoized supplier to retrieve a single instance of a BagInfoHelper
+     */
+    private static final Supplier<BagInfoHelper> supplier = Suppliers.memoize(new Supplier<BagInfoHelper>() {
+        @Override
+        public BagInfoHelper get() {
+            return new BagInfoHelper();
+        }
+    });
 
-    private static Map<String, Map<String, String>> tagFiles = new HashMap<>();
+    private final String TAG_KEY = "replicate.bag.tag";
+    private final Map<String, Map<String, String>> tagFiles = new HashMap<>();
 
-    private BagInfoHelper() {
+    @VisibleForTesting
+    protected BagInfoHelper() {
+        loadFromConfiguration();
+    }
+
+    /**
+     * Get the initialized instance of a BagInfoHelper
+     *
+     * @return the static instance
+     */
+    public static BagInfoHelper getInstance() {
+        return supplier.get();
     }
 
     /**
      * Loads the bag-info.txt and any other fields for tag files found under replicate.bag.tag
      */
-    private static void loadFromConfiguration() {
+    private void loadFromConfiguration() {
         final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
         final List<String> keys = configurationService.getPropertyKeys(TAG_KEY);
@@ -59,7 +82,7 @@ public class BagInfoHelper {
             final StringBuilder bagItNormalized = new StringBuilder();
             for (String fieldPart : hyphenSplit.split(field)) {
                 bagItNormalized.append(Character.toUpperCase(fieldPart.charAt(0)));
-                bagItNormalized.append(field.substring(1).toLowerCase());
+                bagItNormalized.append(fieldPart.substring(1).toLowerCase());
                 bagItNormalized.append("-");
             }
             // remove the trailing hyphen
@@ -80,7 +103,7 @@ public class BagInfoHelper {
      *
      * @return the tag file properties
      */
-    public static Map<String, Map<String, String>> getTagFiles() {
+    public Map<String, Map<String, String>> getTagFiles() {
         if (tagFiles.isEmpty()) {
             loadFromConfiguration();
         }
