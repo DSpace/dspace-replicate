@@ -104,14 +104,14 @@ public class BagItAipReader {
             locBag = bagReader.read(bag);
         } catch (UnparsableVersionException | InvalidBagitFileFormatException | UnsupportedAlgorithmException
             | MaliciousPathException | IOException e) {
-            throw new RuntimeException("Unable to read aip as a BagIt bag! ", e);
+            throw new RuntimeException("Unable to read aip as a BagIt bag!", e);
         }
 
         try {
             profile.validateBag(locBag);
             verifier.isValid(locBag, false);
         } catch (Exception e) {
-            throw new RuntimeException("Unable to verify BagIt bag!", e);
+            throw new RuntimeException("Unable to verify BagIt bag!\n" + e.getMessage());
         }
     }
 

@@ -103,6 +103,7 @@ public class CatalogPacker implements Packer
         }
 
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
+        reader.validateBag();
 
         // just populate properties and member list
         final Properties props = reader.readProperties();

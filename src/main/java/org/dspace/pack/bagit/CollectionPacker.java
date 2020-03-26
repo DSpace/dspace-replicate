@@ -121,6 +121,7 @@ public class CollectionPacker implements Packer
         }
 
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
+        reader.validateBag();
 
         final List<XmlElement> elements = reader.readMetadata();
         for (XmlElement element : elements) {

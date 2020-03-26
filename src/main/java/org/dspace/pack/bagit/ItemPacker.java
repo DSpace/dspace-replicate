@@ -168,6 +168,7 @@ public class ItemPacker implements Packer {
 
         final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
+        reader.validateBag();
 
         // load the item metadata
         final List<XmlElement> metadata = reader.readMetadata();
