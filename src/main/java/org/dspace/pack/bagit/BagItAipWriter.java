@@ -147,6 +147,7 @@ public class BagItAipWriter {
      */
     public File packageAip() throws IOException, SQLException, AuthorizeException {
         final Context curationContext = Curator.curationContext();
+        final String defaultProfile = BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier();
 
         // check if the Bag was already being worked on
         final Path dataDir = directory.toPath().resolve(DATA_DIR);
@@ -158,8 +159,7 @@ public class BagItAipWriter {
         // setup the BagProfile and BagWriter
         final BagItDigest digest = BagItDigest.MD5;
         final MessageDigest messageDigest = digest.messageDigest();
-        // todo: pull default out to constant
-        final String profileName = this.configurationService.getProperty(bagProfileKey, "beyondtherepository");
+        final String profileName = this.configurationService.getProperty(bagProfileKey, defaultProfile);
         final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest.bagitName()));
 

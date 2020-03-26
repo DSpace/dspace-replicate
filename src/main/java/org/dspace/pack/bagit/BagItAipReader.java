@@ -78,7 +78,8 @@ public class BagItAipReader {
             throw new IOException("Missing archive: " + bag);
         }
 
-        final String profileName = configurationService.getProperty(REPLICATE_BAGIT_PROFILE, "beyondtherepository");
+        final String defaultProfile = BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier();
+        final String profileName = configurationService.getProperty(REPLICATE_BAGIT_PROFILE, defaultProfile);
         this.profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
 
         // deserialize if necessary
