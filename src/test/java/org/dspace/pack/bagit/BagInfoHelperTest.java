@@ -24,12 +24,12 @@ public class BagInfoHelperTest {
     private static final String ARCH_FMT = "zip";
     private static final String ARCH_FMT_KEY = "replicate.packer.archfmt";
     private static final String SOURCE_ORG = "org.dspace.dspace-replicate";
-    private static final String SOURCE_ORG_KEY = "replicate.bag.tag.bag-info.source-organization";
+    private static final String SOURCE_ORG_KEY = "replicate-bagit.tag.bag-info.source-organization";
     private static final String OTHER_INFO_MISC = "bag-info-helper-test";
-    private static final String OTHER_INFO_MISC_KEY = "replicate.bag.tag.other-info.misc";
+    private static final String OTHER_INFO_MISC_KEY = "replicate-bagit.tag.other-info.misc";
 
-    private static final String BAG_INFO = "bag-info";
-    private static final String OTHER_INFO = "other-info";
+    private static final String BAG_INFO = "bag-info.txt";
+    private static final String OTHER_INFO = "other-info.txt";
 
     private ConfigurationService configurationService;
 
@@ -63,7 +63,7 @@ public class BagInfoHelperTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void invalidKeyLength() {
-        final String key = "replicate.bag.tag.test.test-info.invalid-key";
+        final String key = "replicate-bagit.tag.test.test-info.invalid-key";
 
         configurationService.setProperty(key, "");
 

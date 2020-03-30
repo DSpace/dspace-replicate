@@ -37,7 +37,7 @@ public class BagInfoHelper {
         }
     });
 
-    private final String TAG_KEY = "replicate.bag.tag";
+    private final String TAG_KEY = "replicate-bagit.tag";
     private final String TAG_SUFFIX = ".txt";
     private final Map<String, Map<String, String>> tagFiles = new HashMap<>();
 
@@ -70,9 +70,9 @@ public class BagInfoHelper {
         for (String key : keys) {
             final String[] split = dotSplit.split(key);
             final int keyLength = split.length;
-            if (keyLength != 5) {
+            if (keyLength != 4) {
                 throw new IllegalArgumentException("Key " + key + " has more values than expected! Please format " +
-                                                   "as replicate.bag.tag.TAG-FILE.TAG-FIELD");
+                                                   "as replicate-bagit.tag.TAG-FILE.TAG-FIELD");
             }
 
             // get the filename to use, and check if it needs to have a suffix attached
