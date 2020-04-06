@@ -310,6 +310,7 @@ public class ItemPackerTest extends BagItPackerTest {
 
         verify(itemService, times(8)).addMetadata(any(Context.class), eq(item), anyString(), anyString(), anyString(),
                                                   anyString(), anyString());
+        verify(itemService, times(2)).getBundles(eq(item), anyString());
         verify(bundleService, times(2)).create(any(Context.class), eq(item), matches(bundlesRegex));
         verify(bitstreamService, times(1)).create(any(Context.class), eq(licenseBundle), any(InputStream.class));
         verify(bitstreamService, times(1)).create(any(Context.class), eq(originalBundle), any(InputStream.class));

@@ -183,8 +183,14 @@ public class ItemPacker implements Packer {
 
         final List<PackagedBitstream> bitstreams = reader.findBitstreams();
         for (PackagedBitstream packaged : bitstreams) {
-            // create a bundle
-            final Bundle bundle = bundleService.create(context, item, packaged.getBundle());
+            // get or create a bundle
+            final Bundle bundle;
+            final List<Bundle> bundles = itemService.getBundles(item, packaged.getBundle());
+            if (bundles != null && !bundles.isEmpty()) {
+                bundle = bundles.get(0);
+            } else {
+                bundle = bundleService.create(context, item, packaged.getBundle());
+            }
 
             // create a bitstream
             final Bitstream bitstream = bitstreamService.create(context, bundle,
