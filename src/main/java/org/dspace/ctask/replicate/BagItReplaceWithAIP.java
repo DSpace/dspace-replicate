@@ -12,12 +12,12 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.packager.PackageUtils;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.CommunityService;
 import org.dspace.content.service.ItemService;
@@ -80,11 +80,8 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
             {
                 // clear object where necessary
                 if (dso.getType() == Constants.ITEM) {
-                    Item item = (Item)dso;
-                    itemService.clearMetadata(Curator.curationContext(), item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-                    for (Bundle bundle : item.getBundles()) {
-                        itemService.removeBundle(Curator.curationContext(), item, bundle);
-                    }   
+                    PackageUtils.removeAllBitstreams(Curator.curationContext(), dso);
+                    PackageUtils.clearAllMetadata(Curator.curationContext(), dso);
                 }
                 packer.unpack(archive);
                 // now update the dso
