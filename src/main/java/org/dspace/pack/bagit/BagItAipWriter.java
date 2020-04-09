@@ -67,6 +67,7 @@ public class BagItAipWriter {
     public static final String OBJ_TYPE_COLLECTION = "collection";
     public static final String XML_NAME_KEY = "name";
     public static final String PROPERTIES_DELIMITER = "  ";
+    private static final String BITSTREAM_PREFIX = "bitstream_";
 
     private final String DATA_DIR = "data";
     private final String LOGO_FILE = "logo";
@@ -190,8 +191,8 @@ public class BagItAipWriter {
 
             // write the bitstream metadata
             final Bitstream bitstream = bagBitstream.getBitstream();
-            final String seqId = String.valueOf(bitstream.getSequenceID());
-            final Path bitstreamXml = bitstreamDirectory.resolve(seqId + "-" + METADATA_XML);
+            final String bitstreamID = bitstream.getID().toString();
+            final Path bitstreamXml = bitstreamDirectory.resolve(BITSTREAM_PREFIX + bitstreamID + "-" + METADATA_XML);
             writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
 
             if (bagBitstream.getFetchUrl() != null) {
@@ -199,7 +200,8 @@ public class BagItAipWriter {
             } else {
                 // copy the bitstream
                 messageDigest.reset();
-                final Path dataFile = bitstreamDirectory.resolve(seqId);
+                final String filename = createBitstreamFilename(bitstream, curationContext);
+                final Path dataFile = bitstreamDirectory.resolve(filename);
                 final InputStream is = bitstreamService.retrieve(curationContext, bitstream);
 
                 try (OutputStream output = Files.newOutputStream(dataFile);
@@ -219,8 +221,9 @@ public class BagItAipWriter {
         // also add logo if it exists
         if (logo != null) {
             messageDigest.reset();
+            final String filename = createBitstreamFilename(logo, curationContext);
             final InputStream logoIS = bitstreamService.retrieve(curationContext, logo);
-            final Path logoPath = dataDir.resolve(LOGO_FILE);
+            final Path logoPath = dataDir.resolve(filename);
 
             try (OutputStream output = Files.newOutputStream(logoPath);
                  CountingOutputStream countingOS = new CountingOutputStream(output);
@@ -244,6 +247,30 @@ public class BagItAipWriter {
         delete(directory);
 
         return serializedBag.toFile();
+    }
+
+    /**
+     * Create a filename for a bitstream in a similar manner to the METSDisseminator:
+     * - prefix of bitstream_
+     * - Bitstream ID
+     * - file extension if found
+     *
+     * @param bitstream the Bitstream to create the filename for
+     * @param context the curation Context
+     * @return the filename
+     * @throws SQLException if the BitstreamFormat cannot be queried
+     */
+    private String createBitstreamFilename(final Bitstream bitstream, final Context context) throws SQLException {
+        final List<String> extensions = bitstreamService.getFormat(context, bitstream).getExtensions();
+
+        // build the filename
+        final StringBuilder filename  = new StringBuilder(BITSTREAM_PREFIX);
+        filename.append(bitstream.getID());
+        if (!extensions.isEmpty()) {
+            filename.append(".").append(extensions.get(0));
+        }
+
+        return filename.toString();
     }
 
     /**

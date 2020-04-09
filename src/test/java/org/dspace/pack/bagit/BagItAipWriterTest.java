@@ -29,6 +29,7 @@ import java.util.Objects;
 
 import com.google.common.collect.ImmutableMap;
 import org.dspace.content.Bitstream;
+import org.dspace.content.BitstreamFormat;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
@@ -78,6 +79,8 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final Bitstream bitstream = initDSO(Bitstream.class);
         bitstreams.add(new BagBitstream(bitstream, bundleName, Collections.<XmlElement>emptyList()));
         final File directory = root.resolve(bagName).toFile();
+        final BitstreamFormat bitstreamFormat = initReloadable(BitstreamFormat.class);
+        bitstreamFormat.setExtensions(Collections.singletonList("txt"));
 
         final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, bitstreams);
 
@@ -85,10 +88,13 @@ public class BagItAipWriterTest extends BagItPackerTest {
             .thenReturn(new ByteArrayInputStream("logo".getBytes()));
         when(bitstreamService.retrieve(any(Context.class), eq(bitstream)))
             .thenReturn(new ByteArrayInputStream("hello".getBytes()));
+        when(bitstreamService.getFormat(any(Context.class), any(Bitstream.class)))
+            .thenReturn(bitstreamFormat);
 
         final File packagedAip = writer.packageAip();
 
         verify(bitstreamService, times(2)).retrieve(any(Context.class), any(Bitstream.class));
+        verify(bitstreamService, times(2)).getFormat(any(Context.class), any(Bitstream.class));
 
         assertThat(packagedAip).exists();
         assertThat(packagedAip).isFile();

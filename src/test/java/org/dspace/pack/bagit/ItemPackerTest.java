@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.assertj.core.util.Files;
 import org.dspace.content.Bitstream;
+import org.dspace.content.BitstreamFormat;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Item;
@@ -73,6 +74,7 @@ public class ItemPackerTest extends BagItPackerTest {
     private Bundle bundle;
     private Bitstream primaryBitstream;
     private Bitstream licenseBitstream;
+    private BitstreamFormat bitstreamFormat;
     private MetadataValue metadataValue;
     private MetadataField metadataField;
     private MetadataSchema metadataSchema;
@@ -101,6 +103,9 @@ public class ItemPackerTest extends BagItPackerTest {
 
             licenseBitstream = initDSO(Bitstream.class);
             licenseBitstream.setSequenceID(1);
+
+            bitstreamFormat = initReloadable(BitstreamFormat.class);
+            bitstreamFormat.setExtensions(Collections.<String>emptyList());
 
             bundle = initDSO(Bundle.class);
             // kind of hacky... more reflection to add the bitstreams to the bundle
@@ -164,6 +169,8 @@ public class ItemPackerTest extends BagItPackerTest {
         when(bitstreamService.retrieve(any(Context.class), eq(licenseBitstream)))
             .thenReturn(new ByteArrayInputStream(LICENSE_NAME.getBytes()));
 
+        when(bitstreamService.getFormat(any(Context.class), any(Bitstream.class))).thenReturn(bitstreamFormat);
+
         when(bundleService.getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle), isNull(String.class),
                                                  eq(Item.ANY))).thenReturn(BUNDLE_NAME);
 
@@ -182,6 +189,7 @@ public class ItemPackerTest extends BagItPackerTest {
         verify(bitstreamService, times(3)).getMetadataFirstValue(eq(licenseBitstream), eq(DC_SCHEMA),
                                                                  matches(bitstreamRegex),
                                                                   isNull(String.class), eq(Item.ANY));
+        verify(bitstreamService, times(2)).getFormat(any(Context.class), any(Bitstream.class));
         verify(bitstreamService, times(1)).retrieve(any(Context.class), eq(primaryBitstream));
         verify(bitstreamService, times(1)).retrieve(any(Context.class), eq(licenseBitstream));
         verify(itemService, times(1)).getMetadata(eq(item), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY));
