@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -111,13 +112,26 @@ public class BagItAipReader {
      * @throws IOException if there is an error getting the {@link InputStream} for the logo
      */
     public Optional<InputStream> readLogo() throws IOException {
-        final Path logo = bag.resolve(logoLocation);
+        // Search for the bitstream in the data directory
+        final DirectoryStream.Filter<Path> bitstreamFilter = new DirectoryStream.Filter<Path>() {
+            @Override
+            public boolean accept(Path path) {
+                // checking start with on the Path doesn't really work as expected, so get the relative name and make
+                // it a String
+                final String filename = path.getFileName().toString();
+                return path.toFile().isFile() && filename.startsWith("bitstream");
+            }
+        };
+        final DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bag.resolve(dataDirectory), bitstreamFilter);
 
-        if (Files.exists(logo)) {
-            return Optional.of(Files.newInputStream(logo));
+        Optional<InputStream> logo = Optional.absent();
+        final Iterator<Path> iterator = bitstreams.iterator();
+        if (iterator.hasNext()) {
+            final Path bitstream = iterator.next();
+            logo = Optional.of(Files.newInputStream(bitstream));
         }
 
-        return Optional.absent();
+        return logo;
     }
 
     /**
