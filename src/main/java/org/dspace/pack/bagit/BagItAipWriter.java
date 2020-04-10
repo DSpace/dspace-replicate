@@ -239,7 +239,7 @@ public class BagItAipWriter {
         // Finalize the Bag (write + serialize)
         // todo: get extra tag/bag-info data through some configuration
         bag.registerChecksums(digest.bagitName(), checksums);
-        bag.addTags(BagConfig.BAG_INFO_KEY, generateBagInfo());
+        bag.addTags(BagConfig.BAG_INFO_KEY, generateBagInfo(profile));
         bag.write();
 
         final BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
@@ -277,11 +277,12 @@ public class BagItAipWriter {
      * Get system generated bag-info fields
      *
      * @return A {@link Map} of the bag-info fields to their values
+     * @param profile The {@link BagProfile} being used to write a bag
      */
-    private Map<String, String> generateBagInfo() {
+    private Map<String, String> generateBagInfo(final BagProfile profile) {
         final Map<String, String> bagInfo = new HashMap<>();
-        final BagProfile.BuiltIn btr = BagProfile.BuiltIn.BEYOND_THE_REPOSITORY;
-        bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, btr.getIdentifier());
+        final String identifier = profile.getProfileMetadata().get(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER);
+        bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, identifier);
         bagInfo.put(BagConfig.BAG_SIZE_KEY, FileUtils.byteCountToDisplaySize(successBytes.get()));
         bagInfo.put(BagConfig.PAYLOAD_OXUM_KEY, successBytes.toString() + "." + successFiles.toString());
         bagInfo.put(BagConfig.BAGGING_DATE_KEY, ISODateTimeFormat.date().print(LocalDate.now()));
