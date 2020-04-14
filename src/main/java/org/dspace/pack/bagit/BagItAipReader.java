@@ -142,7 +142,9 @@ public class BagItAipReader {
      */
     public List<XmlElement> readMetadata() throws IOException {
         final Path metadata = bag.resolve(metadataLocation);
-        return readXml(metadata);
+        try (InputStream metadataStream = Files.newInputStream(metadata)) {
+            return readXml(metadataStream);
+        }
     }
 
     /**
@@ -202,15 +204,15 @@ public class BagItAipReader {
      * Read an xml file in order to read metadata for a DSpaceObject. This requires the file to conform to having a
      * metadata stanza as well as have value stanzas which store the data to read.
      *
-     * @param metadata the path to the metadata file
+     * @param inputStream the InputStream for the metadata file
      * @return a list of {@link XmlElement}s read from the file
      * @throws IOException if there is an error reading the file or parsing the xml
      */
-    private List<XmlElement> readXml(Path metadata) throws IOException {
+    private List<XmlElement> readXml(final InputStream inputStream) throws IOException {
         final XMLStreamReader reader;
         final XMLInputFactory factory = XMLInputFactory.newFactory();
         try {
-            reader = factory.createXMLStreamReader(Files.newInputStream(metadata));
+            reader = factory.createXMLStreamReader(inputStream);
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage(), e);
         }
