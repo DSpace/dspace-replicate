@@ -7,26 +7,40 @@
  */
 package org.dspace.pack.bagit;
 
-import java.io.FileFilter;
+import static java.lang.Boolean.TRUE;
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OTHER_IDS;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.PackerFactory.WITHDRAWN;
+import static org.dspace.pack.bagit.BagItAipWriter.*;
+import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
+
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
+import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.*;
-
+import org.dspace.content.Bitstream;
+import org.dspace.content.Bundle;
+import org.dspace.content.Collection;
+import org.dspace.content.Item;
+import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
-import static org.dspace.pack.PackerFactory.*;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -39,11 +53,22 @@ public class ItemPacker implements Packer
     private BundleService bundleService = ContentServiceFactory.getInstance().getBundleService();
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
+    // XML constants
+    private static final String SCHEMA = "schema";
+    private static final String ELEMENT = "element";
+    private static final String QUALIFIER = "qualifier";
+    private static final String LANGUAGE = "language";
+    private static final String NAME = "name";
+    private static final String SOURCE = "source";
+    private static final String DESCRIPTION = "description";
+    private static final String SEQUENCE_ID = "sequence_id";
+    private static final String BUNDLE_PRIMARY = "bundle_primary";
+
     private Item item = null;
     private String archFmt = null;
-    private List<String> filterBundles = new ArrayList<String>();
+    private List<String> filterBundles = new ArrayList<>();
     private boolean exclude = true;
-    private List<RefFilter> refFilters = new ArrayList<RefFilter>();
+    private List<RefFilter> refFilters = new ArrayList<>();
 
     public ItemPacker(Item item, String archFmt)
     {
@@ -62,100 +87,76 @@ public class ItemPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws AuthorizeException, IOException, SQLException
-    {
-        Bag bag = new Bag(packDir);
-        // set base object properties
-        Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
-        fwriter.writeProperty(BAG_TYPE, "AIP");
-        fwriter.writeProperty(OBJECT_TYPE, "item");
-        fwriter.writeProperty(OBJECT_ID, item.getHandle());
-        // get collections
-        StringBuilder linked = new StringBuilder();
-        for (Collection coll : item.getCollections())
-        {
-            if (itemService.isOwningCollection(item, coll))
-            {
-                fwriter.writeProperty(OWNER_ID, coll.getHandle());
-            }
-            else
-            {
+    public File pack(final File packDir) throws AuthorizeException, IOException, SQLException {
+        // object properties
+        final List<String> objectProperties = new ArrayList<>();
+        objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
+        objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_ITEM);
+        objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + item.getHandle());
+
+        final StringBuilder linked = new StringBuilder();
+        for (Collection coll : item.getCollections()) {
+            if (itemService.isOwningCollection(item, coll)) {
+                objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + coll.getHandle());
+            } else {
                 linked.append(coll.getHandle()).append(",");
             }
         }
-        String linkedStr = linked.toString();
-        if (linkedStr.length() > 0)
-        {
-            fwriter.writeProperty(OTHER_IDS, linkedStr.substring(0, linkedStr.length() - 1));
+        if (linked.length() > 0) {
+            objectProperties.add(OTHER_IDS + PROPERTIES_DELIMITER + linked.substring(0, linked.length() - 1));
         }
-        if (item.isWithdrawn())
-        {
-            fwriter.writeProperty(WITHDRAWN, "true");
+        if (item.isWithdrawn()) {
+            objectProperties.add(WITHDRAWN + PROPERTIES_DELIMITER + TRUE.toString());
         }
-        fwriter.close();
+        final ImmutableMap<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
-        // start with metadata
-        Bag.XmlWriter writer = bag.xmlWriter("metadata.xml");
-        // first user metadata
-        writer.startStanza("metadata");
-        Bag.Value value = new Bag.Value();
-        List<MetadataValue> vals = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (MetadataValue val : vals)
-        {
-            value.addAttr("schema", val.getMetadataField().getMetadataSchema().getName());
-            value.addAttr("element", val.getMetadataField().getElement());
-            value.addAttr("qualifier", val.getMetadataField().getQualifier());
-            value.addAttr("language", val.getLanguage());
-            value.val = val.getValue();
-            writer.writeValue(value);
+        // metadata.xml
+        final List<XmlElement> metadataElements = new ArrayList<>();
+        final List<MetadataValue> metadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+        for (MetadataValue value : metadata) {
+            final HashMap<String, String> attributes = new HashMap<>();
+            attributes.put(SCHEMA, value.getMetadataField().getMetadataSchema().getName());
+            attributes.put(ELEMENT, value.getMetadataField().getElement());
+            attributes.put(QUALIFIER, value.getMetadataField().getQualifier());
+            attributes.put(LANGUAGE, value.getLanguage());
+            metadataElements.add(new XmlElement(value.getValue(), attributes));
         }
-        writer.endStanza();
-        writer.close();
+
         // proceed to bundles, in sub-directories, filtering
-        for (Bundle bundle : item.getBundles())
-        {
-            if (accept(bundle.getName()))
-            {
+        final List<BagBitstream> bitstreams = new ArrayList<>();
+        for (Bundle bundle : item.getBundles()) {
+            final String bundleName = bundle.getName();
+            if (accept(bundleName)) {
                 // only bundle metadata is the primary bitstream - remember it
                 // and place in bitstream metadata if defined
-                UUID primaryId = bundle.getPrimaryBitstream().getID();
-                for (Bitstream bs : bundle.getBitstreams())
-                {
+                for (Bitstream bs : bundle.getBitstreams()) {
                     // write metadata to xml file
-                    String seqId = String.valueOf(bs.getSequenceID());
-                    String relPath = bundle.getName() + "/";
-                    writer = bag.xmlWriter(relPath + seqId + "-metadata.xml");
-                    writer.startStanza("metadata");
+                    final String seqId = String.valueOf(bs.getSequenceID());
+
                     // field access is hard-coded in Bitstream class, ugh!
-                    writer.writeValue("name", bs.getName());
-                    writer.writeValue("source", bs.getSource());
-                    writer.writeValue("description", bs.getDescription());
-                    writer.writeValue("sequence_id", seqId);
-                    if (bs.getID() == primaryId)
-                    {
-                       writer.writeValue("bundle_primary", "true"); 
+                    final List<XmlElement> bsElements = new ArrayList<>();
+                    bsElements.add(new XmlElement(bs.getName(), ImmutableMap.of(NAME, NAME)));
+                    bsElements.add(new XmlElement(bs.getSource(), ImmutableMap.of(NAME, SOURCE)));
+                    bsElements.add(new XmlElement(bs.getDescription(), ImmutableMap.of(NAME, DESCRIPTION)));
+                    bsElements.add(new XmlElement(seqId, ImmutableMap.of(NAME, SEQUENCE_ID)));
+                    if (bs.equals(bundle.getPrimaryBitstream())) {
+                        bsElements.add(new XmlElement(TRUE.toString(), ImmutableMap.of(NAME, BUNDLE_PRIMARY)));
                     }
-                    writer.endStanza();
-                    writer.close();
+
                     // write the bitstream itself, unless reference filter applies
-                    String url = byReference(bundle, bs);
-                    if (url != null)
-                    {
-                        // add reference to bag
-                        bag.addDataRef(relPath + seqId, bs.getSize(), url);
-                    }
-                    else
-                    {
-                        // add bytes to bag
-                        bag.addData(relPath + seqId, bs.getSize(), bitstreamService.retrieve(Curator.curationContext(), bs));
+                    final String fetchUrl = byReference(bundle, bs);
+                    if (fetchUrl != null) {
+                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bsElements));
+                    } else {
+                        bitstreams.add(new BagBitstream(bs, bundleName, bsElements));
                     }
                 }
             }
         }
-        bag.close();
-        File archive = bag.deflate(archFmt);
-        bag.empty();
-        return archive;
+
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadataElements,
+                                                            bitstreams);
+        return aipWriter.packageAip();
     }
 
     @Override
@@ -326,4 +327,5 @@ public class ItemPacker implements Packer
             url = parts[2];
         }
     }
+
 }

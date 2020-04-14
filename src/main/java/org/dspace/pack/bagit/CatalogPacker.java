@@ -7,18 +7,29 @@
  */
 package org.dspace.pack.bagit;
 
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.CREATE_TS;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.bagit.BagItAipWriter.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.pack.Packer;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
-
-import static org.dspace.pack.PackerFactory.*;
 
 /**
  * CatalogPacker packs and unpacks Object catalogs in Bagit format. These
@@ -60,36 +71,28 @@ public class CatalogPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws IOException
-    {
-        Bag bag = new Bag(packDir);
-        // set base object properties
-        Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
-        fwriter.writeProperty(BAG_TYPE, "MAN");
-        fwriter.writeProperty(OBJECT_TYPE, "deletion");
-        fwriter.writeProperty(OBJECT_ID, objectId);
-        if (ownerId != null)
-        {
-            fwriter.writeProperty(OWNER_ID, ownerId);
+    public File pack(File packDir) throws IOException, SQLException, AuthorizeException {
+        final Map<String, List<String>> properties = new HashMap<>();
+        // object.properties
+        final List<String> objectProperties = new ArrayList<>();
+        objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_MAN);
+        objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_DELETION);
+        objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + objectId);
+        objectProperties.add(CREATE_TS + PROPERTIES_DELIMITER + System.currentTimeMillis());
+        if (ownerId != null) {
+            objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + ownerId);
         }
-        fwriter.writeProperty(CREATE_TS,
-                              String.valueOf(System.currentTimeMillis()));
-        fwriter.close();
-        // just serialize member list if non-empty
-        if (members.size() > 0)
-        {
-            fwriter = bag.flatWriter("members");
-            for (String member : members)
-            {
-                fwriter.writeLine(member);
-            }
-            fwriter.close();
+        properties.put(OBJFILE, objectProperties);
+
+        // members file
+        if (members.size() > 0) {
+            properties.put("members", members);
         }
-        bag.close();
-        File archive = bag.deflate(archFmt);
-        // clean up undeflated bag
-        bag.empty();
-        return archive;
+
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties,
+                                                            Collections.<XmlElement>emptyList(),
+                                                            Collections.<BagBitstream>emptyList());
+        return aipWriter.packageAip();
     }
 
     @Override
@@ -120,6 +123,8 @@ public class CatalogPacker implements Packer
         // clean up bag
         bag.empty();
     }
+
+
 
     @Override
     public long size(String method)

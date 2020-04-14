@@ -7,24 +7,34 @@
  */
 package org.dspace.pack.bagit;
 
+import static org.dspace.pack.PackerFactory.BAG_TYPE;
+import static org.dspace.pack.PackerFactory.OBJECT_ID;
+import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
+import static org.dspace.pack.PackerFactory.OBJFILE;
+import static org.dspace.pack.PackerFactory.OWNER_ID;
+import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COMMUNITY;
+import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
+import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
+
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
-
 import org.dspace.content.factory.ContentServiceFactory;
-import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.CommunityService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-
-import static org.dspace.pack.PackerFactory.*;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -34,10 +44,9 @@ import static org.dspace.pack.PackerFactory.*;
 public class CommunityPacker implements Packer
 {
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // NB - these values must remain synchronized with DB schema -
-    // they represent the peristent object state
+    // they represent the persistent object state
     private static final String[] fields = {
         "name",
         "short_description",
@@ -48,7 +57,7 @@ public class CommunityPacker implements Packer
 
     private Community community = null;
     private String archFmt = null;
-    
+
     public CommunityPacker(Community community, String archFmt)
     {
         this.community = community;
@@ -66,44 +75,32 @@ public class CommunityPacker implements Packer
     }
 
     @Override
-    public File pack(File packDir) throws AuthorizeException, SQLException, IOException
-    {
-        Bag bag = new Bag(packDir);
-        // set base object properties
-        Bag.FlatWriter fwriter = bag.flatWriter(OBJFILE);
-        fwriter.writeProperty(BAG_TYPE, "AIP");
-        fwriter.writeProperty(OBJECT_TYPE, "community");
-        fwriter.writeProperty(OBJECT_ID, community.getHandle());
-        List<Community> parent = community.getParentCommunities();
-        if (parent != null && !parent.isEmpty())
-        {
-            fwriter.writeProperty(OWNER_ID, parent.get(0).getHandle());
+    public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
+        final Bitstream logo = community.getLogo();
+
+        // object.properties
+        final List<String> objectProperties = new ArrayList<>();
+        objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
+        objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_COMMUNITY);
+        objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + community.getHandle());
+
+        final List<Community> parents = community.getParentCommunities();
+        if (parents != null && !parents.isEmpty()) {
+            objectProperties.add(OWNER_ID + PROPERTIES_DELIMITER + parents.get(0).getHandle());
         }
-        fwriter.close();
-        // then metadata
-        Bag.XmlWriter xwriter = bag.xmlWriter("metadata.xml");
-        xwriter.startStanza("metadata");
-        for (String field : fields)
-        {
-            String val = communityService.getMetadata(community, field);
-            if (val != null)
-            {
-                xwriter.writeValue(field, val);
-            }
+        final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
+
+        // collect the xml metadata
+        final List<XmlElement> elements = new ArrayList<>();
+        for (String field : fields) {
+            final String metadata = communityService.getMetadata(community, field);
+            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(XML_NAME_KEY, field));
+            elements.add(element);
         }
-        xwriter.endStanza();
-        xwriter.close();
-        // also add logo if it exists
-        Bitstream logo = community.getLogo();
-        if (logo != null)
-        {
-            bag.addData("logo", logo.getSize(), bitstreamService.retrieve(Curator.curationContext(), logo));
-        }
-        bag.close();
-        File archive = bag.deflate(archFmt);
-        // clean up undeflated bag
-        bag.empty();
-        return archive;
+
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
+                                                            Collections.<BagBitstream>emptyList());
+        return aipWriter.packageAip();
     }
 
     @Override
@@ -168,4 +165,5 @@ public class CommunityPacker implements Packer
     {
         throw new UnsupportedOperationException("Not supported yet.");
     }
+
 }
