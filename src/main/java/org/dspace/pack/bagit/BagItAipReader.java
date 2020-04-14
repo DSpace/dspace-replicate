@@ -123,12 +123,13 @@ public class BagItAipReader {
                 return path.toFile().isFile() && filename.startsWith("bitstream");
             }
         };
-        final DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bag.resolve(dataDirectory), bitstreamFilter);
 
         Optional<Path> logo = Optional.absent();
-        final Iterator<Path> iterator = bitstreams.iterator();
-        if (iterator.hasNext()) {
-            logo = Optional.of(iterator.next());
+        try(DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bag.resolve(dataDirectory), bitstreamFilter)) {
+            final Iterator<Path> iterator = bitstreams.iterator();
+            if (iterator.hasNext()) {
+                logo = Optional.of(iterator.next());
+            }
         }
 
         return logo;
@@ -173,18 +174,25 @@ public class BagItAipReader {
         };
 
         final List<PackagedBitstream> packagedBitstreams = new ArrayList<>();
-        final DirectoryStream<Path> directories = Files.newDirectoryStream(data, directoryFilter);
-        for (Path bundle : directories) {
-            final String bundleName = bundle.getFileName().toString();
-            final DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bundle, bitstreamFilter);
-            for (Path bitstream : bitstreams) {
-                final String bitstreamName = bitstream.getFileName().toString();
 
-                // load the bitstream metadata
-                final Path bitstreamXml = bundle.resolve(bitstreamName + "-metadata.xml");
-                final List<XmlElement> xmlElements = readXml(bitstreamXml);
+        // iterate all bundles
+        try (DirectoryStream<Path> directories = Files.newDirectoryStream(data, directoryFilter)) {
+            for (Path bundle : directories) {
+                final String bundleName = bundle.getFileName().toString();
 
-                packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, xmlElements));
+                // iterate all bitstreams
+                try(DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bundle, bitstreamFilter)) {
+                    for (Path bitstream : bitstreams) {
+                        final String bitstreamName = bitstream.getFileName().toString();
+
+                        // load the bitstream metadata
+                        final Path bitstreamXml = bundle.resolve(bitstreamName + "-metadata.xml");
+                        try (InputStream inputStream = Files.newInputStream(bitstreamXml)) {
+                            final List<XmlElement> xmlElements = readXml(inputStream);
+                            packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, xmlElements));
+                        }
+                    }
+                }
             }
         }
 
