@@ -76,7 +76,9 @@ public class BagItAipReader {
      */
     public Properties readProperties() throws IOException {
         final Properties properties = new Properties();
-        properties.load(Files.newInputStream(bag.resolve(objectPropertiesLocation)));
+        try (InputStream is = Files.newInputStream(bag.resolve(objectPropertiesLocation))) {
+            properties.load(is);
+        }
         return properties;
     }
 
@@ -110,7 +112,7 @@ public class BagItAipReader {
      * {@link Optional#absent()} otherwise
      * @throws IOException if there is an error getting the {@link InputStream} for the logo
      */
-    public Optional<InputStream> readLogo() throws IOException {
+    public Optional<Path> findLogo() throws IOException {
         // Search for the bitstream in the data directory
         final DirectoryStream.Filter<Path> bitstreamFilter = new DirectoryStream.Filter<Path>() {
             @Override
@@ -123,11 +125,10 @@ public class BagItAipReader {
         };
         final DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bag.resolve(dataDirectory), bitstreamFilter);
 
-        Optional<InputStream> logo = Optional.absent();
+        Optional<Path> logo = Optional.absent();
         final Iterator<Path> iterator = bitstreams.iterator();
         if (iterator.hasNext()) {
-            final Path bitstream = iterator.next();
-            logo = Optional.of(Files.newInputStream(bitstream));
+            logo = Optional.of(iterator.next());
         }
 
         return logo;

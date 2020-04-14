@@ -20,6 +20,8 @@ import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -122,9 +124,11 @@ public class CommunityPacker implements Packer
             communityService.setMetadata(context, community, name, value);
         }
 
-        final Optional<InputStream> logo = reader.readLogo();
+        final Optional<Path> logo = reader.findLogo();
         if (logo.isPresent()) {
-            communityService.setLogo(context, community, logo.get());
+            try (InputStream logoStream = Files.newInputStream(logo.get())) {
+                communityService.setLogo(context, community, logoStream);
+            }
         }
 
         communityService.update(context, community);
