@@ -41,7 +41,6 @@ public class BagItAipReader {
 
     private final String xmlSuffix = ".xml";
     private final String dataDirectory = "data";
-    private final String logoLocation = dataDirectory + "/logo";
     private final String metadataLocation = dataDirectory + "/metadata.xml";
     private final String objectPropertiesLocation = dataDirectory + "/object.properties";
 
