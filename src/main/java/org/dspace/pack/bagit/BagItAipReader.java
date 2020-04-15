@@ -20,6 +20,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
@@ -30,6 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.duraspace.bagit.BagDeserializer;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.SerializationSupport;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 
 /**
  * Assist in reading aips and retrieving information from the package.
@@ -176,6 +179,7 @@ public class BagItAipReader {
         final List<PackagedBitstream> packagedBitstreams = new ArrayList<>();
 
         // iterate all bundles
+        final Pattern uuid = Pattern.compile("(?<uuid>bitstream_[\\w]{8}-[\\w]{4}-[\\w]{4}-[\\w]{4}-[\\w]{12}).*");
         try (DirectoryStream<Path> directories = Files.newDirectoryStream(data, directoryFilter)) {
             for (Path bundle : directories) {
                 final String bundleName = bundle.getFileName().toString();
@@ -186,10 +190,15 @@ public class BagItAipReader {
                         final String bitstreamName = bitstream.getFileName().toString();
 
                         // load the bitstream metadata
-                        final Path bitstreamXml = bundle.resolve(bitstreamName + "-metadata.xml");
-                        try (InputStream inputStream = Files.newInputStream(bitstreamXml)) {
-                            final List<XmlElement> xmlElements = readXml(inputStream);
-                            packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, xmlElements));
+                        final Matcher matcher = uuid.matcher(bitstreamName);
+                        // todo: error on no match?
+                        if (matcher.matches()) {
+                            final String metadataPath = matcher.group("uuid");
+                            final Path bitstreamXml = bundle.resolve(metadataPath + "-metadata.xml");
+                            try (InputStream inputStream = Files.newInputStream(bitstreamXml)) {
+                                final List<XmlElement> xmlElements = readXml(inputStream);
+                                packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, xmlElements));
+                            }
                         }
                     }
                 }
