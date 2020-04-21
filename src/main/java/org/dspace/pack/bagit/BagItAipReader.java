@@ -160,6 +160,13 @@ public class BagItAipReader {
     public List<PackagedBitstream> findBitstreams() throws IOException {
         final Path data = bag.resolve(dataDirectory);
 
+        // build our regex
+        // matches bitstream_uuid OR bitstream_uuid.extension with a group for bitstream_uuid
+        final String bitstreamStart = "bitstream_";
+        final String relaxedUuid = "[\\w]{8}-[\\w]{4}-[\\w]{4}-[\\w]{4}-[\\w]{12}";
+        final String extension = "(\\..*)?";
+        final Pattern uuid = Pattern.compile("(?<uuid>" + bitstreamStart + relaxedUuid + ")" + extension);
+
         // filter to find only directories (for bundle names)
         final DirectoryStream.Filter<Path> directoryFilter = new DirectoryStream.Filter<Path>() {
             @Override
@@ -172,14 +179,13 @@ public class BagItAipReader {
         final DirectoryStream.Filter<Path> bitstreamFilter = new DirectoryStream.Filter<Path>() {
             @Override
             public boolean accept(Path path) {
-                return path.toFile().isFile() && !path.getFileName().toString().endsWith(xmlSuffix);
+                return path.toFile().isFile() && uuid.matcher(path.getFileName().toString()).matches();
             }
         };
 
         final List<PackagedBitstream> packagedBitstreams = new ArrayList<>();
 
         // iterate all bundles
-        final Pattern uuid = Pattern.compile("(?<uuid>bitstream_[\\w]{8}-[\\w]{4}-[\\w]{4}-[\\w]{4}-[\\w]{12}).*");
         try (DirectoryStream<Path> directories = Files.newDirectoryStream(data, directoryFilter)) {
             for (Path bundle : directories) {
                 final String bundleName = bundle.getFileName().toString();
