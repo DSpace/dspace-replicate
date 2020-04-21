@@ -94,6 +94,7 @@ public class BagItReplicateConsumer implements Consumer {
     private final String storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     // Group where object deletion catalog/records are stored
     private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
+    private final String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
     @Override
     public void initialize() throws Exception
@@ -358,7 +359,8 @@ public class BagItReplicateConsumer implements Consumer {
         if (catalogDeletes)
         {
             //First, check if this object has an AIP in storage
-            boolean found = repMan.objectExists(storeGroupName, delObjId);
+            final String storageId = repMan.storageId(delObjId, archFmt);
+            boolean found = repMan.objectExists(storeGroupName, storageId);
 
             // If the object has an AIP, then create a deletion catalog
             // If there's no AIP, then there's no need for a deletion
