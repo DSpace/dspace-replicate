@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
@@ -34,6 +35,8 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Value;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +53,7 @@ public class BagItAipWriterTest extends BagItPackerTest {
     private final String xmlAttr = "test-xml-attr";
     private final String xmlAttrName = "name";
 
-    private List<XmlElement> metadata;
+    private Metadata metadata;
     private List<BagBitstream> bitstreams;
     private Map<String, List<String>> properties;
 
@@ -61,8 +64,8 @@ public class BagItAipWriterTest extends BagItPackerTest {
         super.setup();
         final String objectTypeLine = PackerFactory.OBJECT_TYPE + objectType;
         properties = ImmutableMap.of(PackerFactory.OBJFILE, Collections.singletonList(objectTypeLine));
-        XmlElement xmlElement = new XmlElement(xmlBody, ImmutableMap.of(xmlAttrName, xmlAttr));
-        metadata = Collections.singletonList(xmlElement);
+        metadata = new Metadata();
+        metadata.addChild(new Value(xmlBody, ImmutableMap.of(xmlAttrName, xmlAttr)));
 
         bitstreams = new ArrayList<>();
 
@@ -77,7 +80,7 @@ public class BagItAipWriterTest extends BagItPackerTest {
 
         final Bitstream logo = initDSO(Bitstream.class);
         final Bitstream bitstream = initDSO(Bitstream.class);
-        bitstreams.add(new BagBitstream(bitstream, bundleName, Collections.<XmlElement>emptyList()));
+        bitstreams.add(new BagBitstream(bitstream, bundleName, null));
         final File directory = root.resolve(bagName).toFile();
         final BitstreamFormat bitstreamFormat = initReloadable(BitstreamFormat.class);
         bitstreamFormat.setExtensions(Collections.singletonList("txt"));

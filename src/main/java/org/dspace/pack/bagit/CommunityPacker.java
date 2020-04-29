@@ -40,6 +40,9 @@ import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Value;
+import org.elasticsearch.common.recycler.Recycler;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -96,14 +99,13 @@ public class CommunityPacker implements Packer
         final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // collect the xml metadata
-        final List<XmlElement> elements = new ArrayList<>();
+        final Metadata metadata = new Metadata();
         for (String field : fields) {
-            final String metadata = communityService.getMetadata(community, field);
-            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(XML_NAME_KEY, field));
-            elements.add(element);
+            final String body = communityService.getMetadata(community, field);
+            metadata.addChild(new Value(body, ImmutableMap.of(XML_NAME_KEY, field)));
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, metadata,
                                                             Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }

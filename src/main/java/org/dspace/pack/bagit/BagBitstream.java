@@ -11,9 +11,14 @@ import java.util.List;
 
 import com.google.common.base.Preconditions;
 import org.dspace.content.Bitstream;
+import org.dspace.pack.bagit.xml.Metadata;
 
 /**
  * Hold information about a {@link Bitstream} and its metadata.
+ *
+ * todo: modifications
+ *  - XmlElement metadata
+ *  - XmlElement policies - separate class?
  *
  * @author mikejritter
  * @since 2020-03-12
@@ -23,7 +28,8 @@ public class BagBitstream {
     private Bitstream bitstream;
 
     private final String bundle;
-    private final List<XmlElement> xml;
+    private final Metadata metadata;
+    // private XmlElement policies;
 
     /**
      * A {@link Bitstream} which is to be fetched rather than added to a BagIt bag
@@ -31,11 +37,11 @@ public class BagBitstream {
      * @param fetchUrl the url to fetch the {@link Bitstream} from
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param xml the metadata associated with the {@link Bitstream}
+     * @param metadata the metadata associated with the {@link Bitstream}
      */
     public BagBitstream(final String fetchUrl, final Bitstream bitstream, final String bundle,
-                        final List<XmlElement> xml) {
-        this.xml = Preconditions.checkNotNull(xml);
+                        final Metadata metadata) {
+        this.metadata = metadata;
         this.bundle = Preconditions.checkNotNull(bundle);
         this.fetchUrl = Preconditions.checkNotNull(fetchUrl);
         this.bitstream = Preconditions.checkNotNull(bitstream);
@@ -46,10 +52,10 @@ public class BagBitstream {
      *
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param xml the metadata associated with the {@link Bitstream}
+     * @param metadata the metadata associated with the {@link Bitstream}
      */
-    public BagBitstream(final Bitstream bitstream, final String bundle, final List<XmlElement> xml) {
-        this.xml = Preconditions.checkNotNull(xml);
+    public BagBitstream(final Bitstream bitstream, final String bundle, final Metadata metadata) {
+        this.metadata = metadata;
         this.bundle = Preconditions.checkNotNull(bundle);
         this.bitstream = Preconditions.checkNotNull(bitstream);
     }
@@ -73,12 +79,12 @@ public class BagBitstream {
     }
 
     /**
-     * Get the metadata associated with the {@link Bitstream}, held in the form of an {@link XmlElement}
+     * Get the metadata associated with the {@link Bitstream}
      *
      * @return the metadata
      */
-    public List<XmlElement> getXml() {
-        return xml;
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     /**

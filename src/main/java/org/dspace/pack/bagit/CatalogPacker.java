@@ -90,8 +90,7 @@ public class CatalogPacker implements Packer
             properties.put("members", members);
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties,
-                                                            Collections.<XmlElement>emptyList(),
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, null,
                                                             Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }

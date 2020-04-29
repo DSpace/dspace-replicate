@@ -30,6 +30,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.CountingOutputStream;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
@@ -40,6 +41,8 @@ import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
+import org.dspace.pack.bagit.xml.Element;
+import org.dspace.pack.bagit.xml.Metadata;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagConfig;
@@ -56,6 +59,21 @@ import org.joda.time.format.ISODateTimeFormat;
  * The BagItAipWriter handles the packaging of DSpaceObjects into their respective bags. It processes the metadata and
  * bitstreams given to it by the various {@link org.dspace.pack.Packer}s in order to write the object.properties,
  * metadata.xml, etc for each AIP.
+ *
+ * todo: permissions
+ *   - context
+ *     - in-effect, contextclass
+ *   - username
+ *     - usertype
+ *   - permissions
+ *     - discover, display, copy, duplicate, modify, delete, print, other, otherpermtype
+ *
+ * todo: modifications to this class:
+ *   - XmlElement metadata
+ *   - XmlElement policies
+ *
+ * for rights see {@link org.dspace.content.crosswalk.METSRightsCrosswalk}
+ *
  *
  * @author mikejritter
  * @since 2020-03-02
@@ -105,7 +123,7 @@ public class BagItAipWriter {
     /**
      * Key-Value xml properties
      */
-    private final List<XmlElement> metadata;
+    private final Metadata metadata;
 
     /**
      * A map of Bitstreams to package with the AIP
@@ -120,16 +138,16 @@ public class BagItAipWriter {
      * @param archFmt the serialization format when archiving the bag to a single file
      * @param logo the {@link Bitstream} of the logo, or null
      * @param properties a {@link Map} which maps a filename with a list of lines to write to the file
-     * @param metadata a {@link List} of {@link XmlElement}s to write to the bags data/metadata.xml
+     * @param metadata the {@link Metadata} to write to the bags data/metadata.xml
      * @param bitstreams a {@link List} of {@link BagBitstream}s which should be written as payload files for the bag
      */
     public BagItAipWriter(final File directory, final String archFmt, final Bitstream logo,
-                          final Map<String, List<String>> properties, final List<XmlElement> metadata,
+                          final Map<String, List<String>> properties, final Metadata metadata,
                           final List<BagBitstream> bitstreams) {
         this.logo = logo;
+        this.metadata = metadata;
         this.archFmt = checkNotNull(archFmt);
         this.directory = checkNotNull(directory);
-        this.metadata = checkNotNull(metadata);
         this.properties = checkNotNull(properties);
         this.bitstreams = bitstreams != null ? bitstreams : Collections.<BagBitstream>emptyList();
     }
@@ -195,8 +213,10 @@ public class BagItAipWriter {
 
         // then metadata
         messageDigest.reset();
-        final Path metadataXml = dataDir.resolve(METADATA_XML);
-        writeXmlMetadata(metadata, metadataXml, messageDigest);
+        if (metadata != null) {
+            final Path metadataXml = dataDir.resolve(METADATA_XML);
+            writeXmlMetadata(metadata, metadataXml, messageDigest);
+        }
 
         // write any bitstreams
         for (BagBitstream bagBitstream : bitstreams) {
@@ -208,8 +228,11 @@ public class BagItAipWriter {
             // write the bitstream metadata
             final Bitstream bitstream = bagBitstream.getBitstream();
             final String bitstreamID = bitstream.getID().toString();
-            final Path bitstreamXml = bitstreamDirectory.resolve(BITSTREAM_PREFIX + bitstreamID + "-" + METADATA_XML);
-            writeXmlMetadata(bagBitstream.getXml(), bitstreamXml, messageDigest);
+            if (bagBitstream.getMetadata() != null) {
+                final String mdName = BITSTREAM_PREFIX + bitstreamID + "-" + METADATA_XML;
+                final Path bitstreamXml = bitstreamDirectory.resolve(mdName);
+                writeXmlMetadata(bagBitstream.getMetadata(), bitstreamXml, messageDigest);
+            }
 
             if (bagBitstream.getFetchUrl() != null) {
                 throw new UnsupportedOperationException("fetch.txt for bags is not supported at this time");
@@ -329,12 +352,12 @@ public class BagItAipWriter {
      * Write the xml {@code elements} to the given {@code metadata} file. After writing the message digest of the
      * written xml file is returned.
      *
-     * @param elements the {@link XmlElement}s to write to the file
+     * @param element the {@link XmlElement}s to write to the file
      * @param metadata the {@link Path} to the xml file
      * @param messageDigest the {@link MessageDigest} tracking the digest of the file
      * @throws IOException if there are any errors writing to the {@code metadata}
      */
-    private void writeXmlMetadata(final List<XmlElement> elements, final Path metadata,
+    private void writeXmlMetadata(final Element element, final Path metadata,
                                   final MessageDigest messageDigest) throws IOException {
         if (Files.notExists(metadata.getParent())) {
             Files.createDirectories(metadata.getParent());
@@ -348,22 +371,7 @@ public class BagItAipWriter {
             final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(digestOS,
                                                                                      Charsets.UTF_8.toString());
             xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
-            xmlWriter.writeStartElement("metadata");
-
-            for (XmlElement element : elements) {
-                if (element.getBody() != null) {
-                    xmlWriter.writeStartElement("value");
-                    for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
-                        if (attribute.getKey() != null && attribute.getValue() != null) {
-                            xmlWriter.writeAttribute(attribute.getKey(), attribute.getValue());
-                        }
-                    }
-                    xmlWriter.writeCharacters(element.getBody());
-                    xmlWriter.writeEndElement();
-                }
-            }
-
-            xmlWriter.writeEndElement();
+            writeXml(xmlWriter, ImmutableList.of(element));
             xmlWriter.writeEndDocument();
 
             successBytes.addAndGet(countingOS.getCount());
@@ -371,6 +379,31 @@ public class BagItAipWriter {
             checksums.put(metadata.toFile(), Utils.toHex(messageDigest.digest()));
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage(), e);
+        }
+    }
+
+    /**
+     *
+     * @param xmlWriter the XmlStreamWriter
+     * @param elements the XmlElements to write
+     * @throws XMLStreamException if an exception occurs
+     */
+    private void writeXml(XMLStreamWriter xmlWriter, List<Element> elements) throws XMLStreamException {
+        for (Element element : elements) {
+            xmlWriter.writeStartElement(element.getLocalName());
+
+            if (element.hasChildren()) {
+                writeXml(xmlWriter, element.getChildren());
+            } else {
+                for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
+                    if (attribute.getKey() != null && attribute.getValue() != null) {
+                        xmlWriter.writeAttribute(attribute.getKey(), attribute.getValue());
+                    }
+                }
+                xmlWriter.writeCharacters(element.getBody());
+            }
+
+            xmlWriter.writeEndElement();
         }
     }
 

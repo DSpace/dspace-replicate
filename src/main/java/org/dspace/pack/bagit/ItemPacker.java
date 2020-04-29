@@ -25,11 +25,13 @@ import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import com.sun.org.apache.xml.internal.security.encryption.XMLEncryptionException;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
@@ -43,6 +45,8 @@ import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
+import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Value;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -112,21 +116,26 @@ public class ItemPacker implements Packer {
         final ImmutableMap<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // metadata.xml
-        final List<XmlElement> metadataElements = new ArrayList<>();
-        final List<MetadataValue> metadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (MetadataValue value : metadata) {
+        final Metadata metadata = new Metadata();
+        final List<MetadataValue> itemMetadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+        for (MetadataValue value : itemMetadata) {
             final HashMap<String, String> attributes = new HashMap<>();
             attributes.put(SCHEMA, value.getMetadataField().getMetadataSchema().getName());
             attributes.put(ELEMENT, value.getMetadataField().getElement());
             attributes.put(QUALIFIER, value.getMetadataField().getQualifier());
             attributes.put(LANGUAGE, value.getLanguage());
-            metadataElements.add(new XmlElement(value.getValue(), attributes));
+            metadata.addChild(new Value(value.getValue(), attributes));
         }
 
         // proceed to bundles, in sub-directories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
         for (Bundle bundle : item.getBundles()) {
+            bundle.getResourcePolicies();
             final String bundleName = bundle.getName();
+            // todo: each bundle/bitstream that gets packed should also have rights data packed with it
+            //       something like bitstream_rights.xml (NOT metsrights)
+            // I think what I'm really doing is querying for policies and serializing them
+            // might be the easiest way to think about what the xml should look like
             if (accept(bundleName)) {
                 // only bundle metadata is the primary bitstream - remember it
                 // and place in bitstream metadata if defined
@@ -135,28 +144,27 @@ public class ItemPacker implements Packer {
                     final String seqId = String.valueOf(bs.getSequenceID());
 
                     // field access is hard-coded in Bitstream class, ugh!
-                    final List<XmlElement> bsElements = new ArrayList<>();
-                    bsElements.add(new XmlElement(bs.getName(), ImmutableMap.of(NAME, NAME)));
-                    bsElements.add(new XmlElement(bs.getSource(), ImmutableMap.of(NAME, SOURCE)));
-                    bsElements.add(new XmlElement(bs.getDescription(), ImmutableMap.of(NAME, DESCRIPTION)));
-                    bsElements.add(new XmlElement(seqId, ImmutableMap.of(NAME, SEQUENCE_ID)));
+                    final Metadata bitstreamMetadata = new Metadata();
+                    bitstreamMetadata.addChild(new Value(bs.getName(), ImmutableMap.of(NAME, NAME)));
+                    bitstreamMetadata.addChild(new Value(bs.getSource(), ImmutableMap.of(NAME, SOURCE)));
+                    bitstreamMetadata.addChild(new Value(bs.getDescription(), ImmutableMap.of(NAME, DESCRIPTION)));
+                    bitstreamMetadata.addChild(new Value(seqId, ImmutableMap.of(NAME, SEQUENCE_ID)));
                     if (bs.equals(bundle.getPrimaryBitstream())) {
-                        bsElements.add(new XmlElement(TRUE.toString(), ImmutableMap.of(NAME, BUNDLE_PRIMARY)));
+                        bitstreamMetadata.addChild(new Value(TRUE.toString(), ImmutableMap.of(NAME, BUNDLE_PRIMARY)));
                     }
 
                     // write the bitstream itself, unless reference filter applies
                     final String fetchUrl = byReference(bundle, bs);
                     if (fetchUrl != null) {
-                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bsElements));
+                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bitstreamMetadata));
                     } else {
-                        bitstreams.add(new BagBitstream(bs, bundleName, bsElements));
+                        bitstreams.add(new BagBitstream(bs, bundleName, bitstreamMetadata));
                     }
                 }
             }
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadataElements,
-                                                            bitstreams);
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadata, bitstreams);
         return aipWriter.packageAip();
     }
 
