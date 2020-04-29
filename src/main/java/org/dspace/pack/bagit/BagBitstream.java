@@ -24,12 +24,11 @@ import org.dspace.pack.bagit.xml.Policy;
  */
 public class BagBitstream {
     private String fetchUrl;
-    private Bitstream bitstream;
 
     private final String bundle;
     private final Policy policy;
     private final Metadata metadata;
-    // private XmlElement policies;
+    private final Bitstream bitstream;
 
     /**
      * A {@link Bitstream} which is to be fetched rather than added to a BagIt bag
@@ -37,7 +36,7 @@ public class BagBitstream {
      * @param fetchUrl the url to fetch the {@link Bitstream} from
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param policy
+     * @param policy the {@link Policy} metadata associated with the {@link Bitstream}
      * @param metadata the metadata associated with the {@link Bitstream}
      */
     public BagBitstream(final String fetchUrl, final Bitstream bitstream, final String bundle, final Policy policy,
@@ -54,7 +53,7 @@ public class BagBitstream {
      *
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param policy
+     * @param policy the {@link Policy} metadata associated with the {@link Bitstream}
      * @param metadata the metadata associated with the {@link Bitstream}
      */
     public BagBitstream(final Bitstream bitstream, final String bundle, final Policy policy, final Metadata metadata) {
