@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
@@ -80,12 +79,13 @@ public class BagItAipWriterTest extends BagItPackerTest {
 
         final Bitstream logo = initDSO(Bitstream.class);
         final Bitstream bitstream = initDSO(Bitstream.class);
-        bitstreams.add(new BagBitstream(bitstream, bundleName, null));
+        bitstreams.add(new BagBitstream(bitstream, bundleName, null, null));
         final File directory = root.resolve(bagName).toFile();
         final BitstreamFormat bitstreamFormat = initReloadable(BitstreamFormat.class);
         bitstreamFormat.setExtensions(Collections.singletonList("txt"));
 
-        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, bitstreams);
+        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, null,
+                                                         bitstreams);
 
         when(bitstreamService.retrieve(any(Context.class), eq(logo)))
             .thenReturn(new ByteArrayInputStream("logo".getBytes()));
@@ -115,7 +115,8 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final Bitstream logo = null;
         final File directory = root.resolve(bagName).toFile();
 
-        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, bitstreams);
+        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, null,
+                                                         bitstreams);
         writer.packageAip();
     }
 

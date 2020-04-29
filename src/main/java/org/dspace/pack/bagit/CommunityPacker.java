@@ -41,8 +41,8 @@ import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
-import org.elasticsearch.common.recycler.Recycler;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -84,6 +84,8 @@ public class CommunityPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
+
         final Bitstream logo = community.getLogo();
 
         // object.properties
@@ -98,15 +100,18 @@ public class CommunityPacker implements Packer
         }
         final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
-        // collect the xml metadata
+        // collect the metadata
         final Metadata metadata = new Metadata();
         for (String field : fields) {
             final String body = communityService.getMetadata(community, field);
             metadata.addChild(new Value(body, ImmutableMap.of(XML_NAME_KEY, field)));
         }
 
+        // collect the policy
+        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+
         final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, metadata,
-                                                            Collections.<BagBitstream>emptyList());
+                                                            policy, Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }
 

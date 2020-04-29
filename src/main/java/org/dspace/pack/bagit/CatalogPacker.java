@@ -90,7 +90,8 @@ public class CatalogPacker implements Packer
             properties.put("members", members);
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, null,
+        // Catalogs do not have a Metadata or Policy object, so send in null values
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, null, null,
                                                             Collections.<BagBitstream>emptyList());
         return aipWriter.packageAip();
     }

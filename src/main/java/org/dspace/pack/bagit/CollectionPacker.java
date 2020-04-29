@@ -43,6 +43,7 @@ import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
 
 /**
@@ -89,6 +90,7 @@ public class CollectionPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final Bitstream logo = collection.getLogo();
 
         // collect the object.properties
@@ -110,8 +112,11 @@ public class CollectionPacker implements Packer
             metadata.addChild(new Value(body, ImmutableMap.of(XML_NAME_KEY, field)));
         }
 
+        // collect xml policy
+        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), collection);
+
         final BagItAipWriter writer = new BagItAipWriter(packDir, archFmt, logo, properties, metadata,
-                                                         Collections.<BagBitstream>emptyList());
+                                                         policy, Collections.<BagBitstream>emptyList());
         return writer.packageAip();
     }
 

@@ -25,13 +25,11 @@ import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import com.sun.org.apache.xml.internal.security.encryption.XMLEncryptionException;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
@@ -46,6 +44,7 @@ import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
 
 /**
@@ -93,6 +92,8 @@ public class ItemPacker implements Packer {
 
     @Override
     public File pack(final File packDir) throws AuthorizeException, IOException, SQLException {
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
+
         // object properties
         final List<String> objectProperties = new ArrayList<>();
         objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
@@ -127,15 +128,14 @@ public class ItemPacker implements Packer {
             metadata.addChild(new Value(value.getValue(), attributes));
         }
 
+        // policy.xml
+        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), item);
+
         // proceed to bundles, in sub-directories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
         for (Bundle bundle : item.getBundles()) {
             bundle.getResourcePolicies();
             final String bundleName = bundle.getName();
-            // todo: each bundle/bitstream that gets packed should also have rights data packed with it
-            //       something like bitstream_rights.xml (NOT metsrights)
-            // I think what I'm really doing is querying for policies and serializing them
-            // might be the easiest way to think about what the xml should look like
             if (accept(bundleName)) {
                 // only bundle metadata is the primary bitstream - remember it
                 // and place in bitstream metadata if defined
@@ -153,18 +153,22 @@ public class ItemPacker implements Packer {
                         bitstreamMetadata.addChild(new Value(TRUE.toString(), ImmutableMap.of(NAME, BUNDLE_PRIMARY)));
                     }
 
+                    // bitstream policy
+                    final Policy bitstreamPolicy = policyUtil.getPolicy(Curator.curationContext(), bs);
+
                     // write the bitstream itself, unless reference filter applies
                     final String fetchUrl = byReference(bundle, bs);
                     if (fetchUrl != null) {
-                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bitstreamMetadata));
+                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bitstreamPolicy, bitstreamMetadata));
                     } else {
-                        bitstreams.add(new BagBitstream(bs, bundleName, bitstreamMetadata));
+                        bitstreams.add(new BagBitstream(bs, bundleName, bitstreamPolicy, bitstreamMetadata));
                     }
                 }
             }
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadata, bitstreams);
+        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadata, policy,
+                                                            bitstreams);
         return aipWriter.packageAip();
     }
 
