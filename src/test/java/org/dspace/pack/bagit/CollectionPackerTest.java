@@ -7,12 +7,14 @@
  */
 package org.dspace.pack.bagit;
 
+import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,12 +24,22 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import org.dspace.authorize.ResourcePolicy;
+import org.dspace.authorize.factory.AuthorizeServiceFactory;
+import org.dspace.authorize.service.AuthorizeService;
+import org.dspace.authorize.service.ResourcePolicyService;
 import org.dspace.content.Collection;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CollectionService;
 import org.dspace.core.Context;
+import org.dspace.eperson.factory.EPersonServiceFactory;
+import org.dspace.eperson.service.EPersonService;
+import org.dspace.eperson.service.GroupService;
 import org.junit.Test;
 
 /**
@@ -75,6 +87,12 @@ public class CollectionPackerTest extends BagItPackerTest {
 
     @Test
     public void testUnpack() throws Exception {
+        final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
+        final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
+        final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
+        final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance()
+                                                                                   .getResourcePolicyService();
+
         // push to setup
         final URL resources = CollectionPackerTest.class.getClassLoader().getResource("unpack");
         assertNotNull(resources);
@@ -92,6 +110,15 @@ public class CollectionPackerTest extends BagItPackerTest {
         verify(collectionService, times(7)).setMetadata(any(Context.class), eq(collection), anyString(), anyString());
         verify(collectionService, times(1)).setLogo(any(Context.class), eq(collection), any(InputStream.class));
         verify(collectionService, times(1)).update(any(Context.class), eq(collection));
+
+        // since our policy.xml is empty, verify that we never fetched anything and still used the authorize service
+        // as expected
+        final List<ResourcePolicy> empty = new ArrayList<>();
+        verify(resourcePolicyService, never()).create(any(Context.class));
+        verify(groupService, never()).findByName(any(Context.class), anyString());
+        verify(ePersonService, never()).findByEmail(any(Context.class), anyString());
+        verify(authorizeService, times(1)).removeAllPolicies(any(Context.class), eq(collection));
+        verify(authorizeService, times(1)).addPolicies(any(Context.class), eq(empty), eq(collection));
 
         assertThat(openArchive).doesNotExist();
     }

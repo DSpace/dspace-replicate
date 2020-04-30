@@ -16,6 +16,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,12 +29,17 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.assertj.core.util.Files;
+import org.dspace.authorize.ResourcePolicy;
+import org.dspace.authorize.factory.AuthorizeServiceFactory;
+import org.dspace.authorize.service.AuthorizeService;
+import org.dspace.authorize.service.ResourcePolicyService;
 import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
 import org.dspace.content.Bundle;
@@ -47,6 +53,9 @@ import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
+import org.dspace.eperson.factory.EPersonServiceFactory;
+import org.dspace.eperson.service.EPersonService;
+import org.dspace.eperson.service.GroupService;
 import org.dspace.handle.Handle;
 import org.junit.Before;
 import org.junit.Test;
@@ -280,6 +289,12 @@ public class ItemPackerTest extends BagItPackerTest {
 
     @Test
     public void testUnpack() throws Exception {
+        final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
+        final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
+        final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
+        final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance()
+                                                                                   .getResourcePolicyService();
+
         final String license = LICENSE_NAME.toUpperCase();
         final String original = "ORIGINAL";
         final String metadataRegex = "title|source|description";
@@ -327,6 +342,15 @@ public class ItemPackerTest extends BagItPackerTest {
 
         verify(bitstreamService, times(1)).update(any(Context.class), eq(licenseBitstream));
         verify(bitstreamService, times(1)).update(any(Context.class), eq(originalBitstream));
+
+        // since our policy.xml is empty, verify that we never fetched anything and still used the authorize service
+        // as expected
+        final List<ResourcePolicy> empty = new ArrayList<>();
+        verify(resourcePolicyService, never()).create(any(Context.class));
+        verify(groupService, never()).findByName(any(Context.class), anyString());
+        verify(ePersonService, never()).findByEmail(any(Context.class), anyString());
+        verify(authorizeService, times(1)).removeAllPolicies(any(Context.class), eq(item));
+        verify(authorizeService, times(1)).addPolicies(any(Context.class), eq(empty), eq(item));
 
         assertThat(openArchive).doesNotExist();
     }
