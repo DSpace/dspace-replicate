@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import org.dspace.authorize.ResourcePolicy;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.packager.PackageException;
@@ -47,6 +49,7 @@ public class BagItPolicyUtil {
      */
     public Policy getPolicy(Context context, DSpaceObject dso) {
         final Policy policy = new Policy();
+        final BiMap<Integer, String> actions = actionMapper().inverse();
 
         for (ResourcePolicy resourcePolicy : dso.getResourcePolicies()) {
             final Map<String, String> attributes = new HashMap<>();
@@ -100,7 +103,7 @@ public class BagItPolicyUtil {
                 username = ePerson.getEmail();
             } // todo: log warning if no group or user is on the policy
 
-            final String action = identifyAction(resourcePolicy.getAction());
+            final String action = actions.get(resourcePolicy.getAction());
             attributes.put(RP_ACTION, action);
 
             policy.addChild(new Value(username, attributes));
@@ -109,19 +112,32 @@ public class BagItPolicyUtil {
         return policy;
     }
 
-    private String identifyAction(final int action) {
-        switch (action) {
-            case Constants.ADD: return "ADD";
-            case Constants.READ: return "READ";
-            case Constants.ADMIN: return "ADMIN";
-            case Constants.WRITE: return "WRITE";
-            case Constants.DELETE: return "DELETE";
-            case Constants.REMOVE: return "REMOVE";
-            case Constants.DEFAULT_ITEM_READ: return "READ_ITEM";
-            case Constants.DEFAULT_BITSTREAM_READ: return "READ_BITSTREAM";
-        }
+    /**
+     * Get the integer for the ResourcePolicy action
+     *
+     * @param action the String representation of the action
+     * @return the integer of the action
+     */
+    public int getActionInt(final String action) {
+        return actionMapper().get(action);
+    }
 
-        return null;
+    /**
+     * This is pretty light so just recreate it so it can be gc'd later
+     *
+     * @return the mapping between action String and Int representations
+     */
+    private BiMap<String, Integer> actionMapper() {
+        return ImmutableBiMap.<String, Integer>builder()
+                      .put("ADD", Constants.ADD)
+                      .put("READ", Constants.READ)
+                      .put("ADMIN", Constants.ADMIN)
+                      .put("WRITE", Constants.WRITE)
+                      .put("DELETE", Constants.DELETE)
+                      .put("REMOVE", Constants.REMOVE)
+                      .put("READ_ITEM", Constants.DEFAULT_ITEM_READ)
+                      .put("READ_BITSTREAM", Constants.DEFAULT_BITSTREAM_READ)
+            .build();
     }
 
 }
