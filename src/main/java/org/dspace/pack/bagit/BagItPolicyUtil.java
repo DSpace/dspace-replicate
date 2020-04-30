@@ -1,21 +1,34 @@
 package org.dspace.pack.bagit;
 
+import java.sql.SQLException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.authorize.ResourcePolicy;
+import org.dspace.authorize.factory.AuthorizeServiceFactory;
+import org.dspace.authorize.service.AuthorizeService;
+import org.dspace.authorize.service.ResourcePolicyService;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageUtils;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
+import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
+import org.dspace.eperson.factory.EPersonServiceFactory;
+import org.dspace.eperson.service.EPersonService;
+import org.dspace.eperson.service.GroupService;
+import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
 
@@ -41,6 +54,8 @@ public class BagItPolicyUtil {
     private static final String MANAGED_GROUP = "MANAGED GROUP";
     private static final String ACADEMIC_USER = "ACADEMIC USER";
 
+    private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
     /**
      * Create a {@link Policy} for a {@link DSpaceObject}
      *
@@ -61,7 +76,6 @@ public class BagItPolicyUtil {
 
             // in-effect = true by default, then needs checks on start + end date
             boolean inEffect = true;
-            final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             final Date endDate = resourcePolicy.getEndDate();
             final Date startDate = resourcePolicy.getStartDate();
             final Date now = new Date();
@@ -110,6 +124,83 @@ public class BagItPolicyUtil {
         }
 
         return policy;
+    }
+
+    /**
+     * Register all policies found from {@link Policy#getChildren()} by mapping them to a new {@link ResourcePolicy}.
+     * This operation will replace all existing ResourcePolicies for a given {@link DSpaceObject} unless there is an
+     * error during the mapping from a {@link Value} to a {@link ResourcePolicy}.
+     *
+     * @param dSpaceObject the {@link DSpaceObject} to register policies for
+     * @param policy the {@link Policy} pojo to create each {@link ResourcePolicy}
+     */
+    public void registerPolicies(final DSpaceObject dSpaceObject, final Policy policy)
+        throws SQLException, AuthorizeException, PackageException {
+        final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
+        final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
+        final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
+        final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance().getResourcePolicyService();
+
+        // Need to map policy children from List<Element> to List<ResourcePolicy>
+        // then use the authorizationService to add all policies to the dso
+        final List<ResourcePolicy> policies = new ArrayList<>();
+        for (Element element : policy.getChildren()) {
+            final Map<String, String> attributes = element.getAttributes();
+            final ResourcePolicy resourcePolicy = resourcePolicyService.create(Curator.curationContext());
+
+            resourcePolicy.setRpName(attributes.get(RP_NAME));
+            resourcePolicy.setRpDescription(attributes.get(RP_DESCRIPTION));
+
+            final String rpStartDate = attributes.get(RP_START_DATE);
+            if (rpStartDate != null) {
+                try {
+                    final Date date = dateFormat.parse(rpStartDate);
+                    resourcePolicy.setStartDate(date);
+                } catch (ParseException ignored) {
+                    // todo: handle
+                }
+            }
+
+            final String rpEndDate = attributes.get(RP_END_DATE);
+            if (rpEndDate != null) {
+                try {
+                    final Date date = dateFormat.parse(rpEndDate);
+                    resourcePolicy.setEndDate(date);
+                } catch (ParseException ignored) {
+                    // todo: handle
+                }
+            }
+
+            final String userContext = attributes.get(RP_CONTEXT);
+            if (Group.ADMIN.equalsIgnoreCase(userContext)) {
+                // todo: null check
+                final Group group = groupService.findByName(Curator.curationContext(), Group.ADMIN);
+                resourcePolicy.setGroup(group);
+            } else if (Group.ANONYMOUS.equalsIgnoreCase(userContext)) {
+                // todo: null check
+                final Group group = groupService.findByName(Curator.curationContext(), Group.ANONYMOUS);
+                resourcePolicy.setGroup(group);
+            } else if (MANAGED_GROUP.equalsIgnoreCase(userContext)) {
+                // todo: null check
+                final String groupName = PackageUtils.translateGroupNameForImport(Curator.curationContext(), element.getBody());
+                final Group group = groupService.findByName(Curator.curationContext(), groupName);
+                resourcePolicy.setGroup(group);
+            } else if (ACADEMIC_USER.equalsIgnoreCase(userContext)) {
+                // todo: null check
+                final EPerson ePerson = ePersonService.findByEmail(Curator.curationContext(), element.getBody());
+                resourcePolicy.setEPerson(ePerson);
+            } else {
+                // error
+            }
+
+            final Integer action = actionMapper().get(attributes.get(RP_ACTION));
+            resourcePolicy.setAction(action);
+
+            policies.add(resourcePolicy);
+        }
+
+        authorizeService.removeAllPolicies(Curator.curationContext(), dSpaceObject);
+        authorizeService.addPolicies(Curator.curationContext(), policies ,dSpaceObject);
     }
 
     /**
