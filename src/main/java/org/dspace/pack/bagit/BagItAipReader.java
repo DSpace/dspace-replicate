@@ -39,6 +39,8 @@ import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
+import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Value;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagDeserializer;
@@ -188,7 +190,7 @@ public class BagItAipReader {
      * @return a list of {@link XmlElement}s which were read from the file
      * @throws IOException if there was an error reading the file or parsing the xml
      */
-    public List<XmlElement> readMetadata() throws IOException {
+    public Metadata readMetadata() throws IOException {
         final Path metadata = bag.resolve(metadataLocation);
         try (InputStream metadataStream = Files.newInputStream(metadata)) {
             return readXml(metadataStream);
@@ -245,9 +247,11 @@ public class BagItAipReader {
                             final String metadataPath = matcher.group("uuid");
                             final Path bitstreamXml = bundle.resolve(metadataPath + "-metadata.xml");
                             try (InputStream inputStream = Files.newInputStream(bitstreamXml)) {
-                                final List<XmlElement> xmlElements = readXml(inputStream);
-                                packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, xmlElements));
+                                final Metadata metadata = readXml(inputStream);
+                                packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata));
                             }
+
+                            // todo: add policy.xml
                         }
                     }
                 }
@@ -274,7 +278,7 @@ public class BagItAipReader {
      * @return a list of {@link XmlElement}s read from the file
      * @throws IOException if there is an error reading the file or parsing the xml
      */
-    private List<XmlElement> readXml(final InputStream inputStream) throws IOException {
+    private Metadata readXml(final InputStream inputStream) throws IOException {
         final XMLStreamReader reader;
         final XMLInputFactory factory = XMLInputFactory.newFactory();
         try {
@@ -283,20 +287,20 @@ public class BagItAipReader {
             throw new IOException(e.getMessage(), e);
         }
 
-        final List<XmlElement> elements = new ArrayList<>();
+        final Metadata metadata = new Metadata();
         try {
             // search for metadata stanza
             while (reader.hasNext()) {
                 if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                    reader.getLocalName().equalsIgnoreCase("metadata")) {
+                    reader.getLocalName().equalsIgnoreCase(metadata.getLocalName())) {
 
                     // search for value stanzas
                     while (reader.hasNext()) {
                         if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                            reader.getLocalName().equalsIgnoreCase("value")) {
-                            XmlElement element = readElement(reader);
+                            reader.getLocalName().equalsIgnoreCase(Value.LOCAL_NAME)) {
+                            Value element = readElement(reader);
                             if (element != null) {
-                                elements.add(element);
+                                metadata.addChild(element);
                             }
                         }
                     }
@@ -306,10 +310,10 @@ public class BagItAipReader {
             throw new IOException(e.getMessage(), e);
         }
 
-        return elements;
+        return metadata;
     }
 
-    private XmlElement readElement(XMLStreamReader reader) throws XMLStreamException {
+    private Value readElement(XMLStreamReader reader) throws XMLStreamException {
         // we begin on a start element so initialize the attributes first
         final Map<String, String> attributes = new HashMap<>();
         for (int i = 0; i < reader.getAttributeCount(); i++) {
@@ -324,7 +328,7 @@ public class BagItAipReader {
                     body = reader.getText();
                     break;
                 case XMLStreamConstants.END_ELEMENT:
-                    return new XmlElement(body, attributes);
+                    return new Value(body, attributes);
                 default:
                     break;
             }

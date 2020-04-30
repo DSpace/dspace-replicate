@@ -3,7 +3,6 @@ package org.dspace.pack.bagit.xml;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -12,13 +11,13 @@ import com.google.common.collect.ImmutableList;
  * @author mikejritter
  */
 public class Value implements Element {
-    private final String LOCAL_NAME = "value";
+    public static final String LOCAL_NAME = "value";
 
     private final String body;
     private final Map<String, String> attributes;
 
     public Value(String body, Map<String, String> attributes) {
-        this.body = Preconditions.checkNotNull(body);
+        this.body = body;
         this.attributes = attributes;
     }
 

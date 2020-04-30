@@ -40,6 +40,7 @@ import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Metadata;
 import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
@@ -125,8 +126,8 @@ public class CommunityPacker implements Packer
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
-        final List<XmlElement> xmlElements = reader.readMetadata();
-        for (XmlElement xmlElement : xmlElements) {
+        final Metadata metadata= reader.readMetadata();
+        for (Element xmlElement : metadata.getChildren()) {
             final String name = xmlElement.getAttributes().get("name");
             final String value = xmlElement.getBody();
             communityService.setMetadata(context, community, name, value);

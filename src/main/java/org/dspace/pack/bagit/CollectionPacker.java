@@ -42,6 +42,7 @@ import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Metadata;
 import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
@@ -129,8 +130,8 @@ public class CollectionPacker implements Packer
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
-        final List<XmlElement> elements = reader.readMetadata();
-        for (XmlElement element : elements) {
+        final Metadata metadata = reader.readMetadata();
+        for (Element element : metadata.getChildren()) {
             final String name = element.getAttributes().get("name");
             final String value = element.getBody();
             collectionService.setMetadata(Curator.curationContext(), collection, name, value);

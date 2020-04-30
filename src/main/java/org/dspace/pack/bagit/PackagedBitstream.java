@@ -8,7 +8,8 @@
 package org.dspace.pack.bagit;
 
 import java.nio.file.Path;
-import java.util.List;
+
+import org.dspace.pack.bagit.xml.Metadata;
 
 /**
  * Information about a {@link org.dspace.content.Bitstream} packaged in an aip
@@ -20,16 +21,16 @@ public class PackagedBitstream {
 
     private final String bundle;
     private final Path bitstream;
-    private final List<XmlElement> metadata;
+    private final Metadata metadata;
 
     /**
      * Constructor
      *
      * @param bundle the name of the bundle for the bitstream
      * @param bitstream the path to the bitstream data
-     * @param metadata the metadata for the bitstream, as a {@link List} of {@link XmlElement}s
+     * @param metadata the metadata for the bitstream, as a {@link Metadata} pojo
      */
-    public PackagedBitstream(final String bundle, final Path bitstream, final List<XmlElement> metadata) {
+    public PackagedBitstream(final String bundle, final Path bitstream, final Metadata metadata) {
         this.bundle = bundle;
         this.bitstream = bitstream;
         this.metadata = metadata;
@@ -52,7 +53,7 @@ public class PackagedBitstream {
     /**
      * @return the metadata for the bitstream
      */
-    public List<XmlElement> getMetadata() {
+    public Metadata getMetadata() {
         return metadata;
     }
 }

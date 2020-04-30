@@ -43,6 +43,7 @@ import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
+import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Metadata;
 import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
@@ -183,8 +184,8 @@ public class ItemPacker implements Packer {
         reader.validateBag();
 
         // load the item metadata
-        final List<XmlElement> metadata = reader.readMetadata();
-        for (XmlElement element : metadata) {
+        final Metadata metadata = reader.readMetadata();
+        for (Element element : metadata.getChildren()) {
             final Map<String, String> attrs = element.getAttributes();
             itemService.addMetadata(context, item,
                                     attrs.get(SCHEMA),
@@ -210,7 +211,7 @@ public class ItemPacker implements Packer {
                                                                 Files.newInputStream(packaged.getBitstream()));
 
             // load the bitstream metadata
-            for (XmlElement element : packaged.getMetadata()) {
+            for (Element element : packaged.getMetadata().getChildren()) {
                 final String bitstreamField = element.getAttributes().get(NAME);
                 if (NAME.equalsIgnoreCase(bitstreamField)) {
                     bitstream.setName(context, element.getBody());
