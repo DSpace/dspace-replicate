@@ -16,6 +16,7 @@ import java.util.Map;
  * @author mikejritter
  * @since 2020-03-12
  */
+@Deprecated
 public class XmlElement {
 
     private final String body;

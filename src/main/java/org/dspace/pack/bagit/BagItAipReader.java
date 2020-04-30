@@ -40,6 +40,7 @@ import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
 import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
@@ -187,13 +188,27 @@ public class BagItAipReader {
     /**
      * Read the metadata.xml file located in a bags data directory
      *
-     * @return a list of {@link XmlElement}s which were read from the file
+     * @return the {@link Metadata} with values read from data/metadata.xml
      * @throws IOException if there was an error reading the file or parsing the xml
      */
     public Metadata readMetadata() throws IOException {
         final Path metadata = bag.resolve(metadataLocation);
         try (InputStream metadataStream = Files.newInputStream(metadata)) {
             return readXml(metadataStream);
+        }
+    }
+
+    /**
+     * Read the policy.xml file located in a bags data directory
+     *
+     * @return the {@link Policy} with values read from data/policy.xml
+     * @throws IOException if there was an error reading the file or parsing the xml
+     */
+    public Policy readPolicy() throws  IOException {
+        BagItPolicyUtil policyUtil = new BagItPolicyUtil();
+        final Path metadata = bag.resolve("data/policy.xml");
+        try (InputStream inputStream = Files.newInputStream(metadata)) {
+            return policyUtil.readXml(inputStream);
         }
     }
 
@@ -244,14 +259,21 @@ public class BagItAipReader {
                         // load the bitstream metadata
                         final Matcher matcher = uuid.matcher(bitstreamName);
                         if (matcher.matches()) {
+                            final Policy policy;
+                            final Metadata metadata;
+
                             final String metadataPath = matcher.group("uuid");
-                            final Path bitstreamXml = bundle.resolve(metadataPath + "-metadata.xml");
-                            try (InputStream inputStream = Files.newInputStream(bitstreamXml)) {
-                                final Metadata metadata = readXml(inputStream);
-                                packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata));
+                            final Path bsMetadata = bundle.resolve(metadataPath + "-metadata.xml");
+                            try (InputStream inputStream = Files.newInputStream(bsMetadata)) {
+                                metadata = readXml(inputStream);
                             }
 
-                            // todo: add policy.xml
+                            final Path bsPolicy = bundle.resolve(metadataPath + "-policy.xml");
+                            try (InputStream inputStream = Files.newInputStream(bsPolicy)) {
+                                policy = new BagItPolicyUtil().readXml(inputStream);
+                            }
+
+                            packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata, policy));
                         }
                     }
                 }

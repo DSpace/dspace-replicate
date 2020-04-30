@@ -1,11 +1,19 @@
 package org.dspace.pack.bagit;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+
+import org.apache.commons.io.input.XmlStreamReaderException;
 import org.dspace.authorize.ResourcePolicy;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.packager.PackageException;
@@ -119,6 +127,65 @@ public class BagItPolicyUtil {
             case Constants.REMOVE: return "REMOVE";
             case Constants.DEFAULT_ITEM_READ: return "READ_ITEM";
             case Constants.DEFAULT_BITSTREAM_READ: return "READ_BITSTREAM";
+        }
+
+        return null;
+    }
+
+    public Policy readXml(final InputStream inputStream) throws IOException {
+        final XMLStreamReader reader;
+        final XMLInputFactory factory = XMLInputFactory.newFactory();
+        try {
+            reader = factory.createXMLStreamReader(inputStream);
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        final Policy policy = new Policy();
+        // search for metadata stanza
+        try {
+            while (reader.hasNext()) {
+                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                    reader.getLocalName().equalsIgnoreCase(policy.getLocalName())) {
+
+                    // search for value stanzas
+                    while (reader.hasNext()) {
+                        if (reader.next() == XMLStreamConstants.START_ELEMENT &&
+                            reader.getLocalName().equalsIgnoreCase(Value.LOCAL_NAME)) {
+                            Value value = readValue(reader);
+                            if (value != null) {
+                                policy.addChild(value);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        return new Policy();
+    }
+
+    private Value readValue(XMLStreamReader reader) throws XMLStreamException {
+        // we begin on a start element so initialize the attributes first
+        final Map<String, String> attributes = new HashMap<>();
+        for (int i = 0; i < reader.getAttributeCount(); i++) {
+            attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+        }
+
+        // now iterate to find the body and end element
+        String body = null;
+        while (reader.hasNext()) {
+            switch (reader.next()) {
+                case XMLStreamConstants.CHARACTERS:
+                    body = reader.getText();
+                    break;
+                case XMLStreamConstants.END_ELEMENT:
+                    return new Value(body, attributes);
+                default:
+                    break;
+            }
         }
 
         return null;
