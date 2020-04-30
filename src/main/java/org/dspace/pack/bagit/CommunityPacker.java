@@ -35,6 +35,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CommunityService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
@@ -123,14 +124,22 @@ public class CommunityPacker implements Packer
         }
 
         final Context context = Curator.curationContext();
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
         final Metadata metadata= reader.readMetadata();
-        for (Element xmlElement : metadata.getChildren()) {
-            final String name = xmlElement.getAttributes().get("name");
-            final String value = xmlElement.getBody();
+        for (Element element : metadata.getChildren()) {
+            final String name = element.getAttributes().get("name");
+            final String value = element.getBody();
             communityService.setMetadata(context, community, name, value);
+        }
+
+        try {
+            final Policy policy = reader.readPolicy();
+            policyUtil.registerPolicies(community, policy);
+        } catch (PackageException e) {
+            throw new IOException(e.getMessage(), e);
         }
 
         final Optional<Path> logo = reader.findLogo();

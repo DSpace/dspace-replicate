@@ -37,6 +37,7 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
@@ -127,6 +128,7 @@ public class CollectionPacker implements Packer
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
 
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
@@ -135,6 +137,13 @@ public class CollectionPacker implements Packer
             final String name = element.getAttributes().get("name");
             final String value = element.getBody();
             collectionService.setMetadata(Curator.curationContext(), collection, name, value);
+        }
+
+        try {
+            final Policy policy = reader.readPolicy();
+            policyUtil.registerPolicies(collection, policy);
+        } catch (PackageException e) {
+            throw new IOException(e.getMessage(), e);
         }
 
         final Optional<Path> logo = reader.findLogo();

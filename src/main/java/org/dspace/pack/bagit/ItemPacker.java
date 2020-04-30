@@ -37,6 +37,7 @@ import org.dspace.content.Collection;
 import org.dspace.content.Item;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
@@ -180,6 +181,7 @@ public class ItemPacker implements Packer {
         }
 
         final Context context = Curator.curationContext();
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
@@ -193,6 +195,14 @@ public class ItemPacker implements Packer {
                                     attrs.get(QUALIFIER),
                                     attrs.get(LANGUAGE),
                                     element.getBody());
+        }
+
+        // set the policies for the item
+        try {
+            final Policy policy = reader.readPolicy();
+            policyUtil.registerPolicies(item, policy);
+        } catch (PackageException e) {
+            throw new IOException(e.getMessage(), e);
         }
 
         final List<PackagedBitstream> bitstreams = reader.findBitstreams();
@@ -224,6 +234,14 @@ public class ItemPacker implements Packer {
                 } else if (BUNDLE_PRIMARY.equalsIgnoreCase(bitstreamField)) {
                     bundle.setPrimaryBitstreamID(bitstream);
                 }
+            }
+
+            // and the bitstream policies
+            try {
+                final Policy bitstreamPolicy = packaged.getPolicy();
+                policyUtil.registerPolicies(bitstream, bitstreamPolicy);
+            } catch (PackageException e) {
+                throw new IOException(e.getMessage(), e);
             }
 
             bitstreamService.update(context, bitstream);
