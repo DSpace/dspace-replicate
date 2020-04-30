@@ -197,7 +197,6 @@ public class BagItAipReader {
 
                         // load the bitstream metadata
                         final Matcher matcher = uuid.matcher(bitstreamName);
-                        // todo: error on no match?
                         if (matcher.matches()) {
                             final String metadataPath = matcher.group("uuid");
                             final Path bitstreamXml = bundle.resolve(metadataPath + "-metadata.xml");
