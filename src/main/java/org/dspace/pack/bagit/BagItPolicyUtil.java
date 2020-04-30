@@ -59,7 +59,7 @@ public class BagItPolicyUtil {
 
             // in-effect = true by default, then needs checks on start + end date
             boolean inEffect = true;
-            final DateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");
+            final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             final Date endDate = resourcePolicy.getEndDate();
             final Date startDate = resourcePolicy.getStartDate();
             final Date now = new Date();
