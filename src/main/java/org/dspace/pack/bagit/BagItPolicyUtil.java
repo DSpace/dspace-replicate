@@ -21,17 +21,32 @@ import org.dspace.pack.bagit.xml.Value;
 /**
  * Operations for {@link ResourcePolicy} objects in BagIt bags
  *
+ * Generates a {@link Policy} pojo for {@link DSpaceObject}s which can be easily serialized to XML
+ *
  * @author mikejritter
  */
 public class BagItPolicyUtil {
 
+    // ResourcePolicy XML Attributes
+    private static final String RP_NAME = "rp-name";
+    private static final String RP_ACTION = "rp-action";
+    private static final String RP_CONTEXT = "rp-context";
+    private static final String RP_END_DATE = "rp-end-date";
+    private static final String RP_START_DATE = "rp-start-date";
+    private static final String RP_IN_EFFECT = "rp-in-effect";
+    private static final String RP_DESCRIPTION = "rp-description";
+
+    // from METSRightsCrosswalk, determine if a RP is for a custom group or eperson
+    private static final String MANAGED_GROUP = "MANAGED GROUP";
+    private static final String ACADEMIC_USER = "ACADEMIC USER";
+
     /**
      * Create a {@link Policy} for a {@link DSpaceObject}
      *
-     * @param dso
-     * @return
+     * @param dso The {@link DSpaceObject} to get the {@link Policy} for
+     * @return the {@link Policy}
      */
-    public Policy getPolicy(Context context, DSpaceObject dso) throws SQLException {
+    public Policy getPolicy(Context context, DSpaceObject dso) {
         final Policy policy = new Policy();
 
         for (ResourcePolicy resourcePolicy : dso.getResourcePolicies()) {
@@ -39,8 +54,8 @@ public class BagItPolicyUtil {
             String username = null;
 
             // name and description
-            attributes.put("rpName", resourcePolicy.getRpName());
-            attributes.put("rpDescription", resourcePolicy.getRpDescription());
+            attributes.put(RP_NAME, resourcePolicy.getRpName());
+            attributes.put(RP_DESCRIPTION, resourcePolicy.getRpDescription());
 
             // in-effect = true by default, then needs checks on start + end date
             boolean inEffect = true;
@@ -49,18 +64,18 @@ public class BagItPolicyUtil {
             final Date startDate = resourcePolicy.getStartDate();
             final Date now = new Date();
             if (startDate != null) {
-                attributes.put("start-date", dateFormat.format(startDate));
+                attributes.put(RP_START_DATE, dateFormat.format(startDate));
                 if (startDate.after(now)) {
                     inEffect = false;
                 }
             }
             if (endDate != null) {
-                attributes.put("end-date", dateFormat.format(startDate));
+                attributes.put(RP_END_DATE, dateFormat.format(endDate));
                 if (endDate.before(now)) {
                     inEffect = false;
                 }
             }
-            attributes.put("in-effect", Boolean.toString(inEffect));
+            attributes.put(RP_IN_EFFECT, Boolean.toString(inEffect));
 
             // attributes for determining if adding policies on a group + what type of group or policies for a user
             final Group group = resourcePolicy.getGroup();
@@ -68,27 +83,26 @@ public class BagItPolicyUtil {
             if (group != null) {
                 final String groupName = group.getName();
                 if (groupName.equals(Group.ANONYMOUS)) {
-                    attributes.put("context", Group.ANONYMOUS);
+                    attributes.put(RP_CONTEXT, Group.ANONYMOUS);
                     username = groupName;
                 } else if (groupName.equals(Group.ADMIN)) {
-                    attributes.put("context", Group.ADMIN);
+                    attributes.put(RP_CONTEXT, Group.ADMIN);
                     username = groupName;
                 } else {
-                    attributes.put("context", "Managed");
+                    attributes.put(RP_CONTEXT, MANAGED_GROUP);
                     try {
-                        final String exportName = PackageUtils.translateGroupNameForExport(context, groupName);
-                        username = exportName;
+                        username = PackageUtils.translateGroupNameForExport(context, groupName);
                     } catch (PackageException ignored) {
                         // todo: throw an exception here
                     }
                 }
             } else if (ePerson != null) {
-                attributes.put("context", "Individual");
+                attributes.put(RP_CONTEXT, ACADEMIC_USER);
                 username = ePerson.getEmail();
             } // todo: log warning if no group or user is on the policy
 
             final String action = identifyAction(resourcePolicy.getAction());
-            attributes.put("action", action);
+            attributes.put(RP_ACTION, action);
 
             policy.addChild(new Value(username, attributes));
         }
