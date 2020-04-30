@@ -32,6 +32,10 @@ public abstract class Parent implements Element {
         children.add(value);
     }
 
+    public void addAll(final List<Element> children) {
+        this.children.addAll(children);
+    }
+
     @Override
     public List<Element> getChildren() {
         return children;

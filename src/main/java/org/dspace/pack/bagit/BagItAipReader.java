@@ -39,6 +39,7 @@ import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
+import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Metadata;
 import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
@@ -192,9 +193,11 @@ public class BagItAipReader {
      * @throws IOException if there was an error reading the file or parsing the xml
      */
     public Metadata readMetadata() throws IOException {
-        final Path metadata = bag.resolve(metadataLocation);
-        try (InputStream metadataStream = Files.newInputStream(metadata)) {
-            return readXml(metadataStream);
+        final Path xml = bag.resolve(metadataLocation);
+        try (InputStream metadataStream = Files.newInputStream(xml)) {
+            final Metadata md = new Metadata();
+            md.addAll(readXml(metadataStream, md.getLocalName()));
+            return md;
         }
     }
 
@@ -205,10 +208,11 @@ public class BagItAipReader {
      * @throws IOException if there was an error reading the file or parsing the xml
      */
     public Policy readPolicy() throws  IOException {
-        BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        final Path metadata = bag.resolve("data/policy.xml");
-        try (InputStream inputStream = Files.newInputStream(metadata)) {
-            return policyUtil.readXml(inputStream);
+        final Path xml = bag.resolve("data/policy.xml");
+        try (InputStream inputStream = Files.newInputStream(xml)) {
+            final Policy policy = new Policy();
+            policy.addAll(readXml(inputStream, policy.getLocalName()));
+            return policy;
         }
     }
 
@@ -265,12 +269,14 @@ public class BagItAipReader {
                             final String metadataPath = matcher.group("uuid");
                             final Path bsMetadata = bundle.resolve(metadataPath + "-metadata.xml");
                             try (InputStream inputStream = Files.newInputStream(bsMetadata)) {
-                                metadata = readXml(inputStream);
+                                metadata = new Metadata();
+                                metadata.addAll(readXml(inputStream, metadata.getLocalName()));
                             }
 
                             final Path bsPolicy = bundle.resolve(metadataPath + "-policy.xml");
                             try (InputStream inputStream = Files.newInputStream(bsPolicy)) {
-                                policy = new BagItPolicyUtil().readXml(inputStream);
+                                policy = new Policy();
+                                policy.addAll(readXml(inputStream, policy.getLocalName()));
                             }
 
                             packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata, policy));
@@ -297,10 +303,10 @@ public class BagItAipReader {
      * metadata stanza as well as have value stanzas which store the data to read.
      *
      * @param inputStream the InputStream for the metadata file
-     * @return a list of {@link XmlElement}s read from the file
+     * @return a list of {@link Element}s read from the file
      * @throws IOException if there is an error reading the file or parsing the xml
      */
-    private Metadata readXml(final InputStream inputStream) throws IOException {
+    private List<Element> readXml(final InputStream inputStream, final String rootStanza) throws IOException {
         final XMLStreamReader reader;
         final XMLInputFactory factory = XMLInputFactory.newFactory();
         try {
@@ -309,12 +315,12 @@ public class BagItAipReader {
             throw new IOException(e.getMessage(), e);
         }
 
-        final Metadata metadata = new Metadata();
+        final List<Element> children = new ArrayList<>();
         try {
             // search for metadata stanza
             while (reader.hasNext()) {
                 if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                    reader.getLocalName().equalsIgnoreCase(metadata.getLocalName())) {
+                    reader.getLocalName().equalsIgnoreCase(rootStanza)) {
 
                     // search for value stanzas
                     while (reader.hasNext()) {
@@ -322,7 +328,7 @@ public class BagItAipReader {
                             reader.getLocalName().equalsIgnoreCase(Value.LOCAL_NAME)) {
                             Value element = readElement(reader);
                             if (element != null) {
-                                metadata.addChild(element);
+                                children.add(element);
                             }
                         }
                     }
@@ -332,7 +338,7 @@ public class BagItAipReader {
             throw new IOException(e.getMessage(), e);
         }
 
-        return metadata;
+        return children;
     }
 
     private Value readElement(XMLStreamReader reader) throws XMLStreamException {
