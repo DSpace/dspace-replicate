@@ -32,7 +32,8 @@ import org.apache.commons.io.FileUtils;
 import org.duraspace.bagit.BagDeserializer;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.SerializationSupport;
-import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Assist in reading aips and retrieving information from the package.
@@ -42,7 +43,8 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
  */
 public class BagItAipReader {
 
-    private final String xmlSuffix = ".xml";
+    private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
+
     private final String dataDirectory = "data";
     private final String metadataLocation = dataDirectory + "/metadata.xml";
     private final String objectPropertiesLocation = dataDirectory + "/object.properties";
@@ -101,7 +103,8 @@ public class BagItAipReader {
 
         try {
             lines = Files.readAllLines(file, Charset.defaultCharset());
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            logger.warn("Error reading data file {} in BagIt AIP", relativePath, exception);
             lines = Collections.emptyList();
         }
 
