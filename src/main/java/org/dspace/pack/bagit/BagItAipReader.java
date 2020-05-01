@@ -7,6 +7,9 @@
  */
 package org.dspace.pack.bagit;
 
+import static org.dspace.pack.PackerFactory.BAG_PROFILE_KEY;
+import static org.dspace.pack.PackerFactory.DEFAULT_PROFILE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -54,11 +57,6 @@ public class BagItAipReader {
 
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
 
-    private static final String REPLICATE_BAGIT_PROFILE = "replicate.bag.profile";
-    private final ConfigurationService configurationService =
-        DSpaceServicesFactory.getInstance().getConfigurationService();
-
-    private final String xmlSuffix = ".xml";
     private final String dataDirectory = "data";
     private final String metadataLocation = dataDirectory + "/metadata.xml";
     private final String objectPropertiesLocation = dataDirectory + "/object.properties";
@@ -78,8 +76,9 @@ public class BagItAipReader {
             throw new IOException("Missing archive: " + bag);
         }
 
-        final String defaultProfile = BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier();
-        final String profileName = configurationService.getProperty(REPLICATE_BAGIT_PROFILE, defaultProfile);
+        // get the BagProfile
+        final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+        final String profileName = configurationService.getProperty(BAG_PROFILE_KEY, DEFAULT_PROFILE);
         this.profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
 
         // deserialize if necessary
