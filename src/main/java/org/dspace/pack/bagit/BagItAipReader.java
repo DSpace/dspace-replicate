@@ -120,7 +120,7 @@ public class BagItAipReader {
         final DirectoryStream.Filter<Path> bitstreamFilter = new DirectoryStream.Filter<Path>() {
             @Override
             public boolean accept(Path path) {
-                // checking start with on the Path doesn't really work as expected, so get the relative name and make
+                // using startWith() directly on the Path doesn't work as expected, so get the relative name and make
                 // it a String
                 final String filename = path.getFileName().toString();
                 return path.toFile().isFile() && filename.startsWith("bitstream");
