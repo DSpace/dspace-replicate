@@ -148,8 +148,15 @@ public class BagItPolicyUtil {
             final Map<String, String> attributes = element.getAttributes();
             final ResourcePolicy resourcePolicy = resourcePolicyService.create(Curator.curationContext());
 
-            resourcePolicy.setRpName(attributes.get(RP_NAME));
-            resourcePolicy.setRpDescription(attributes.get(RP_DESCRIPTION));
+            final String rpName = attributes.get(RP_NAME);
+            if (rpName != null) {
+                resourcePolicy.setRpName(rpName);
+            }
+
+            final String rpDescription = attributes.get(RP_DESCRIPTION);
+            if (rpDescription != null) {
+                resourcePolicy.setRpDescription(rpDescription);
+            }
 
             final String rpStartDate = attributes.get(RP_START_DATE);
             if (rpStartDate != null) {
@@ -194,23 +201,15 @@ public class BagItPolicyUtil {
             }
 
             final Integer action = actionMapper().get(attributes.get(RP_ACTION));
-            resourcePolicy.setAction(action);
+            if (action != null) {
+                resourcePolicy.setAction(action);
+            } // exception?
 
             policies.add(resourcePolicy);
         }
 
         authorizeService.removeAllPolicies(Curator.curationContext(), dSpaceObject);
-        authorizeService.addPolicies(Curator.curationContext(), policies ,dSpaceObject);
-    }
-
-    /**
-     * Get the integer for the ResourcePolicy action
-     *
-     * @param action the String representation of the action
-     * @return the integer of the action
-     */
-    public int getActionInt(final String action) {
-        return actionMapper().get(action);
+        authorizeService.addPolicies(Curator.curationContext(), policies, dSpaceObject);
     }
 
     /**
