@@ -15,18 +15,19 @@ import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OTHER_IDS;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.PackerFactory.WITHDRAWN;
-import static org.dspace.pack.bagit.BagItAipWriter.*;
+import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_ITEM;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
@@ -39,6 +40,7 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
+import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 
@@ -47,8 +49,7 @@ import org.dspace.pack.Packer;
  *
  * @author richardrodgers
  */
-public class ItemPacker implements Packer
-{
+public class ItemPacker implements Packer {
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
     private BundleService bundleService = ContentServiceFactory.getInstance().getBundleService();
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
@@ -160,94 +161,61 @@ public class ItemPacker implements Packer
     }
 
     @Override
-    public void unpack(File archive) throws AuthorizeException, IOException, SQLException
-    {
-        if (archive == null || ! archive.exists())
-        {
+    public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for item: " + item.getHandle());
         }
-        Bag bag = new Bag(archive);
-        // add the metadata first
-        Bag.XmlReader reader = bag.xmlReader("metadata.xml");
-        if (reader != null && reader.findStanza("metadata"))
-        {
-            Bag.Value value = null;
-            while((value = reader.nextValue()) != null)
-            {
-                itemService.addMetadata(Curator.curationContext(),
-                                 item,
-                                 value.attrs.get("schema"),
-                                 value.attrs.get("element"),
-                                 value.attrs.get("qualifier"),
-                                 value.attrs.get("language"),
-                                 value.val);
-            }
-            reader.close();
+
+        final Context context = Curator.curationContext();
+        final BagItAipReader reader = new BagItAipReader(archive.toPath());
+
+        // load the item metadata
+        final List<XmlElement> metadata = reader.readMetadata();
+        for (XmlElement element : metadata) {
+            final Map<String, String> attrs = element.getAttributes();
+            itemService.addMetadata(context, item,
+                                    attrs.get(SCHEMA),
+                                    attrs.get(ELEMENT),
+                                    attrs.get(QUALIFIER),
+                                    attrs.get(LANGUAGE),
+                                    element.getBody());
         }
-        // proceed to bundle data & metadata
-        for (File bfile : bag.listDataFiles())
-        {
-            // only bundles are directories
-            if (! bfile.isDirectory())
-            {
-                continue;
+
+        final List<PackagedBitstream> bitstreams = reader.findBitstreams();
+        for (PackagedBitstream packaged : bitstreams) {
+            // get or create a bundle
+            final Bundle bundle;
+            final List<Bundle> bundles = itemService.getBundles(item, packaged.getBundle());
+            if (bundles != null && !bundles.isEmpty()) {
+                bundle = bundles.get(0);
+            } else {
+                bundle = bundleService.create(context, item, packaged.getBundle());
             }
-            Bundle bundle = bundleService.create(Curator.curationContext(), item, bfile.getName());
-            for (File file : bfile.listFiles(new FileFilter() {
-                            public boolean accept(File file) {
-                                return ! file.getName().endsWith(".xml");
-                            }
-            })) {
-                String relPath = bundle.getName() + File.separator + file.getName();
-                InputStream in = bag.dataStream(relPath);
-                if (in != null)
-                {
-                    Bitstream bs = bitstreamService.create(Curator.curationContext(), bundle, in);
-                    // now set bitstream metadata
-                    reader = bag.xmlReader(relPath + "-metadata.xml");
-                    if (reader != null && reader.findStanza("metadata"))
-                    {
-                        Bag.Value value = null;
-                        // field access is hard-coded in Bitstream class
-                        while((value = reader.nextValue()) != null)
-                        {
-                            String name = value.name;
-                            if ("name".equals(name))
-                            {
-                                bs.setName(Curator.curationContext(), value.val);
-                            }
-                            else if ("source".equals(name))
-                            {
-                                bs.setSource(Curator.curationContext(), value.val);
-                            }
-                            else if ("description".equals(name))
-                            {
-                                bs.setDescription(Curator.curationContext(), value.val);
-                            }
-                            else if ("sequence_id".equals(name))
-                            {
-                                bs.setSequenceID(Integer.valueOf(value.val));
-                            }
-                            else if ("bundle_primary".equals(name))
-                            {
-                                // special case - bundle metadata in bitstream
-                                bundle.setPrimaryBitstreamID(bs);
-                            }
-                        }
-                        reader.close();
-                    }
-                    else
-                    {
-                        String missing = relPath + "-metadata.xml";
-                        throw new IOException("Cannot locate bitstream metadata file: " + missing);
-                    }
-                    bitstreamService.update(Curator.curationContext(), bs);
+
+            // create a bitstream
+            final Bitstream bitstream = bitstreamService.create(context, bundle,
+                                                                Files.newInputStream(packaged.getBitstream()));
+
+            // load the bitstream metadata
+            for (XmlElement element : packaged.getMetadata()) {
+                final String bitstreamField = element.getAttributes().get(NAME);
+                if (NAME.equalsIgnoreCase(bitstreamField)) {
+                    bitstream.setName(context, element.getBody());
+                } else if (SOURCE.equalsIgnoreCase(bitstreamField)) {
+                    bitstream.setSource(context, element.getBody());
+                } else if (SEQUENCE_ID.equalsIgnoreCase(bitstreamField)) {
+                    bitstream.setSequenceID(Integer.parseInt(element.getBody()));
+                } else if (DESCRIPTION.equalsIgnoreCase(bitstreamField)) {
+                    bitstream.setDescription(context, element.getBody());
+                } else if (BUNDLE_PRIMARY.equalsIgnoreCase(bitstreamField)) {
+                    bundle.setPrimaryBitstreamID(bitstream);
                 }
-                in.close();
             }
+
+            bitstreamService.update(context, bitstream);
         }
-        // clean up bag
-        bag.empty();
+
+        reader.clean();
     }
 
     @Override

@@ -19,12 +19,16 @@ import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -32,6 +36,7 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
+import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
@@ -104,29 +109,31 @@ public class CommunityPacker implements Packer
     }
 
     @Override
-    public void unpack(File archive) throws AuthorizeException, IOException, SQLException
-    {
-        if (archive == null)
-        {
+    public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for community: " + community.getHandle());
         }
-        Bag bag = new Bag(archive);
-        // add the metadata
-        Bag.XmlReader reader = bag.xmlReader("metadata.xml");
-        if (reader != null && reader.findStanza("metadata")) {
-            Bag.Value value = null;
-            while((value = reader.nextValue()) != null)
-            {
-                communityService.setMetadata(Curator.curationContext(), community, value.name, value.val);
-            }
-            reader.close();
+
+        final Context context = Curator.curationContext();
+        final BagItAipReader reader = new BagItAipReader(archive.toPath());
+
+        final List<XmlElement> xmlElements = reader.readMetadata();
+        for (XmlElement xmlElement : xmlElements) {
+            final String name = xmlElement.getAttributes().get("name");
+            final String value = xmlElement.getBody();
+            communityService.setMetadata(context, community, name, value);
         }
-        // also install logo or set to null
-        communityService.setLogo(Curator.curationContext(), community, bag.dataStream("logo"));
-        // now write data back to DB
-        communityService.update(Curator.curationContext(), community);
-        // clean up bag
-        bag.empty();
+
+        final Optional<Path> logo = reader.findLogo();
+        if (logo.isPresent()) {
+            try (InputStream logoStream = Files.newInputStream(logo.get())) {
+                communityService.setLogo(context, community, logoStream);
+            }
+        }
+
+        communityService.update(context, community);
+
+        reader.clean();
     }
 
     @Override

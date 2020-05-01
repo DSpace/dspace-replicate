@@ -19,6 +19,9 @@ import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -111,30 +115,30 @@ public class CollectionPacker implements Packer
     }
 
     @Override
-    public void unpack(File archive) throws AuthorizeException, IOException, SQLException
-    {
-        if (archive == null)
-        {
+    public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
-        Bag bag = new Bag(archive);
-        // add the metadata
-        Bag.XmlReader reader = bag.xmlReader("metadata.xml");
-        if (reader != null && reader.findStanza("metadata"))
-        {
-            Bag.Value value = null;
-            while((value = reader.nextValue()) != null)
-            {
-                collectionService.setMetadata(Curator.curationContext(), collection, value.name, value.val);
-            }
-            reader.close();
+
+        final BagItAipReader reader = new BagItAipReader(archive.toPath());
+
+        final List<XmlElement> elements = reader.readMetadata();
+        for (XmlElement element : elements) {
+            final String name = element.getAttributes().get("name");
+            final String value = element.getBody();
+            collectionService.setMetadata(Curator.curationContext(), collection, name, value);
         }
-          // also install logo or set to null
-        collectionService.setLogo(Curator.curationContext(), collection, bag.dataStream("logo"));
-        // now write data back to DB
+
+        final Optional<Path> logo = reader.findLogo();
+        if (logo.isPresent()) {
+            try (InputStream logoStream = Files.newInputStream(logo.get())) {
+                collectionService.setLogo(Curator.curationContext(), collection, logoStream);
+            }
+        }
+
         collectionService.update(Curator.curationContext(), collection);
-         // clean up bag
-        bag.empty();
+
+        reader.clean();
     }
 
     @Override

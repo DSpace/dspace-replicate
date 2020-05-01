@@ -13,11 +13,12 @@ import static org.dspace.pack.PackerFactory.OBJECT_ID;
 import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
 import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
-import static org.dspace.pack.bagit.BagItAipWriter.*;
+import static org.dspace.pack.bagit.BagItAipWriter.BAG_MAN;
+import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_DELETION;
+import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -96,35 +97,20 @@ public class CatalogPacker implements Packer
     }
 
     @Override
-    public void unpack(File archive) throws IOException
-    {
-        if (archive == null)
-        {
+    public void unpack(File archive) throws IOException {
+        if (archive == null || !archive.exists()) {
             throw new IOException("Missing archive for catalog: " + objectId);
         }
-        Bag bag = new Bag(archive);
-        // just populate the member list
-        InputStream bagIn = bag.dataStream(OBJFILE);
-        Properties props = new Properties();
-        props.load(bagIn);
-        bagIn.close();
+
+        final BagItAipReader reader = new BagItAipReader(archive.toPath());
+
+        // just populate properties and member list
+        final Properties props = reader.readProperties();
         ownerId = props.getProperty(OWNER_ID);
-        members = new ArrayList<String>();
-        Bag.FlatReader reader = bag.flatReader("members");
-        if (reader != null)
-        {
-            String member = null;
-            while ((member = reader.readLine()) != null)
-            {
-                members.add(member);
-            }
-            reader.close();
-        }
-        // clean up bag
-        bag.empty();
+        members = reader.readFile("members");
+
+        reader.clean();
     }
-
-
 
     @Override
     public long size(String method)

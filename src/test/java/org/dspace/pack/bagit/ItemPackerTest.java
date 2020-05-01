@@ -12,6 +12,7 @@ import static org.dspace.content.MetadataSchema.DC_SCHEMA;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Mockito.eq;
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Path;
@@ -274,6 +276,59 @@ public class ItemPackerTest extends BagItPackerTest {
         final Collection owning = initDSO(Collection.class);
         owning.addHandle(handleEntity);
         return owning;
+    }
+
+    @Test
+    public void testUnpack() throws Exception {
+        final String license = LICENSE_NAME.toUpperCase();
+        final String original = "ORIGINAL";
+        final String metadataRegex = "title|source|description";
+        final String bundlesRegex = license + "|" + original;
+        // push to setup
+        final URL resources = CollectionPackerTest.class.getClassLoader().getResource("unpack");
+        assertNotNull(resources);
+
+        final Path archive = Paths.get(resources.toURI()).resolve("ITEM@123456789-3.zip");
+        final Path openArchive = Paths.get(resources.toURI()).resolve("ITEM@123456789-3");
+
+        // might be good to use the defined bundles/bitstreams from the setup
+        final Item item = initDSO(Item.class);
+        final Bundle licenseBundle = initDSO(Bundle.class);
+        final Bundle originalBundle = initDSO(Bundle.class);
+        final Bitstream licenseBitstream = initDSO(Bitstream.class);
+        final Bitstream originalBitstream = initDSO(Bitstream.class);
+
+        when(bundleService.create(any(Context.class), eq(item), eq(license))).thenReturn(licenseBundle);
+        when(bundleService.create(any(Context.class), eq(item), eq(original))).thenReturn(originalBundle);
+        when(bitstreamService.create(any(Context.class), eq(licenseBundle), any(InputStream.class)))
+            .thenReturn(licenseBitstream);
+        when(bitstreamService.create(any(Context.class), eq(originalBundle), any(InputStream.class)))
+            .thenReturn(originalBitstream);
+
+        final ItemPacker packer = new ItemPacker(item, archFmt);
+        packer.unpack(archive.toFile());
+
+        verify(itemService, times(8)).addMetadata(any(Context.class), eq(item), anyString(), anyString(), anyString(),
+                                                  anyString(), anyString());
+        verify(itemService, times(2)).getBundles(eq(item), anyString());
+        verify(bundleService, times(2)).create(any(Context.class), eq(item), matches(bundlesRegex));
+        verify(bitstreamService, times(1)).create(any(Context.class), eq(licenseBundle), any(InputStream.class));
+        verify(bitstreamService, times(1)).create(any(Context.class), eq(originalBundle), any(InputStream.class));
+
+        verify(bitstreamService, times(2)).setMetadataSingleValue(any(Context.class), eq(licenseBitstream),
+                                                                  eq(DC_SCHEMA), matches(metadataRegex),
+                                                                  isNull(String.class), isNull(String.class),
+                                                                  anyString());
+
+        verify(bitstreamService, times(3)).setMetadataSingleValue(any(Context.class), eq(originalBitstream),
+                                                                  eq(DC_SCHEMA), matches(metadataRegex),
+                                                                  isNull(String.class), isNull(String.class),
+                                                                  anyString());
+
+        verify(bitstreamService, times(1)).update(any(Context.class), eq(licenseBitstream));
+        verify(bitstreamService, times(1)).update(any(Context.class), eq(originalBitstream));
+
+        assertThat(openArchive).doesNotExist();
     }
 
 }
