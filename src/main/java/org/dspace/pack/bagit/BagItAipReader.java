@@ -96,7 +96,7 @@ public class BagItAipReader {
      * @throws RuntimeException if there is an error during validation
      */
     public void validateBag() {
-        Bag locBag;
+        final Bag locBag;
         final BagReader bagReader = new BagReader();
         final BagVerifier verifier = new BagVerifier() ;
         try {
