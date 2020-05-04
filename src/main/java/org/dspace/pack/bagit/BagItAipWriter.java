@@ -77,6 +77,7 @@ public class BagItAipWriter {
     private final String METADATA_XML = "metadata.xml";
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
+    // Fields used for book keeping
     private final AtomicLong successBytes = new AtomicLong();
     private final AtomicLong successFiles = new AtomicLong();
     private final Map<File, String> checksums = new HashMap<>();
@@ -144,6 +145,13 @@ public class BagItAipWriter {
     public File packageAip() throws IOException, SQLException, AuthorizeException {
         final Context curationContext = Curator.curationContext();
         final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+        final String profileName = configurationService.getProperty(BAG_PROFILE_KEY, DEFAULT_PROFILE);
+
+        // validate the tag file configuration before starting to write
+        // Note: the validateTagFiles method will throw a RuntimeException if validation fails
+        final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
+        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getInstance().getTagFiles();
+        profile.validateTagFiles(tagFiles);
 
         // check if the Bag was already being worked on
         final Path dataDir = directory.toPath().resolve(DATA_DIR);
@@ -155,12 +163,9 @@ public class BagItAipWriter {
         // setup the BagProfile and BagWriter
         final BagItDigest digest = BagItDigest.MD5;
         final MessageDigest messageDigest = digest.messageDigest();
-        final String profileName = configurationService.getProperty(BAG_PROFILE_KEY, DEFAULT_PROFILE);
-        final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
         final BagWriter bag = new BagWriter(directory, Collections.singleton(digest));
 
-        // set up the tag files
-        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getInstance().getTagFiles();
+        // set up the tag files for the bag
         for (String tag : tagFiles.keySet()) {
             bag.addTags(tag, tagFiles.get(tag));
         }
@@ -248,7 +253,6 @@ public class BagItAipWriter {
         }
 
         // Finalize the Bag (write + serialize)
-        // todo: get extra tag/bag-info data through some configuration
         bag.registerChecksums(digest, checksums);
         bag.addTags(BagConfig.BAG_INFO_KEY, generateBagInfo(profile));
         bag.write();
