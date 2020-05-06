@@ -81,7 +81,6 @@ public class BagItAipReaderTest extends BagItPackerTest {
         reader.clean();
     }
 
-
     @After
     public void verifyMocks() {
     }

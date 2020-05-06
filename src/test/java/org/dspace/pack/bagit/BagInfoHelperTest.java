@@ -3,6 +3,7 @@ package org.dspace.pack.bagit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.dspace.TestContentServiceFactory.CONTENT_SERVICE_FACTORY;
 import static org.dspace.TestDSpaceServicesFactory.DSPACE_SERVICES_FACTORY;
+import static org.duraspace.bagit.BagConfig.*;
 
 import java.util.Map;
 
@@ -24,9 +25,9 @@ public class BagInfoHelperTest {
     private static final String ARCH_FMT = "zip";
     private static final String ARCH_FMT_KEY = "replicate.packer.archfmt";
     private static final String SOURCE_ORG = "org.dspace.dspace-replicate";
-    private static final String SOURCE_ORG_KEY = "replicate-bagit.tag.bag-info.source-organization";
+    private static final String SOURCE_ORG_CONFIG_KEY = "replicate-bagit.tag.bag-info.source-organization";
     private static final String OTHER_INFO_MISC = "bag-info-helper-test";
-    private static final String OTHER_INFO_MISC_KEY = "replicate-bagit.tag.other-info.misc";
+    private static final String OTHER_INFO_MISC_CONFIG_KEY = "replicate-bagit.tag.other-info.misc";
 
     private static final String BAG_INFO = "bag-info.txt";
     private static final String OTHER_INFO = "other-info.txt";
@@ -38,8 +39,8 @@ public class BagInfoHelperTest {
         final ServiceManager serviceManager = new TestServiceManager();
         configurationService = new TestConfigurationService();
         configurationService.setProperty(ARCH_FMT_KEY, ARCH_FMT);
-        configurationService.setProperty(SOURCE_ORG_KEY, SOURCE_ORG);
-        configurationService.setProperty(OTHER_INFO_MISC_KEY, OTHER_INFO_MISC);
+        configurationService.setProperty(SOURCE_ORG_CONFIG_KEY, SOURCE_ORG);
+        configurationService.setProperty(OTHER_INFO_MISC_CONFIG_KEY, OTHER_INFO_MISC);
 
         serviceManager.registerService(ConfigurationService.class.getName(), configurationService);
         serviceManager.registerService(DSPACE_SERVICES_FACTORY, new TestDSpaceServicesFactory());
@@ -57,7 +58,7 @@ public class BagInfoHelperTest {
 
         assertThat(tagFiles).hasSize(2);
         assertThat(tagFiles).containsOnlyKeys(BAG_INFO, OTHER_INFO);
-        assertThat(tagFiles).containsEntry(BAG_INFO, ImmutableMap.of("Source-Organization", SOURCE_ORG))
+        assertThat(tagFiles).containsEntry(BAG_INFO, ImmutableMap.of(SOURCE_ORGANIZATION_KEY, SOURCE_ORG))
                             .containsEntry(OTHER_INFO, ImmutableMap.of("Misc", OTHER_INFO_MISC));
     }
 
