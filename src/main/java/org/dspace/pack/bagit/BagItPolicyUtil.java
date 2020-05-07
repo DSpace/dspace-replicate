@@ -1,5 +1,6 @@
 package org.dspace.pack.bagit;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -31,6 +32,8 @@ import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Operations for {@link ResourcePolicy} objects in BagIt bags
@@ -40,6 +43,8 @@ import org.dspace.pack.bagit.xml.Value;
  * @author mikejritter
  */
 public class BagItPolicyUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(BagItPolicyUtil.class);
 
     // ResourcePolicy XML Attributes
     private static final String RP_NAME = "rp-name";
@@ -62,7 +67,7 @@ public class BagItPolicyUtil {
      * @param dso The {@link DSpaceObject} to get the {@link Policy} for
      * @return the {@link Policy}
      */
-    public Policy getPolicy(final Context context, final DSpaceObject dso) {
+    public Policy getPolicy(final Context context, final DSpaceObject dso) throws IOException {
         final Policy policy = new Policy();
         final BiMap<Integer, String> actions = actionMapper().inverse();
 
@@ -108,14 +113,18 @@ public class BagItPolicyUtil {
                     attributes.put(RP_CONTEXT, MANAGED_GROUP);
                     try {
                         username = PackageUtils.translateGroupNameForExport(context, groupName);
-                    } catch (PackageException ignored) {
-                        // todo: throw an exception here
+                    } catch (PackageException exception) {
+                        // since this is called by a Packer, wrap the PackageException in an IOException so it can
+                        // continue to be thrown up the stack
+                        throw new IOException(exception.getMessage(), exception);
                     }
                 }
             } else if (ePerson != null) {
                 attributes.put(RP_CONTEXT, ACADEMIC_USER);
                 username = ePerson.getEmail();
-            } // todo: log warning if no group or user is on the policy
+            } else {
+                logger.warn("No EPerson or Group found for policy!");
+            }
 
             final String action = actions.get(resourcePolicy.getAction());
             attributes.put(RP_ACTION, action);
@@ -164,7 +173,7 @@ public class BagItPolicyUtil {
                     final Date date = dateFormat.parse(rpStartDate);
                     resourcePolicy.setStartDate(date);
                 } catch (ParseException ignored) {
-                    // todo: handle
+                    logger.warn("Failed to parse rp-start-date. The date needs to be in the format 'yyyy-MM-dd'.");
                 }
             }
 
@@ -174,36 +183,52 @@ public class BagItPolicyUtil {
                     final Date date = dateFormat.parse(rpEndDate);
                     resourcePolicy.setEndDate(date);
                 } catch (ParseException ignored) {
-                    // todo: handle
+                    logger.warn("Failed to parse rp-start-date. The date needs to be in the format 'yyyy-MM-dd'.");
                 }
             }
 
             final String userContext = attributes.get(RP_CONTEXT);
             if (Group.ADMIN.equalsIgnoreCase(userContext)) {
-                // todo: null check
                 final Group group = groupService.findByName(Curator.curationContext(), Group.ADMIN);
+                if (group == null) {
+                    throw new PackageException("The Administrator Group is missing from the database.");
+                }
+
                 resourcePolicy.setGroup(group);
             } else if (Group.ANONYMOUS.equalsIgnoreCase(userContext)) {
-                // todo: null check
                 final Group group = groupService.findByName(Curator.curationContext(), Group.ANONYMOUS);
+                if (group == null) {
+                    throw new PackageException("The Anonymous Group is missing from the database.");
+                }
+
                 resourcePolicy.setGroup(group);
             } else if (MANAGED_GROUP.equalsIgnoreCase(userContext)) {
-                // todo: null check
                 final String groupName = PackageUtils.translateGroupNameForImport(Curator.curationContext(), element.getBody());
                 final Group group = groupService.findByName(Curator.curationContext(), groupName);
+                if (group == null) {
+                    throw new PackageException("Could not find managed group " + groupName + " in the database");
+                }
+
                 resourcePolicy.setGroup(group);
             } else if (ACADEMIC_USER.equalsIgnoreCase(userContext)) {
-                // todo: null check
-                final EPerson ePerson = ePersonService.findByEmail(Curator.curationContext(), element.getBody());
+                final String email = element.getBody();
+                final EPerson ePerson = ePersonService.findByEmail(Curator.curationContext(), email);
+                if (ePerson == null) {
+                    throw new PackageException("Could not find ePerson " + email + " in the database");
+                }
+
                 resourcePolicy.setEPerson(ePerson);
             } else {
-                // error
+                // throw an exception as well?
+                logger.warn("Cannot import policy with rp-context {}, value must be one of {}, {}, {}, or {}",
+                            userContext, Group.ADMIN, Group.ANONYMOUS, MANAGED_GROUP, ACADEMIC_USER);
             }
 
             final Integer action = actionMapper().get(attributes.get(RP_ACTION));
+            // exception if null?
             if (action != null) {
                 resourcePolicy.setAction(action);
-            } // exception?
+            }
 
             policies.add(resourcePolicy);
         }
