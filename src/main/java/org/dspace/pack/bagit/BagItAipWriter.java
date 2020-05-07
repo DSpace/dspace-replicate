@@ -359,7 +359,7 @@ public class BagItAipWriter {
      * Write the xml {@code elements} to the given {@code metadata} file. After writing the message digest of the
      * written xml file is returned.
      *
-     * @param element       the {@link XmlElement}s to write to the file
+     * @param element       the {@link Element} to write to the file
      * @param metadata      the {@link Path} to the xml file
      * @param messageDigest the {@link MessageDigest} tracking the digest of the file
      * @throws IOException if there are any errors writing to the {@code metadata}
