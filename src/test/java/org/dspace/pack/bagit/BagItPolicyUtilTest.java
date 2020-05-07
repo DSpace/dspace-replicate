@@ -5,6 +5,7 @@ import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,9 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.List;
 
 import org.dspace.authorize.ResourcePolicy;
 import org.dspace.authorize.factory.AuthorizeServiceFactory;
@@ -21,14 +25,17 @@ import org.dspace.authorize.service.ResourcePolicyService;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.core.Context;
+import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
+import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Policy;
+import org.dspace.pack.bagit.xml.Value;
+import org.joda.time.DateTime;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -57,8 +64,132 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
     }
 
     @Test
-    @Ignore
-    public void getPolicy() {
+    public void getPolicyForAdmin() throws Exception {
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+        // Setup group
+        final Group adminGroup = mock(Group.class);
+        when(adminGroup.getName()).thenReturn(Group.ADMIN);
+
+        // set up an admin ResourcePolicy for the Community
+        final DateTime groupDateTime = DateTime.now().minusDays(1);
+        final ResourcePolicy adminGroupPolicy = initReloadable(ResourcePolicy.class);
+        adminGroupPolicy.setGroup(adminGroup);
+        adminGroupPolicy.setStartDate(groupDateTime.toDate());
+        community.getResourcePolicies().add(adminGroupPolicy);
+
+        // now test that the Policy pojo we get back is correct
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
+        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+
+        assertThat(policy).isNotNull();
+        final List<Element> children = policy.getChildren();
+        assertThat(children)
+            .isNotNull()
+            .hasSize(1);
+
+        final Element child = children.get(0);
+        assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
+        assertThat(child.getBody()).isEqualTo(Group.ADMIN);
+
+        // in-effect should be true, start date == groupDateTime, end date == null
+        assertThat(child.getAttributes())
+            .containsEntry("rp-in-effect", "true")
+            .containsEntry("rp-start-date", dateFormat.format(groupDateTime.toDate()))
+            .containsEntry("rp-context", Group.ADMIN)
+            .containsEntry("rp-action", "READ")
+            .containsEntry("rp-name", null)
+            .containsEntry("rp-description", null)
+            .doesNotContainKey("rp-end-date");
+
+        verify(adminGroup, times(1)).getName();
+    }
+
+    @Test
+    public void getPolicyForAnonymous() throws Exception {
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+        // setup the Group
+        final Group anonGroup = mock(Group.class);
+        when(anonGroup.getName()).thenReturn(Group.ANONYMOUS);
+
+        // set up the ResourcePolicy
+        final DateTime groupDateTime = DateTime.now().minusDays(1);
+        final ResourcePolicy anonGroupPolicy = initReloadable(ResourcePolicy.class);
+        anonGroupPolicy.setGroup(anonGroup);
+        anonGroupPolicy.setEndDate(groupDateTime.toDate());
+
+        community.getResourcePolicies().add(anonGroupPolicy);
+
+        // now test that the Policy pojo we get back is correct
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
+        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+
+        assertThat(policy).isNotNull();
+        final List<Element> children = policy.getChildren();
+        assertThat(children)
+            .isNotNull()
+            .hasSize(1);
+
+        final Element child = children.get(0);
+        assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
+        assertThat(child.getBody()).matches(Group.ANONYMOUS);
+
+        // in-effect should be false, start date == null, end date == groupDateTime
+        assertThat(child.getAttributes())
+            .containsEntry("rp-in-effect", "false")
+            .containsEntry("rp-end-date", dateFormat.format(groupDateTime.toDate()))
+            .containsEntry("rp-context", Group.ANONYMOUS)
+            .containsEntry("rp-action", "READ")
+            .containsEntry("rp-name", null)
+            .containsEntry("rp-description", null)
+            .doesNotContainKey("rp-start-date");
+
+        verify(anonGroup, times(1)).getName();
+    }
+
+    @Test
+    public void getPolicyForEPerson() throws Exception {
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+        // setup the EPerson
+        final String epersonEmail = "bagit-policy-util-test";
+        final EPerson ePerson = mock(EPerson.class);
+        when(ePerson.getEmail()).thenReturn(epersonEmail);
+
+        // Create the ePerson policy
+        final DateTime ePersonDateTime = DateTime.now().plusDays(1);
+        final ResourcePolicy ePersonPolicy = initReloadable(ResourcePolicy.class);
+        ePersonPolicy.setEPerson(ePerson);
+        ePersonPolicy.setStartDate(ePersonDateTime.toDate());
+
+        community.getResourcePolicies().add(ePersonPolicy);
+
+        // now test that the Policy pojo we get back is correct
+        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
+        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+
+        assertThat(policy).isNotNull();
+        final List<Element> children = policy.getChildren();
+        assertThat(children)
+            .isNotNull()
+            .hasSize(1);
+
+        final Element child = children.get(0);
+        assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
+        assertThat(child.getBody()).matches(epersonEmail);
+
+        // in-effect should be true, start date == ePersonDateTime, end date == null
+        assertThat(child.getAttributes())
+            .containsEntry("rp-in-effect", "false")
+            .containsEntry("rp-start-date", dateFormat.format(ePersonDateTime.toDate()))
+            .containsEntry("rp-context", "ACADEMIC USER")
+            .containsEntry("rp-action", "READ")
+            .containsEntry("rp-name", null)
+            .containsEntry("rp-description", null)
+            .doesNotContainKey("rp-end-date");
+
+        verify(ePerson, times(1)).getEmail();
     }
 
     @Test
@@ -81,7 +212,8 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         // Set up expected interactions with our mocks
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
-        final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance().getResourcePolicyService();
+        final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance()
+                                                                                   .getResourcePolicyService();
         when(resourcePolicyService.create(any(Context.class))).thenReturn(initReloadable(ResourcePolicy.class));
         when(groupService.findByName(any(Context.class), eq(Group.ADMIN))).thenReturn(group);
         when(groupService.findByName(any(Context.class), eq(Group.ANONYMOUS))).thenReturn(group);
