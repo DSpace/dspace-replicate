@@ -41,7 +41,9 @@ import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
 import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.MetadataDeserializer;
 import org.dspace.pack.bagit.xml.Policy;
+import org.dspace.pack.bagit.xml.PolicyDeserializer;
 import org.dspace.pack.bagit.xml.Value;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
@@ -194,10 +196,13 @@ public class BagItAipReader {
      */
     public Metadata readMetadata() throws IOException {
         final Path xml = bag.resolve(metadataLocation);
+        final MetadataDeserializer deserializer = new MetadataDeserializer();
         try (InputStream metadataStream = Files.newInputStream(xml)) {
-            final Metadata md = new Metadata();
-            md.addAll(readXml(metadataStream, md.getLocalName()));
-            return md;
+            final XMLInputFactory factory = XMLInputFactory.newFactory();
+            final XMLStreamReader reader = factory.createXMLStreamReader(metadataStream);
+            return deserializer.readElement(reader);
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
         }
     }
 
@@ -207,12 +212,15 @@ public class BagItAipReader {
      * @return the {@link Policy} with values read from data/policy.xml
      * @throws IOException if there was an error reading the file or parsing the xml
      */
-    public Policy readPolicy() throws  IOException {
+    public Policy readPolicy() throws IOException {
         final Path xml = bag.resolve("data/policy.xml");
+        final PolicyDeserializer deserializer = new PolicyDeserializer();
         try (InputStream inputStream = Files.newInputStream(xml)) {
-            final Policy policy = new Policy();
-            policy.addAll(readXml(inputStream, policy.getLocalName()));
-            return policy;
+            final XMLInputFactory factory = XMLInputFactory.newFactory();
+            final XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
+            return deserializer.readElement(reader);
+        } catch (XMLStreamException e) {
+            throw new IOException(e.getMessage(), e);
         }
     }
 
@@ -251,6 +259,9 @@ public class BagItAipReader {
         final List<PackagedBitstream> packagedBitstreams = new ArrayList<>();
 
         // iterate all bundles
+        final XMLInputFactory factory = XMLInputFactory.newFactory();
+        final PolicyDeserializer policyDeserializer = new PolicyDeserializer();
+        final MetadataDeserializer metadataDeserializer = new MetadataDeserializer();
         try (DirectoryStream<Path> directories = Files.newDirectoryStream(data, directoryFilter)) {
             for (Path bundle : directories) {
                 final String bundleName = bundle.getFileName().toString();
@@ -269,14 +280,18 @@ public class BagItAipReader {
                             final String metadataPath = matcher.group("uuid");
                             final Path bsMetadata = bundle.resolve(metadataPath + "-metadata.xml");
                             try (InputStream inputStream = Files.newInputStream(bsMetadata)) {
-                                metadata = new Metadata();
-                                metadata.addAll(readXml(inputStream, metadata.getLocalName()));
+                                final XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
+                                metadata = metadataDeserializer.readElement(reader);
+                            } catch (XMLStreamException e) {
+                                throw new IOException(e.getMessage(), e);
                             }
 
                             final Path bsPolicy = bundle.resolve(metadataPath + "-policy.xml");
                             try (InputStream inputStream = Files.newInputStream(bsPolicy)) {
-                                policy = new Policy();
-                                policy.addAll(readXml(inputStream, policy.getLocalName()));
+                                final XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
+                                policy = policyDeserializer.readElement(reader);
+                            } catch (XMLStreamException e) {
+                                throw new IOException(e.getMessage(), e);
                             }
 
                             packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata, policy));
@@ -296,73 +311,6 @@ public class BagItAipReader {
      */
     public void clean() throws IOException {
         FileUtils.deleteDirectory(bag.toFile());
-    }
-
-    /**
-     * Read an xml file in order to read metadata for a DSpaceObject. This requires the file to conform to having a
-     * metadata stanza as well as have value stanzas which store the data to read.
-     *
-     * @param inputStream the InputStream for the metadata file
-     * @return a list of {@link Element}s read from the file
-     * @throws IOException if there is an error reading the file or parsing the xml
-     */
-    private List<Element> readXml(final InputStream inputStream, final String rootStanza) throws IOException {
-        final XMLStreamReader reader;
-        final XMLInputFactory factory = XMLInputFactory.newFactory();
-        try {
-            reader = factory.createXMLStreamReader(inputStream);
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        final List<Element> children = new ArrayList<>();
-        try {
-            // search for metadata stanza
-            while (reader.hasNext()) {
-                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                    reader.getLocalName().equalsIgnoreCase(rootStanza)) {
-
-                    // search for value stanzas
-                    while (reader.hasNext()) {
-                        if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                            reader.getLocalName().equalsIgnoreCase(Value.LOCAL_NAME)) {
-                            Value element = readElement(reader);
-                            if (element != null) {
-                                children.add(element);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        return children;
-    }
-
-    private Value readElement(XMLStreamReader reader) throws XMLStreamException {
-        // we begin on a start element so initialize the attributes first
-        final Map<String, String> attributes = new HashMap<>();
-        for (int i = 0; i < reader.getAttributeCount(); i++) {
-            attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
-        }
-
-        // now iterate to find the body and end element
-        String body = null;
-        while (reader.hasNext()) {
-            switch (reader.next()) {
-                case XMLStreamConstants.CHARACTERS:
-                    body = reader.getText();
-                    break;
-                case XMLStreamConstants.END_ELEMENT:
-                    return new Value(body, attributes);
-                default:
-                    break;
-            }
-        }
-
-        return null;
     }
 
 }
