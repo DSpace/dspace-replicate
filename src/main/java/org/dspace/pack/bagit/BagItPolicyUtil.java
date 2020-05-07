@@ -62,7 +62,7 @@ public class BagItPolicyUtil {
      * @param dso The {@link DSpaceObject} to get the {@link Policy} for
      * @return the {@link Policy}
      */
-    public Policy getPolicy(Context context, DSpaceObject dso) {
+    public Policy getPolicy(final Context context, final DSpaceObject dso) {
         final Policy policy = new Policy();
         final BiMap<Integer, String> actions = actionMapper().inverse();
 

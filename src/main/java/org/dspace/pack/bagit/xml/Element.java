@@ -10,8 +10,8 @@ import java.util.Map;
  */
 public interface Element {
 
-    String getLocalName();
     String getBody();
+    String getLocalName();
     Boolean hasChildren();
     List<Element> getChildren();
     Map<String, String> getAttributes();

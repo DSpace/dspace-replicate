@@ -28,6 +28,7 @@ import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.Policy;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -56,6 +57,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
     }
 
     @Test
+    @Ignore
     public void getPolicy() {
     }
 
@@ -92,7 +94,6 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         // verify service interactions
         verify(resourcePolicyService, times(8)).create(any(Context.class));
         verify(groupService, times(4)).findByName(any(Context.class), matches(Group.ADMIN + "|" + Group.ANONYMOUS));
-        // verify(groupService, times(3)).findByName(any(Context.class), eq(Group.ANONYMOUS));
         verify(ePersonService, times(4)).findByEmail(any(Context.class), eq(personEmail));
 
         // additional verification of services which we didn't need to set up
