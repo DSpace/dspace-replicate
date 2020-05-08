@@ -136,7 +136,6 @@ public class ItemPacker implements Packer {
         // proceed to bundles, in sub-directories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
         for (Bundle bundle : item.getBundles()) {
-            bundle.getResourcePolicies();
             final String bundleName = bundle.getName();
             if (accept(bundleName)) {
                 // only bundle metadata is the primary bitstream - remember it

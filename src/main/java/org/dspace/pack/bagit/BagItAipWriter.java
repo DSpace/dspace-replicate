@@ -360,20 +360,18 @@ public class BagItAipWriter {
      * written xml file is returned.
      *
      * @param element       the {@link Element} to write to the file
-     * @param metadata      the {@link Path} to the xml file
+     * @param xml           the {@link Path} to the xml file
      * @param messageDigest the {@link MessageDigest} tracking the digest of the file
      * @throws IOException if there are any errors writing to the {@code metadata}
      */
-    private void writeXml(final Element element, final Path metadata, final MessageDigest messageDigest)
-        throws IOException {
-
-        if (Files.notExists(metadata.getParent())) {
-            Files.createDirectories(metadata.getParent());
+    private void writeXml(final Element element, final Path xml, final MessageDigest messageDigest) throws IOException {
+        if (Files.notExists(xml.getParent())) {
+            Files.createDirectories(xml.getParent());
         }
 
         final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
         messageDigest.reset();
-        try (final OutputStream output = Files.newOutputStream(metadata, StandardOpenOption.CREATE_NEW);
+        try (final OutputStream output = Files.newOutputStream(xml, StandardOpenOption.CREATE_NEW);
              final CountingOutputStream countingOS = new CountingOutputStream(output);
              final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
             final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(digestOS,
@@ -384,13 +382,15 @@ public class BagItAipWriter {
 
             successBytes.addAndGet(countingOS.getCount());
             successFiles.incrementAndGet();
-            checksums.put(metadata.toFile(), Utils.toHex(messageDigest.digest()));
+            checksums.put(xml.toFile(), Utils.toHex(messageDigest.digest()));
         } catch (XMLStreamException e) {
             throw new IOException(e.getMessage(), e);
         }
     }
 
     /**
+     * Recursive function to write xml from {@link Element}s and their children
+     *
      * @param xmlWriter the XmlStreamWriter
      * @param elements  the XmlElements to write
      * @throws XMLStreamException if an exception occurs

@@ -183,7 +183,7 @@ public class BagItPolicyUtil {
                     final Date date = dateFormat.parse(rpEndDate);
                     resourcePolicy.setEndDate(date);
                 } catch (ParseException ignored) {
-                    logger.warn("Failed to parse rp-start-date. The date needs to be in the format 'yyyy-MM-dd'.");
+                    logger.warn("Failed to parse rp-end-date. The date needs to be in the format 'yyyy-MM-dd'.");
                 }
             }
 

@@ -15,10 +15,6 @@ import org.dspace.pack.bagit.xml.Policy;
 /**
  * Hold information about a {@link Bitstream} and its metadata.
  *
- * todo: modifications
- *  - XmlElement metadata
- *  - XmlElement policies - separate class?
- *
  * @author mikejritter
  * @since 2020-03-12
  */
