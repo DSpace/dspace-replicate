@@ -60,6 +60,9 @@ public class PackagedBitstream {
         return metadata;
     }
 
+    /**
+     * @return the ResourcePolicies for the bitstream
+     */
     public Policy getPolicy() {
         return policy;
     }

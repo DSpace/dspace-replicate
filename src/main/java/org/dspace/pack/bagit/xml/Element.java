@@ -10,10 +10,39 @@ import java.util.Map;
  */
 public interface Element {
 
+    /**
+     * The content to write as the body of the xml tag
+     *
+     * @return the body
+     */
     String getBody();
+
+    /**
+     * The local name to use for the xml tag
+     *
+     * @return the local name
+     */
     String getLocalName();
+
+    /**
+     * Boolean flag indicating if this tag has any child elements
+     *
+     * @return true if {@link #getChildren()} is empty, false otherwise
+     */
     Boolean hasChildren();
+
+    /**
+     * Get all child elements of this {@link Element}
+     *
+     * @return the child elements
+     */
     List<Element> getChildren();
+
+    /**
+     * Get the attributes to apply to an xml tag
+     *
+     * @return the xml attributes
+     */
     Map<String, String> getAttributes();
 
 }
