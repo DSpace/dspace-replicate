@@ -398,17 +398,16 @@ public class BagItAipWriter {
     private void writeXml(XMLStreamWriter xmlWriter, List<Element> elements) throws XMLStreamException {
         for (Element element : elements) {
             xmlWriter.writeStartElement(element.getLocalName());
+            for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
+                if (attribute.getKey() != null && !attribute.getKey().isEmpty() &&
+                    attribute.getValue() != null && !attribute.getValue().isEmpty()) {
+                    xmlWriter.writeAttribute(attribute.getKey(), attribute.getValue());
+                }
+            }
 
             if (element.hasChildren()) {
                 writeXml(xmlWriter, element.getChildren());
             } else {
-                for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
-                    if (attribute.getKey() != null && !attribute.getKey().isEmpty() &&
-                        attribute.getValue() != null && !attribute.getValue().isEmpty()) {
-                        xmlWriter.writeAttribute(attribute.getKey(), attribute.getValue());
-                    }
-                }
-
                 xmlWriter.writeCharacters(element.getBody());
             }
 
