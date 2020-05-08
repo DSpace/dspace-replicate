@@ -155,7 +155,8 @@ public class BagItPolicyUtil {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
         final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
-        final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance().getResourcePolicyService();
+        final ResourcePolicyService resourcePolicyService =
+            AuthorizeServiceFactory.getInstance().getResourcePolicyService();
 
         // Need to map policy children from List<Element> to List<ResourcePolicy>
         // then use the authorizationService to add all policies to the dso
@@ -210,7 +211,8 @@ public class BagItPolicyUtil {
 
                 resourcePolicy.setGroup(group);
             } else if (MANAGED_GROUP.equalsIgnoreCase(userContext)) {
-                final String groupName = PackageUtils.translateGroupNameForImport(Curator.curationContext(), element.getBody());
+                final String groupName = PackageUtils.translateGroupNameForImport(Curator.curationContext(),
+                                                                                  element.getBody());
                 final Group group = groupService.findByName(Curator.curationContext(), groupName);
                 if (group == null) {
                     throw new PackageException("Could not find managed group " + groupName + " in the database");
