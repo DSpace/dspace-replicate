@@ -10,7 +10,7 @@ package org.dspace.pack.bagit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.dspace.TestContentServiceFactory.CONTENT_SERVICE_FACTORY;
 import static org.dspace.TestDSpaceServicesFactory.DSPACE_SERVICES_FACTORY;
-import static org.duraspace.bagit.BagConfig.*;
+import static org.duraspace.bagit.BagConfig.SOURCE_ORGANIZATION_KEY;
 
 import java.util.Map;
 
