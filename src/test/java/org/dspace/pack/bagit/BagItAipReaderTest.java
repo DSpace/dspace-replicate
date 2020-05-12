@@ -83,6 +83,7 @@ public class BagItAipReaderTest extends BagItPackerTest {
 
     @After
     public void verifyMocks() {
+        // no mocks to verify for these tests
     }
 
 }
