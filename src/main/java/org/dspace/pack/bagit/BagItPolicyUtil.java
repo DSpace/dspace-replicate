@@ -8,6 +8,7 @@
 package org.dspace.pack.bagit;
 
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -55,16 +56,13 @@ public class BagItPolicyUtil {
 
     // ResourcePolicy XML Attributes
     private static final String RP_NAME = "rp-name";
+    private static final String RP_TYPE = "rp-type";
+    private static final String RP_GROUP = "rp-group";
     private static final String RP_ACTION = "rp-action";
-    private static final String RP_CONTEXT = "rp-context";
+    private static final String RP_EPERSON = "rp-eperson";
     private static final String RP_END_DATE = "rp-end-date";
     private static final String RP_START_DATE = "rp-start-date";
-    private static final String RP_IN_EFFECT = "rp-in-effect";
     private static final String RP_DESCRIPTION = "rp-description";
-
-    // from METSRightsCrosswalk, determine if a RP is for a custom group or eperson
-    private static final String MANAGED_GROUP = "MANAGED GROUP";
-    private static final String ACADEMIC_USER = "ACADEMIC USER";
 
     private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -80,30 +78,19 @@ public class BagItPolicyUtil {
 
         for (ResourcePolicy resourcePolicy : dso.getResourcePolicies()) {
             final Map<String, String> attributes = new HashMap<>();
-            String username = null;
 
             // name and description
             attributes.put(RP_NAME, resourcePolicy.getRpName());
             attributes.put(RP_DESCRIPTION, resourcePolicy.getRpDescription());
 
-            // in-effect = true by default, then needs checks on start + end date
-            boolean inEffect = true;
             final Date endDate = resourcePolicy.getEndDate();
             final Date startDate = resourcePolicy.getStartDate();
-            final Date now = new Date();
             if (startDate != null) {
                 attributes.put(RP_START_DATE, dateFormat.format(startDate));
-                if (startDate.after(now)) {
-                    inEffect = false;
-                }
             }
             if (endDate != null) {
                 attributes.put(RP_END_DATE, dateFormat.format(endDate));
-                if (endDate.before(now)) {
-                    inEffect = false;
-                }
             }
-            attributes.put(RP_IN_EFFECT, Boolean.toString(inEffect));
 
             // attributes for determining if adding policies on a group + what type of group or policies for a user
             final Group group = resourcePolicy.getGroup();
@@ -111,15 +98,12 @@ public class BagItPolicyUtil {
             if (group != null) {
                 final String groupName = group.getName();
                 if (groupName.equals(Group.ANONYMOUS)) {
-                    attributes.put(RP_CONTEXT, Group.ANONYMOUS);
-                    username = groupName;
+                    attributes.put(RP_GROUP, Group.ANONYMOUS);
                 } else if (groupName.equals(Group.ADMIN)) {
-                    attributes.put(RP_CONTEXT, Group.ADMIN);
-                    username = groupName;
+                    attributes.put(RP_GROUP, Group.ADMIN);
                 } else {
-                    attributes.put(RP_CONTEXT, MANAGED_GROUP);
                     try {
-                        username = PackageUtils.translateGroupNameForExport(context, groupName);
+                        attributes.put(RP_GROUP, PackageUtils.translateGroupNameForExport(context, groupName));
                     } catch (PackageException exception) {
                         // since this is called by a Packer, wrap the PackageException in an IOException so it can
                         // continue to be thrown up the stack
@@ -127,8 +111,7 @@ public class BagItPolicyUtil {
                     }
                 }
             } else if (ePerson != null) {
-                attributes.put(RP_CONTEXT, ACADEMIC_USER);
-                username = ePerson.getEmail();
+                attributes.put(RP_EPERSON, ePerson.getEmail());
             } else {
                 logger.warn("No EPerson or Group found for policy!");
             }
@@ -136,7 +119,10 @@ public class BagItPolicyUtil {
             final String action = actions.get(resourcePolicy.getAction());
             attributes.put(RP_ACTION, action);
 
-            policy.addChild(new Value(username, attributes));
+            final String type = resourcePolicy.getRpType();
+            attributes.put(RP_TYPE, type);
+
+            policy.addChild(new Value("", attributes));
         }
 
         return policy;
@@ -195,48 +181,46 @@ public class BagItPolicyUtil {
                 }
             }
 
-            final String userContext = attributes.get(RP_CONTEXT);
-            if (Group.ADMIN.equalsIgnoreCase(userContext)) {
-                final Group group = groupService.findByName(Curator.curationContext(), Group.ADMIN);
+            final String groupName = attributes.get(RP_GROUP);
+            final String epersonEmail = attributes.get(RP_EPERSON);
+            if (groupName != null) {
+                final String nameForImport;
+
+                if (groupName.equalsIgnoreCase(Group.ADMIN) || groupName.equalsIgnoreCase(Group.ANONYMOUS)) {
+                    nameForImport = groupName;
+                } else {
+                    nameForImport = PackageUtils.translateGroupNameForImport(Curator.curationContext(), groupName);
+                }
+
+                final Group group = groupService.findByName(Curator.curationContext(), nameForImport);
                 if (group == null) {
-                    throw new PackageException("The Administrator Group is missing from the database.");
+                    throw new PackageException("Could not find group " + nameForImport + " in the database! If this" +
+                                               "is either the ADMIN or ANONYMOUS group check that your database is" +
+                                               "initialized correctly.");
                 }
 
                 resourcePolicy.setGroup(group);
-            } else if (Group.ANONYMOUS.equalsIgnoreCase(userContext)) {
-                final Group group = groupService.findByName(Curator.curationContext(), Group.ANONYMOUS);
-                if (group == null) {
-                    throw new PackageException("The Anonymous Group is missing from the database.");
-                }
-
-                resourcePolicy.setGroup(group);
-            } else if (MANAGED_GROUP.equalsIgnoreCase(userContext)) {
-                final String groupName = PackageUtils.translateGroupNameForImport(Curator.curationContext(),
-                                                                                  element.getBody());
-                final Group group = groupService.findByName(Curator.curationContext(), groupName);
-                if (group == null) {
-                    throw new PackageException("Could not find managed group " + groupName + " in the database");
-                }
-
-                resourcePolicy.setGroup(group);
-            } else if (ACADEMIC_USER.equalsIgnoreCase(userContext)) {
-                final String email = element.getBody();
-                final EPerson ePerson = ePersonService.findByEmail(Curator.curationContext(), email);
+            } else if (epersonEmail != null) {
+                final EPerson ePerson = ePersonService.findByEmail(Curator.curationContext(), epersonEmail);
                 if (ePerson == null) {
-                    throw new PackageException("Could not find ePerson " + email + " in the database");
+                    throw new PackageException("Could not find ePerson " + epersonEmail + " in the database!");
                 }
 
                 resourcePolicy.setEPerson(ePerson);
             } else {
                 // throw an exception as well?
-                logger.warn("Cannot import policy with rp-context {}, value must be one of {}, {}, {}, or {}",
-                            userContext, Group.ADMIN, Group.ANONYMOUS, MANAGED_GROUP, ACADEMIC_USER);
+                logger.warn("Cannot import policy, no rp-group or rp-eperson attribute found on value!");
             }
 
             final Integer action = actionMapper().get(attributes.get(RP_ACTION));
             // exception if null?
             if (action != null) {
                 resourcePolicy.setAction(action);
+            }
+
+            final String type = attributes.get(RP_TYPE);
+            if (type != null) {
+                resourcePolicy.setRpType(type);
             }
 
             policies.add(resourcePolicy);
