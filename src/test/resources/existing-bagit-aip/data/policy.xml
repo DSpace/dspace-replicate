@@ -1,10 +1,11 @@
 <policies>
-	<value rp-in-effect="true" rp-end-date="2100-01-01" rp-context="Administrator" rp-action="ADMIN">Administrator</value>
-	<value rp-in-effect="true" rp-start-date="2000-01-01" rp-context="Anonymous" rp-action="READ">Anonymous</value>
-	<value rp-in-effect="true" rp-start-date="2000-01-01" rp-context="Anonymous" rp-action="READ_ITEM">Anonymous</value>
-	<value rp-in-effect="true" rp-start-date="2000-01-01" rp-context="Anonymous" rp-action="READ_BITSTREAM">Anonymous</value>
-	<value rp-name="User add" rp-description="DSpace user add policy" rp-in-effect="true" rp-context="ACADEMIC USER" rp-action="Add">dspace-user@localhost.localdomain</value>
-	<value rp-in-effect="true" rp-context="ACADEMIC USER" rp-action="WRITE">dspace-user@localhost.localdomain</value>
-	<value rp-in-effect="true" rp-context="ACADEMIC USER" rp-action="REMOVE">dspace-user@localhost.localdomain</value>
-	<value rp-in-effect="true" rp-context="ACADEMIC USER" rp-action="DELETE">dspace-user@localhost.localdomain</value>
+	<value rp-in-effect="true" rp-end-date="2100-01-01" rp-group="Administrator" rp-action="ADMIN"/>
+	<value rp-in-effect="true" rp-start-date="2000-01-01" rp-group="Anonymous" rp-action="READ"/>
+	<value rp-in-effect="true" rp-start-date="2000-01-01" rp-group="Anonymous" rp-action="READ_ITEM"/>
+	<value rp-in-effect="true" rp-start-date="2000-01-01" rp-group="Anonymous" rp-action="READ_BITSTREAM"/>
+	<value rp-name="User add" rp-type="TYPE_CUSTOM" rp-description="DSpace user add policy" rp-in-effect="true"
+				 rp-eperson="dspace-user@localhost.localdomain" rp-action="Add"/>
+	<value rp-in-effect="true" rp-eperson="dspace-user@localhost.localdomain" rp-action="WRITE"/>
+	<value rp-in-effect="true" rp-eperson="dspace-user@localhost.localdomain" rp-action="REMOVE"/>
+	<value rp-in-effect="true" rp-eperson="dspace-user@localhost.localdomain" rp-action="DELETE"/>
 </policies>

@@ -8,6 +8,7 @@
 package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.dspace.authorize.ResourcePolicy.TYPE_CUSTOM;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Mockito.any;
@@ -82,6 +83,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         final DateTime groupDateTime = DateTime.now().minusDays(1);
         final ResourcePolicy adminGroupPolicy = initReloadable(ResourcePolicy.class);
         adminGroupPolicy.setGroup(adminGroup);
+        adminGroupPolicy.setRpType(TYPE_CUSTOM);
         adminGroupPolicy.setStartDate(groupDateTime.toDate());
         community.getResourcePolicies().add(adminGroupPolicy);
 
@@ -97,16 +99,16 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
         final Element child = children.get(0);
         assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
-        assertThat(child.getBody()).isEqualTo(Group.ADMIN);
 
         // in-effect should be true, start date == groupDateTime, end date == null
         assertThat(child.getAttributes())
-            .containsEntry("rp-in-effect", "true")
+            .containsEntry("rp-group", Group.ADMIN)
             .containsEntry("rp-start-date", dateFormat.format(groupDateTime.toDate()))
-            .containsEntry("rp-context", Group.ADMIN)
             .containsEntry("rp-action", "READ")
             .containsEntry("rp-name", null)
+            .containsEntry("rp-type", TYPE_CUSTOM)
             .containsEntry("rp-description", null)
+            .doesNotContainKey("rp-eperson")
             .doesNotContainKey("rp-end-date");
 
         verify(adminGroup, times(1)).getName();
@@ -124,6 +126,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         final DateTime groupDateTime = DateTime.now().minusDays(1);
         final ResourcePolicy anonGroupPolicy = initReloadable(ResourcePolicy.class);
         anonGroupPolicy.setGroup(anonGroup);
+        anonGroupPolicy.setRpType(TYPE_CUSTOM);
         anonGroupPolicy.setEndDate(groupDateTime.toDate());
 
         community.getResourcePolicies().add(anonGroupPolicy);
@@ -140,16 +143,15 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
         final Element child = children.get(0);
         assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
-        assertThat(child.getBody()).matches(Group.ANONYMOUS);
 
-        // in-effect should be false, start date == null, end date == groupDateTime
         assertThat(child.getAttributes())
-            .containsEntry("rp-in-effect", "false")
+            .containsEntry("rp-group", Group.ANONYMOUS)
             .containsEntry("rp-end-date", dateFormat.format(groupDateTime.toDate()))
-            .containsEntry("rp-context", Group.ANONYMOUS)
             .containsEntry("rp-action", "READ")
             .containsEntry("rp-name", null)
+            .containsEntry("rp-type", TYPE_CUSTOM)
             .containsEntry("rp-description", null)
+            .doesNotContainKey("rp-eperson")
             .doesNotContainKey("rp-start-date");
 
         verify(anonGroup, times(1)).getName();
@@ -168,6 +170,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         final DateTime ePersonDateTime = DateTime.now().plusDays(1);
         final ResourcePolicy ePersonPolicy = initReloadable(ResourcePolicy.class);
         ePersonPolicy.setEPerson(ePerson);
+        ePersonPolicy.setRpType(TYPE_CUSTOM);
         ePersonPolicy.setStartDate(ePersonDateTime.toDate());
 
         community.getResourcePolicies().add(ePersonPolicy);
@@ -184,16 +187,16 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
         final Element child = children.get(0);
         assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
-        assertThat(child.getBody()).matches(epersonEmail);
 
         // in-effect should be true, start date == ePersonDateTime, end date == null
         assertThat(child.getAttributes())
-            .containsEntry("rp-in-effect", "false")
+            .containsEntry("rp-eperson", epersonEmail)
             .containsEntry("rp-start-date", dateFormat.format(ePersonDateTime.toDate()))
-            .containsEntry("rp-context", "ACADEMIC USER")
-            .containsEntry("rp-action", "READ")
             .containsEntry("rp-name", null)
+            .containsEntry("rp-type", TYPE_CUSTOM)
+            .containsEntry("rp-action", "READ")
             .containsEntry("rp-description", null)
+            .doesNotContainKey("rp-group")
             .doesNotContainKey("rp-end-date");
 
         verify(ePerson, times(1)).getEmail();
