@@ -8,7 +8,6 @@
 package org.dspace.pack.bagit;
 
 import java.io.IOException;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -38,6 +37,7 @@ import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.Element;
+import org.dspace.pack.bagit.xml.Metadata;
 import org.dspace.pack.bagit.xml.Policy;
 import org.dspace.pack.bagit.xml.Value;
 import org.slf4j.Logger;
@@ -55,14 +55,14 @@ public class BagItPolicyUtil {
     private static final Logger logger = LoggerFactory.getLogger(BagItPolicyUtil.class);
 
     // ResourcePolicy XML Attributes
-    private static final String RP_NAME = "rp-name";
-    private static final String RP_TYPE = "rp-type";
-    private static final String RP_GROUP = "rp-group";
-    private static final String RP_ACTION = "rp-action";
-    private static final String RP_EPERSON = "rp-eperson";
-    private static final String RP_END_DATE = "rp-end-date";
-    private static final String RP_START_DATE = "rp-start-date";
-    private static final String RP_DESCRIPTION = "rp-description";
+    private static final String RP_NAME = "name";
+    private static final String RP_TYPE = "type";
+    private static final String RP_GROUP = "group";
+    private static final String RP_ACTION = "action";
+    private static final String RP_EPERSON = "eperson";
+    private static final String RP_END_DATE = "end-date";
+    private static final String RP_START_DATE = "start-date";
+    private static final String RP_DESCRIPTION = "description";
 
     private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -122,7 +122,7 @@ public class BagItPolicyUtil {
             final String type = resourcePolicy.getRpType();
             attributes.put(RP_TYPE, type);
 
-            policy.addChild(new Value("", attributes));
+            policy.addChild(new Value(Policy.CHILD_LOCAL_NAME, "", attributes));
         }
 
         return policy;

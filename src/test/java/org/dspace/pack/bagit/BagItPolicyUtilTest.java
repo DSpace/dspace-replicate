@@ -41,7 +41,6 @@ import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.Policy;
-import org.dspace.pack.bagit.xml.Value;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,18 +97,18 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
             .hasSize(1);
 
         final Element child = children.get(0);
-        assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
+        assertThat(child.getLocalName()).isEqualTo(Policy.CHILD_LOCAL_NAME);
 
         // in-effect should be true, start date == groupDateTime, end date == null
         assertThat(child.getAttributes())
-            .containsEntry("rp-group", Group.ADMIN)
-            .containsEntry("rp-start-date", dateFormat.format(groupDateTime.toDate()))
-            .containsEntry("rp-action", "READ")
-            .containsEntry("rp-name", null)
-            .containsEntry("rp-type", TYPE_CUSTOM)
-            .containsEntry("rp-description", null)
-            .doesNotContainKey("rp-eperson")
-            .doesNotContainKey("rp-end-date");
+            .containsEntry("group", Group.ADMIN)
+            .containsEntry("start-date", dateFormat.format(groupDateTime.toDate()))
+            .containsEntry("action", "READ")
+            .containsEntry("name", null)
+            .containsEntry("type", TYPE_CUSTOM)
+            .containsEntry("description", null)
+            .doesNotContainKey("eperson")
+            .doesNotContainKey("end-date");
 
         verify(adminGroup, times(1)).getName();
     }
@@ -142,17 +141,17 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
             .hasSize(1);
 
         final Element child = children.get(0);
-        assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
+        assertThat(child.getLocalName()).isEqualTo(Policy.CHILD_LOCAL_NAME);
 
         assertThat(child.getAttributes())
-            .containsEntry("rp-group", Group.ANONYMOUS)
-            .containsEntry("rp-end-date", dateFormat.format(groupDateTime.toDate()))
-            .containsEntry("rp-action", "READ")
-            .containsEntry("rp-name", null)
-            .containsEntry("rp-type", TYPE_CUSTOM)
-            .containsEntry("rp-description", null)
-            .doesNotContainKey("rp-eperson")
-            .doesNotContainKey("rp-start-date");
+            .containsEntry("group", Group.ANONYMOUS)
+            .containsEntry("end-date", dateFormat.format(groupDateTime.toDate()))
+            .containsEntry("action", "READ")
+            .containsEntry("name", null)
+            .containsEntry("type", TYPE_CUSTOM)
+            .containsEntry("description", null)
+            .doesNotContainKey("eperson")
+            .doesNotContainKey("start-date");
 
         verify(anonGroup, times(1)).getName();
     }
@@ -186,18 +185,18 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
             .hasSize(1);
 
         final Element child = children.get(0);
-        assertThat(child.getLocalName()).isEqualTo(Value.LOCAL_NAME);
+        assertThat(child.getLocalName()).isEqualTo(Policy.CHILD_LOCAL_NAME);
 
         // in-effect should be true, start date == ePersonDateTime, end date == null
         assertThat(child.getAttributes())
-            .containsEntry("rp-eperson", epersonEmail)
-            .containsEntry("rp-start-date", dateFormat.format(ePersonDateTime.toDate()))
-            .containsEntry("rp-name", null)
-            .containsEntry("rp-type", TYPE_CUSTOM)
-            .containsEntry("rp-action", "READ")
-            .containsEntry("rp-description", null)
-            .doesNotContainKey("rp-group")
-            .doesNotContainKey("rp-end-date");
+            .containsEntry("eperson", epersonEmail)
+            .containsEntry("start-date", dateFormat.format(ePersonDateTime.toDate()))
+            .containsEntry("name", null)
+            .containsEntry("type", TYPE_CUSTOM)
+            .containsEntry("action", "READ")
+            .containsEntry("description", null)
+            .doesNotContainKey("group")
+            .doesNotContainKey("end-date");
 
         verify(ePerson, times(1)).getEmail();
     }

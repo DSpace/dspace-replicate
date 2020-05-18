@@ -14,6 +14,8 @@ package org.dspace.pack.bagit.xml;
  */
 public class Policy extends Parent {
 
+    public static final String CHILD_LOCAL_NAME = "policy";
+
     @Override
     public String getLocalName() {
         return "policies";

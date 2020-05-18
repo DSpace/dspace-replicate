@@ -28,7 +28,7 @@ public class PolicyDeserializer implements ElementDeserializer<Policy> {
                 // search for value stanzas
                 while (reader.hasNext()) {
                     if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                        reader.getLocalName().equalsIgnoreCase(Value.LOCAL_NAME)) {
+                        reader.getLocalName().equalsIgnoreCase(Policy.CHILD_LOCAL_NAME)) {
                         final ValueDeserializer valueDeserializer = new ValueDeserializer();
                         final Element element = valueDeserializer.readElement(reader);
                         if (element != null) {
