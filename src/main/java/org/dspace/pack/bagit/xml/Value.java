@@ -18,19 +18,28 @@ import com.google.common.collect.ImmutableList;
  * @author mikejritter
  */
 public class Value implements Element {
-    public static final String LOCAL_NAME = "value";
+
+    public static final String DEFAULT_LOCAL_NAME = "value";
 
     private final String body;
     private final Map<String, String> attributes;
+    private final String localName;
 
-    public Value(String body, Map<String, String> attributes) {
+    public Value(final String body, final Map<String, String> attributes) {
         this.body = body;
         this.attributes = attributes;
+        this.localName = DEFAULT_LOCAL_NAME;
+    }
+
+    public Value(final String localName, final String body, final Map<String, String> attributes) {
+        this.body = body;
+        this.attributes = attributes;
+        this.localName = localName;
     }
 
     @Override
     public String getLocalName() {
-        return LOCAL_NAME;
+        return localName;
     }
 
     @Override
