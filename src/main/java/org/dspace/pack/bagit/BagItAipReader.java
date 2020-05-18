@@ -110,7 +110,7 @@ public class BagItAipReader {
             profile.validateBag(locBag);
             verifier.isValid(locBag, false);
         } catch (Exception e) {
-            throw new RuntimeException("Unable to verify BagIt bag!\n" + e.getMessage());
+            throw new RuntimeException("Unable to verify BagIt bag!", e);
         }
     }
 
