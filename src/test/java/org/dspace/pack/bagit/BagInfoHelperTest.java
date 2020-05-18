@@ -65,8 +65,7 @@ public class BagInfoHelperTest {
 
     @Test
     public void getTagFiles() {
-        final BagInfoHelper bagInfo = new BagInfoHelper();
-        final Map<String, Map<String, String>> tagFiles = bagInfo.getTagFiles();
+        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getTagFiles();
 
         assertThat(tagFiles).hasSize(2);
         assertThat(tagFiles).containsOnlyKeys(BAG_INFO, OTHER_INFO);
@@ -80,7 +79,6 @@ public class BagInfoHelperTest {
 
         configurationService.setProperty(key, "");
 
-        final BagInfoHelper bagInfo = new BagInfoHelper();
-        bagInfo.getTagFiles();
+        BagInfoHelper.getTagFiles();
     }
 }

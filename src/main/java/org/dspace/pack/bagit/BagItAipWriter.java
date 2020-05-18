@@ -150,7 +150,7 @@ public class BagItAipWriter {
         // validate the tag file configuration before starting to write
         // Note: the validateTagFiles method will throw a RuntimeException if validation fails
         final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
-        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getInstance().getTagFiles();
+        final Map<String, Map<String, String>> tagFiles = BagInfoHelper.getTagFiles();
         profile.validateTagFiles(tagFiles);
 
         // check if the Bag was already being worked on

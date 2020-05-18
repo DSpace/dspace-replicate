@@ -7,15 +7,11 @@
  */
 package org.dspace.pack.bagit;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 
@@ -28,37 +24,14 @@ import org.dspace.services.factory.DSpaceServicesFactory;
 public class BagInfoHelper {
 
     /**
-     * Memoized supplier to retrieve a single instance of a BagInfoHelper
-     */
-    private static final Supplier<BagInfoHelper> supplier = Suppliers.memoize(new Supplier<BagInfoHelper>() {
-        @Override
-        public BagInfoHelper get() {
-            return new BagInfoHelper();
-        }
-    });
-
-    private final String TAG_KEY = "replicate-bagit.tag";
-    private final String TAG_SUFFIX = ".txt";
-    private final Map<String, Map<String, String>> tagFiles = new HashMap<>();
-
-    @VisibleForTesting
-    protected BagInfoHelper() {
-        loadFromConfiguration();
-    }
-
-    /**
-     * Get the initialized instance of a BagInfoHelper
+     * Loads the bag-info.txt and any other fields for tag files found under 'replicate.bag.tag'
      *
-     * @return the static instance
+     * @return a Map containing the identifier of each tag file to its key-value pairs
      */
-    public static BagInfoHelper getInstance() {
-        return supplier.get();
-    }
-
-    /**
-     * Loads the bag-info.txt and any other fields for tag files found under replicate.bag.tag
-     */
-    private void loadFromConfiguration() {
+    public static Map<String, Map<String, String>> getTagFiles() {
+        final String TAG_KEY = "replicate-bagit.tag";
+        final String TAG_SUFFIX = ".txt";
+        final Map<String, Map<String, String>> tagFiles = new HashMap<>();
         final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
         final List<String> keys = configurationService.getPropertyKeys(TAG_KEY);
@@ -100,19 +73,8 @@ public class BagInfoHelper {
 
             tagFields.put(bagItNormalized.toString(), configurationService.getProperty(key));
         }
-    }
 
-    /**
-     * Get a read-only copy of the properties read in
-     *
-     * @return the tag file properties
-     */
-    public Map<String, Map<String, String>> getTagFiles() {
-        if (tagFiles.isEmpty()) {
-            loadFromConfiguration();
-        }
-
-        return Collections.unmodifiableMap(tagFiles);
+        return tagFiles;
     }
 
 }
