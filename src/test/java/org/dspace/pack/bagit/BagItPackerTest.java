@@ -59,6 +59,7 @@ public abstract class BagItPackerTest {
         ServiceManager serviceManager = new TestServiceManager();
         ConfigurationService configurationService = new TestConfigurationService();
         configurationService.setProperty("replicate.packer.archfmt", archFmt);
+        configurationService.setProperty("replicate-bagit.tag.bag-info.source-organization", "org.dspace");
 
         serviceManager.registerService(DBConnection.class.getName(), dbConnection);
         serviceManager.registerService(ConfigurationService.class.getName(), configurationService);

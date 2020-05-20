@@ -116,6 +116,7 @@ public class CommunityPacker implements Packer
 
         final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
+        reader.validateBag();
 
         final List<XmlElement> xmlElements = reader.readMetadata();
         for (XmlElement xmlElement : xmlElements) {

@@ -11,10 +11,13 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
-import org.dspace.core.ConfigurationManager;
 import org.dspace.core.Constants;
-import org.dspace.pack.bagit.*;
-import org.dspace.pack.mets.*;
+import org.dspace.pack.bagit.CollectionPacker;
+import org.dspace.pack.bagit.CommunityPacker;
+import org.dspace.pack.bagit.ItemPacker;
+import org.dspace.pack.mets.METSPacker;
+import org.dspace.services.factory.DSpaceServicesFactory;
+import org.duraspace.bagit.BagProfile;
 
 /**
  * PackerFactory mints packers for specified object types. Packer implementation
@@ -35,17 +38,18 @@ public class PackerFactory
     public static final String OTHER_IDS = "otherIds";
     public static final String CREATE_TS = "created";
     public static final String WITHDRAWN  = "withdrawn";
+    public static final String BAG_PROFILE_KEY = "replicate-bagit.profile";
+    public static final String DEFAULT_PROFILE = BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier();
     
     // type of package to use - must be either 'mets' or 'bagit'
-    private static String packType = 
-            ConfigurationManager.getProperty("replicate", "packer.pkgtype");
+    private static String packType = DSpaceServicesFactory.getInstance().getConfigurationService()
+                                                          .getProperty("replicate.packer.pkgtype");
     // type of archive format - supported types are 'zip' or 'tgz'
-    private static String archFmt = 
-            ConfigurationManager.getProperty("replicate", "packer.archfmt");
+    private static String archFmt = DSpaceServicesFactory.getInstance().getConfigurationService()
+                                                         .getProperty("replicate.packer.archfmt");
     // content filter - comma separated list of bundle names
-    private static String cfgFilter = 
-            ConfigurationManager.getProperty("replicate", "packer.cfilter");
-    
+    private static String cfgFilter = DSpaceServicesFactory.getInstance().getConfigurationService()
+                                                           .getProperty("replicate.packer.cfilter");
     // cached instance of METSPacker - because a little expensive to create
     private static METSPacker metsPacker = null;
 

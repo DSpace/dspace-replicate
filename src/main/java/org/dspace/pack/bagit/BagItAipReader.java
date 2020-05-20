@@ -7,6 +7,9 @@
  */
 package org.dspace.pack.bagit;
 
+import static org.dspace.pack.PackerFactory.BAG_PROFILE_KEY;
+import static org.dspace.pack.PackerFactory.DEFAULT_PROFILE;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -28,7 +31,16 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.base.Optional;
+import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
+import gov.loc.repository.bagit.exceptions.MaliciousPathException;
+import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
+import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
+import gov.loc.repository.bagit.reader.BagReader;
+import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
+import org.dspace.services.ConfigurationService;
+import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagDeserializer;
 import org.duraspace.bagit.BagProfile;
 import org.duraspace.bagit.SerializationSupport;
@@ -50,6 +62,7 @@ public class BagItAipReader {
     private final String objectPropertiesLocation = dataDirectory + "/object.properties";
 
     private final Path bag;
+    private final BagProfile profile;
 
     /**
      * Constructor for a {@link BagItAipReader}. If the given path to the {@code bag} is a single file, it is assumed
@@ -63,13 +76,41 @@ public class BagItAipReader {
             throw new IOException("Missing archive: " + bag);
         }
 
+        // get the BagProfile
+        final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+        final String profileName = configurationService.getProperty(BAG_PROFILE_KEY, DEFAULT_PROFILE);
+        this.profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
+
         // deserialize if necessary
         if (Files.isRegularFile(bag)) {
-            final BagProfile profile = new BagProfile(BagProfile.BuiltIn.BEYOND_THE_REPOSITORY);
             final BagDeserializer deserializer = SerializationSupport.deserializerFor(bag, profile);
             this.bag = deserializer.deserialize(bag);
         } else {
             this.bag = bag;
+        }
+    }
+
+    /**
+     * Validate that an AIP is in a BagIt format which passes both bagit-bag validation and bagit-profile validation
+     *
+     * @throws RuntimeException if there is an error during validation
+     */
+    public void validateBag() {
+        final Bag locBag;
+        final BagReader bagReader = new BagReader();
+        final BagVerifier verifier = new BagVerifier() ;
+        try {
+            locBag = bagReader.read(bag);
+        } catch (UnparsableVersionException | InvalidBagitFileFormatException | UnsupportedAlgorithmException
+            | MaliciousPathException | IOException e) {
+            throw new RuntimeException("Unable to read aip as a BagIt bag!", e);
+        }
+
+        try {
+            profile.validateBag(locBag);
+            verifier.isValid(locBag, false);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to verify BagIt bag!", e);
         }
     }
 
