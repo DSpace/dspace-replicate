@@ -84,8 +84,10 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final BitstreamFormat bitstreamFormat = initReloadable(BitstreamFormat.class);
         bitstreamFormat.setExtensions(Collections.singletonList("txt"));
 
-        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, null,
-                                                         bitstreams);
+        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, properties)
+            .withLogo(logo)
+            .withMetadata(metadata)
+            .withBitstreams(bitstreams);
 
         when(bitstreamService.retrieve(any(Context.class), eq(logo)))
             .thenReturn(new ByteArrayInputStream("logo".getBytes()));
@@ -115,8 +117,10 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final Bitstream logo = null;
         final File directory = root.resolve(bagName).toFile();
 
-        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, logo, properties, metadata, null,
-                                                         bitstreams);
+        final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, properties)
+            .withLogo(logo)
+            .withMetadata(metadata)
+            .withBitstreams(bitstreams);
         writer.packageAip();
     }
 

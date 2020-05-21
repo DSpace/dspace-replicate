@@ -168,9 +168,11 @@ public class ItemPacker implements Packer {
             }
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadata, policy,
-                                                            bitstreams);
-        return aipWriter.packageAip();
+        return new BagItAipWriter(packDir, archFmt, properties)
+            .withPolicy(policy)
+            .withMetadata(metadata)
+            .withBitstreams(bitstreams)
+            .packageAip();
     }
 
     @Override

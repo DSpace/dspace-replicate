@@ -78,7 +78,6 @@ public class BagItAipWriter {
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
     private final String DATA_DIR = "data";
-    private final String LOGO_FILE = "logo";
     private final String METADATA_XML = "metadata.xml";
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
@@ -98,52 +97,82 @@ public class BagItAipWriter {
     private final String archFmt;
 
     /**
-     * A logo for the package, or null if one does not exist
-     */
-    private final Bitstream logo;
-
-    /**
      * A Mapping of filenames to the properties
      */
     private final Map<String, List<String>> properties;
 
     /**
-     * Pojo for xml metadata on a DSpaceObject
+     * A logo for the package, or null if one does not exist
      */
-    private final Metadata metadata;
+    private Bitstream logo;
 
     /**
      * Pojo for xml policy data on a DSpaceObject
      */
-    private final Policy policy;
+    private Policy policy;
+
+    /**
+     * Pojo for xml metadata on a DSpaceObject
+     */
+    private Metadata metadata;
 
     /**
      * A map of Bitstreams to package with the AIP
      */
-    private final List<BagBitstream> bitstreams;
+    private List<BagBitstream> bitstreams;
 
     /**
-     * Constructor for a {@link BagItAipWriter}. Takes all the information needed in order to write an AIP for dspace
-     * consumption.
+     * Constructor for a {@link BagItAipWriter}. Takes a minimal set of information needed in order to write an AIP as a
+     * BagIt bag for dspace consumption.
      *
      * @param directory  the root {@link File} which the bag will be written to
      * @param archFmt    the serialization format when archiving the bag to a single file
-     * @param logo       the {@link Bitstream} of the logo, or null
      * @param properties a {@link Map} which maps a filename with a list of lines to write to the file
-     * @param metadata   the {@link Metadata} to write to the bags data/metadata.xml
-     * @param policy     the {@link Policy} to write to the bags data/policy.xml
-     * @param bitstreams a {@link List} of {@link BagBitstream}s which should be written as payload files for the bag
      */
-    public BagItAipWriter(final File directory, final String archFmt, final Bitstream logo,
-                          final Map<String, List<String>> properties, final Metadata metadata,
-                          final Policy policy, final List<BagBitstream> bitstreams) {
-        this.logo = logo;
-        this.policy = policy;
-        this.metadata = metadata;
+    public BagItAipWriter(final File directory, final String archFmt, final Map<String, List<String>> properties) {
+        this.logo = null;
+        this.policy = null;
+        this.metadata = null;
         this.archFmt = checkNotNull(archFmt);
         this.directory = checkNotNull(directory);
         this.properties = checkNotNull(properties);
+        this.bitstreams = Collections.emptyList();
+    }
+
+    /**
+     * @param logo the {@link Bitstream} of the logo, or null
+     * @return the {@link BagItAipWriter} used for creating the aip
+     */
+    public BagItAipWriter withLogo(final Bitstream logo) {
+        this.logo = logo;
+        return this;
+    }
+
+    /**
+     * @param policy the {@link Policy} to write to the bags data/policy.xml
+     * @return the {@link BagItAipWriter} used for creating the aip
+     */
+    public BagItAipWriter withPolicy(final Policy policy) {
+        this.policy = policy;
+        return this;
+    }
+
+    /**
+     * @param metadata the {@link Metadata} to write to the bags data/metadata.xml
+     * @return the {@link BagItAipWriter} used for creating the aip
+     */
+    public BagItAipWriter withMetadata(final Metadata metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+
+    /**
+     * @param bitstreams a {@link List} of {@link BagBitstream}s which should be written as payload files for the bag
+     * @return the {@link BagItAipWriter} used for creating the aip
+     */
+    public BagItAipWriter withBitstreams(final List<BagBitstream> bitstreams) {
         this.bitstreams = bitstreams != null ? bitstreams : Collections.<BagBitstream>emptyList();
+        return this;
     }
 
     /**

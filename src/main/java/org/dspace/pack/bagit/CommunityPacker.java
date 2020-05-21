@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -112,9 +111,11 @@ public class CommunityPacker implements Packer
         // collect the policy
         final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, metadata,
-                                                            policy, Collections.<BagBitstream>emptyList());
-        return aipWriter.packageAip();
+        return new BagItAipWriter(packDir, archFmt, properties)
+            .withLogo(logo)
+            .withPolicy(policy)
+            .withMetadata(metadata)
+            .packageAip();
     }
 
     @Override
