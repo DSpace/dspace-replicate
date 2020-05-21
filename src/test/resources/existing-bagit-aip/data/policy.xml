@@ -1,11 +1,11 @@
 <policies>
-	<policy in-effect="true" end-date="2100-01-01" group="Administrator" action="ADMIN"/>
-	<policy in-effect="true" start-date="2000-01-01" group="Anonymous" action="READ"/>
-	<policy in-effect="true" start-date="2000-01-01" group="Anonymous" action="READ_ITEM"/>
-	<policy in-effect="true" start-date="2000-01-01" group="Anonymous" action="READ_BITSTREAM"/>
-	<policy name="User add" type="TYPE_CUSTOM" description="DSpace user add policy" in-effect="true"
-				 eperson="dspace-user@localhost.localdomain" action="Add"/>
-	<policy in-effect="true" eperson="dspace-user@localhost.localdomain" action="WRITE"/>
-	<policy in-effect="true" eperson="dspace-user@localhost.localdomain" action="REMOVE"/>
-	<policy in-effect="true" eperson="dspace-user@localhost.localdomain" action="DELETE"/>
+	<policy end-date="2100-01-01" group="Administrator" action="ADMIN"/>
+	<policy start-date="2000-01-01" group="Anonymous" action="READ"/>
+	<policy start-date="2000-01-01" group="Anonymous" action="READ_ITEM"/>
+	<policy start-date="2000-01-01" group="Anonymous" action="READ_BITSTREAM"/>
+	<policy name="User add" type="TYPE_CUSTOM" description="DSpace user add policy"
+					eperson="dspace-user@localhost.localdomain" action="Add"/>
+	<policy eperson="dspace-user@localhost.localdomain" action="WRITE"/>
+	<policy eperson="dspace-user@localhost.localdomain" action="REMOVE"/>
+	<policy eperson="dspace-user@localhost.localdomain" action="DELETE"/>
 </policies>
