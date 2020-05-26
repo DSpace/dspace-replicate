@@ -4,7 +4,7 @@
 	<policy start-date="2000-01-01" group="Anonymous" action="READ_ITEM"/>
 	<policy start-date="2000-01-01" group="Anonymous" action="READ_BITSTREAM"/>
 	<policy name="User add" type="TYPE_CUSTOM" description="DSpace user add policy"
-					eperson="dspace-user@localhost.localdomain" action="Add"/>
+          eperson="dspace-user@localhost.localdomain" action="Add"/>
 	<policy eperson="dspace-user@localhost.localdomain" action="WRITE"/>
 	<policy eperson="dspace-user@localhost.localdomain" action="REMOVE"/>
 	<policy eperson="dspace-user@localhost.localdomain" action="DELETE"/>
