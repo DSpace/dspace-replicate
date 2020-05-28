@@ -256,6 +256,10 @@ public class BagItAipWriter {
             } catch (JAXBException e) {
                 throw new IOException("Unable to create XML Marshaller");
             }
+
+            // capture the checksum of the metadata.xml
+            final String objFileDigest = Utils.toHex(messageDigest.digest());
+            checksums.put(metadataXml.toFile(), objFileDigest);
         }
 
         // policy info
@@ -272,6 +276,10 @@ public class BagItAipWriter {
             } catch (JAXBException e) {
                 throw new IOException("Unable to create XML Marshaller");
             }
+
+            // capture the checksum of the policy.xml
+            final String objFileDigest = Utils.toHex(messageDigest.digest());
+            checksums.put(policyXml.toFile(), objFileDigest);
         }
 
         // write any bitstreams
@@ -297,6 +305,10 @@ public class BagItAipWriter {
                 } catch (JAXBException e) {
                     throw new IOException("Unable to create XML Marshaller");
                 }
+
+                // capture the checksum of the bitstream's metadata.xml
+                final String objFileDigest = Utils.toHex(messageDigest.digest());
+                checksums.put(xml.toFile(), objFileDigest);
             }
 
             if (bagBitstream.getPolicies() != null) {
@@ -312,6 +324,10 @@ public class BagItAipWriter {
                 } catch (JAXBException e) {
                     throw new IOException("Unable to create XML Marshaller");
                 }
+
+                // capture the checksum of the bitstream's policy.xml
+                final String objFileDigest = Utils.toHex(messageDigest.digest());
+                checksums.put(xml.toFile(), objFileDigest);
             }
 
             if (bagBitstream.getFetchUrl() != null) {

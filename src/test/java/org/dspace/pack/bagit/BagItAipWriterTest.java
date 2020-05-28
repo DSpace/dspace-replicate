@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,11 +24,18 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.io.IOUtils;
 import org.dspace.content.Bitstream;
 import org.dspace.content.BitstreamFormat;
 import org.dspace.content.factory.ContentServiceFactory;
@@ -36,6 +44,8 @@ import org.dspace.core.Context;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
+import org.dspace.pack.bagit.xml.policy.Policies;
+import org.dspace.pack.bagit.xml.policy.Policy;
 import org.elasticsearch.common.recycler.Recycler;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,8 +61,8 @@ public class BagItAipWriterTest extends BagItPackerTest {
     private final String bundleName = "test-bundle";
     private final String xmlBody = "test-xml-body";
     private final String xmlAttr = "test-xml-attr";
-    private final String xmlAttrName = "name";
 
+    private Policies policies;
     private Metadata metadata;
     private List<BagBitstream> bitstreams;
     private Map<String, List<String>> properties;
@@ -69,6 +79,11 @@ public class BagItAipWriterTest extends BagItPackerTest {
         value.setName(xmlAttr);
         value.setBody(xmlBody);
         metadata.addValue(value);
+
+        policies = new Policies();
+        Policy policy = new Policy();
+        policy.setType("READ");
+        policies.addPolicy(policy);
 
         bitstreams = new ArrayList<>();
 
@@ -91,6 +106,7 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final BagItAipWriter writer = new BagItAipWriter(directory, archFmt, properties)
             .withLogo(logo)
             .withMetadata(metadata)
+            .withPolicies(policies)
             .withBitstreams(bitstreams);
 
         when(bitstreamService.retrieve(any(Context.class), eq(logo)))
@@ -108,7 +124,30 @@ public class BagItAipWriterTest extends BagItPackerTest {
         assertThat(packagedAip).exists();
         assertThat(packagedAip).isFile();
 
-        // todo additional verification that the zip contains all expected entries
+        // read the manifests to get the entries written to the bag
+        final Map<String, List<String>> contents = new HashMap<>();
+        try (InputStream is = Files.newInputStream(packagedAip.toPath());
+             ZipArchiveInputStream zis = new ZipArchiveInputStream(is)) {
+            ArchiveEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                final String entryName = entry.getName();
+                if (entryName.endsWith("manifest-md5.txt")) {
+                    final List<String> lines = IOUtils.readLines(zis);
+                    contents.put(entryName, lines);
+                }
+            }
+        }
+
+        final String manifestKey = "test-write-aip/manifest-md5.txt";
+        final String tagManifestKey = "test-write-aip/tagmanifest-md5.txt";
+        assertThat(contents).containsKeys(manifestKey, tagManifestKey);
+
+        // it would be nice to test the file names in the captured lines as well
+        final List<String> manifestLines = contents.get(manifestKey);
+        final List<String> tagManifestLines = contents.get(tagManifestKey);
+        assertThat(manifestLines).hasSize(5);
+        assertThat(tagManifestLines).hasSize(3);
+
         Files.delete(packagedAip.toPath());
     }
 
