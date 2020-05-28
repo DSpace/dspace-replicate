@@ -73,10 +73,12 @@ public class BagItAipWriter {
     public static final String OBJ_TYPE_COMMUNITY = "community";
     public static final String OBJ_TYPE_COLLECTION = "collection";
     public static final String PROPERTIES_DELIMITER = "  ";
+
+    private static final String DATA_DIR = "data";
+    private static final String POLICY_XML = "policy.xml";
+    private static final String METADATA_XML = "metadata.xml";
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
-    private final String DATA_DIR = "data";
-    private final String METADATA_XML = "metadata.xml";
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // Fields used for book keeping
@@ -242,45 +244,9 @@ public class BagItAipWriter {
             checksums.put(propertiesFile.toFile(), objFileDigest);
         }
 
-        // then metadata
-        if (metadata != null) {
-            messageDigest.reset();
-            final Path metadataXml = dataDir.resolve(METADATA_XML);
-            try (final OutputStream output = Files.newOutputStream(metadataXml, StandardOpenOption.CREATE_NEW);
-                 final CountingOutputStream countingOS = new CountingOutputStream(output);
-                 final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
-                marshaller.marshal(metadata, digestOS);
-
-                successFiles.incrementAndGet();
-                successBytes.addAndGet(countingOS.getCount());
-            } catch (JAXBException e) {
-                throw new IOException("Unable to create XML Marshaller");
-            }
-
-            // capture the checksum of the metadata.xml
-            final String objFileDigest = Utils.toHex(messageDigest.digest());
-            checksums.put(metadataXml.toFile(), objFileDigest);
-        }
-
-        // policy info
-        if (policies != null) {
-            messageDigest.reset();
-            final Path policyXml = dataDir.resolve("policy.xml");
-            try (final OutputStream output = Files.newOutputStream(policyXml, StandardOpenOption.CREATE_NEW);
-                 final CountingOutputStream countingOS = new CountingOutputStream(output);
-                 final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)){
-                marshaller.marshal(policies, digestOS);
-
-                successFiles.incrementAndGet();
-                successBytes.addAndGet(countingOS.getCount());
-            } catch (JAXBException e) {
-                throw new IOException("Unable to create XML Marshaller");
-            }
-
-            // capture the checksum of the policy.xml
-            final String objFileDigest = Utils.toHex(messageDigest.digest());
-            checksums.put(policyXml.toFile(), objFileDigest);
-        }
+        // then metadata and policy
+        writeXml(metadata, dataDir.resolve(METADATA_XML), marshaller, messageDigest);
+        writeXml(policies, dataDir.resolve(POLICY_XML), marshaller, messageDigest);
 
         // write any bitstreams
         for (BagBitstream bagBitstream : bitstreams) {
@@ -289,46 +255,18 @@ public class BagItAipWriter {
             final Path bitstreamDirectory = dataDir.resolve(bundle);
             Files.createDirectories(bitstreamDirectory);
 
-            // write the bitstream metadata
+            // get the bitstream uuid
             final Bitstream bitstream = bagBitstream.getBitstream();
             final String bitstreamID = bitstream.getID().toString();
-            if (bagBitstream.getMetadata() != null) {
-                final String mdName = BITSTREAM_PREFIX + bitstreamID + "-" + METADATA_XML;
-                final Path xml = bitstreamDirectory.resolve(mdName);
-                try (final OutputStream output = Files.newOutputStream(xml, StandardOpenOption.CREATE_NEW);
-                     final CountingOutputStream countingOS = new CountingOutputStream(output);
-                     final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)){
-                    marshaller.marshal(bagBitstream.getMetadata(), digestOS);
 
-                    successFiles.incrementAndGet();
-                    successBytes.addAndGet(countingOS.getCount());
-                } catch (JAXBException e) {
-                    throw new IOException("Unable to create XML Marshaller");
-                }
+            // write the bitstream metadata + policy
+            final String mdName = BITSTREAM_PREFIX + bitstreamID + "-" + METADATA_XML;
+            final Path mdXml = bitstreamDirectory.resolve(mdName);
+            writeXml(bagBitstream.getMetadata(), mdXml, marshaller, messageDigest);
 
-                // capture the checksum of the bitstream's metadata.xml
-                final String objFileDigest = Utils.toHex(messageDigest.digest());
-                checksums.put(xml.toFile(), objFileDigest);
-            }
-
-            if (bagBitstream.getPolicies() != null) {
-                final String mdName = BITSTREAM_PREFIX + bitstreamID + "-policy.xml";
-                final Path xml = bitstreamDirectory.resolve(mdName);
-                try (final OutputStream output = Files.newOutputStream(xml, StandardOpenOption.CREATE_NEW);
-                     final CountingOutputStream countingOS = new CountingOutputStream(output);
-                     final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
-                    marshaller.marshal(bagBitstream.getPolicies(), digestOS);
-
-                    successFiles.incrementAndGet();
-                    successBytes.addAndGet(countingOS.getCount());
-                } catch (JAXBException e) {
-                    throw new IOException("Unable to create XML Marshaller");
-                }
-
-                // capture the checksum of the bitstream's policy.xml
-                final String objFileDigest = Utils.toHex(messageDigest.digest());
-                checksums.put(xml.toFile(), objFileDigest);
-            }
+            final String polName = BITSTREAM_PREFIX + bitstreamID + "-" + POLICY_XML;
+            final Path polXml = bitstreamDirectory.resolve(polName);
+            writeXml(bagBitstream.getPolicies(), polXml, marshaller, messageDigest);
 
             if (bagBitstream.getFetchUrl() != null) {
                 throw new UnsupportedOperationException("fetch.txt for bags is not supported at this time");
@@ -381,6 +319,33 @@ public class BagItAipWriter {
         delete(directory);
 
         return serializedBag.toFile();
+    }
+
+    /**
+     * Create an xml document for a given object and its path
+     *
+     * @param object the object to marshal
+     * @param xml the path of the xml file to create
+     * @param marshaller the jaxb {@link Marshaller}
+     * @param messageDigest the message digest to capture what is written
+     * @throws IOException if there's an error writing the file
+     */
+    private void writeXml(final Object object, final Path xml, final Marshaller marshaller,
+                          final MessageDigest messageDigest) throws IOException {
+        messageDigest.reset();
+
+        if (object != null) {
+            try (OutputStream output = Files.newOutputStream(xml);
+                 CountingOutputStream countingOS = new CountingOutputStream(output);
+                 DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
+                marshaller.marshal(object, digestOS);
+                successFiles.incrementAndGet();
+                successBytes.addAndGet(countingOS.getCount());
+            } catch (JAXBException e) {
+                throw new IOException("Error writing xml for " + xml.getFileName(), e);
+            }
+            checksums.put(xml.toFile(), Utils.toHex(messageDigest.digest()));
+        }
     }
 
     /**
