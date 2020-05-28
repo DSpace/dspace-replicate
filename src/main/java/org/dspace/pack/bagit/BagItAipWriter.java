@@ -29,13 +29,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.CountingOutputStream;
-import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -44,9 +39,8 @@ import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
-import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
-import org.dspace.pack.bagit.xml.policy.Policy;
+import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagConfig;
@@ -63,6 +57,8 @@ import org.joda.time.format.ISODateTimeFormat;
  * The BagItAipWriter handles the packaging of DSpaceObjects into their respective bags. It processes the metadata and
  * bitstreams given to it by the various {@link org.dspace.pack.Packer}s in order to write the object.properties,
  * metadata.xml, etc for each AIP.
+ *
+ * todo: any xml marshalling needs to go through a properly created stream
  *
  * @author mikejritter
  * @since 2020-03-02
@@ -112,7 +108,7 @@ public class BagItAipWriter {
     /**
      * Pojo for xml policy data on a DSpaceObject
      */
-    private Policy policy;
+    private Policies policies;
 
     /**
      * Pojo for xml metadata on a DSpaceObject
@@ -134,7 +130,7 @@ public class BagItAipWriter {
      */
     public BagItAipWriter(final File directory, final String archFmt, final Map<String, List<String>> properties) {
         this.logo = null;
-        this.policy = null;
+        this.policies = null;
         this.metadata = null;
         this.archFmt = checkNotNull(archFmt);
         this.directory = checkNotNull(directory);
@@ -152,11 +148,11 @@ public class BagItAipWriter {
     }
 
     /**
-     * @param policy the {@link Policy} to write to the bags data/policy.xml
+     * @param policies the {@link Policies} to write to the bags data/policy.xml
      * @return the {@link BagItAipWriter} used for creating the aip
      */
-    public BagItAipWriter withPolicy(final Policy policy) {
-        this.policy = policy;
+    public BagItAipWriter withPolicies(final Policies policies) {
+        this.policies = policies;
         return this;
     }
 
@@ -250,14 +246,21 @@ public class BagItAipWriter {
             } catch (JAXBException e) {
                 throw new IOException("Unable to create XML Marshaller");
             }
-            // writeXml(metadata, metadataXml, messageDigest);
         }
 
         // policy info
-        if (policy != null) {
+        if (policies != null) {
             messageDigest.reset();
             final Path policyXml = dataDir.resolve("policy.xml");
-            writeXml(policy, policyXml, messageDigest);
+            try {
+                JAXBContext jaxbContext = JAXBContext.newInstance(Policies.class);
+                Marshaller marshaller = jaxbContext.createMarshaller();
+                marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+                marshaller.marshal(policies, policyXml.toFile());
+            } catch (JAXBException e) {
+                throw new IOException("Unable to create XML Marshaller");
+            }
         }
 
         // write any bitstreams
@@ -278,17 +281,24 @@ public class BagItAipWriter {
                     Marshaller marshaller = jaxbContext.createMarshaller();
                     marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 
-                    marshaller.marshal(metadata, xml.toFile());
+                    marshaller.marshal(bagBitstream.getMetadata(), xml.toFile());
                 } catch (JAXBException e) {
                     throw new IOException("Unable to create XML Marshaller");
                 }
-                // writeXml(bagBitstream.getMetadata(), xml, messageDigest);
             }
 
-            if (bagBitstream.getPolicy() != null) {
+            if (bagBitstream.getPolicies() != null) {
                 final String mdName = BITSTREAM_PREFIX + bitstreamID + "-policy.xml";
                 final Path xml = bitstreamDirectory.resolve(mdName);
-                writeXml(bagBitstream.getPolicy(), xml, messageDigest);
+                try {
+                    JAXBContext jaxbContext = JAXBContext.newInstance(Policies.class);
+                    Marshaller marshaller = jaxbContext.createMarshaller();
+                    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+                    marshaller.marshal(bagBitstream.getPolicies(), xml.toFile());
+                } catch (JAXBException e) {
+                    throw new IOException("Unable to create XML Marshaller");
+                }
             }
 
             if (bagBitstream.getFetchUrl() != null) {
@@ -403,66 +413,6 @@ public class BagItAipWriter {
         }
 
         directory.delete();
-    }
-
-    /**
-     * Write the xml {@code elements} to the given {@code metadata} file. After writing the message digest of the
-     * written xml file is returned.
-     *
-     * @param element       the {@link Element} to write to the file
-     * @param xml           the {@link Path} to the xml file
-     * @param messageDigest the {@link MessageDigest} tracking the digest of the file
-     * @throws IOException if there are any errors writing to the {@code metadata}
-     */
-    private void writeXml(final Element element, final Path xml, final MessageDigest messageDigest) throws IOException {
-        if (Files.notExists(xml.getParent())) {
-            Files.createDirectories(xml.getParent());
-        }
-
-        final XMLOutputFactory xmlOutputFactory = XMLOutputFactory.newInstance();
-        messageDigest.reset();
-        try (final OutputStream output = Files.newOutputStream(xml, StandardOpenOption.CREATE_NEW);
-             final CountingOutputStream countingOS = new CountingOutputStream(output);
-             final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
-            final XMLStreamWriter xmlWriter = xmlOutputFactory.createXMLStreamWriter(digestOS,
-                                                                                     Charsets.UTF_8.toString());
-            xmlWriter.writeStartDocument(Charsets.UTF_8.toString(), "1.0");
-            writeXml(xmlWriter, ImmutableList.of(element));
-            xmlWriter.writeEndDocument();
-
-            successBytes.addAndGet(countingOS.getCount());
-            successFiles.incrementAndGet();
-            checksums.put(xml.toFile(), Utils.toHex(messageDigest.digest()));
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Recursive function to write xml from {@link Element}s and their children
-     *
-     * @param xmlWriter the XmlStreamWriter
-     * @param elements  the XmlElements to write
-     * @throws XMLStreamException if an exception occurs
-     */
-    private void writeXml(XMLStreamWriter xmlWriter, List<Element> elements) throws XMLStreamException {
-        for (Element element : elements) {
-            xmlWriter.writeStartElement(element.getLocalName());
-            for (Map.Entry<String, String> attribute : element.getAttributes().entrySet()) {
-                if (attribute.getKey() != null && !attribute.getKey().isEmpty() &&
-                    attribute.getValue() != null && !attribute.getValue().isEmpty()) {
-                    xmlWriter.writeAttribute(attribute.getKey(), attribute.getValue());
-                }
-            }
-
-            if (element.hasChildren()) {
-                writeXml(xmlWriter, element.getChildren());
-            } else {
-                xmlWriter.writeCharacters(element.getBody());
-            }
-
-            xmlWriter.writeEndElement();
-        }
     }
 
 }

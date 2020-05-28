@@ -25,12 +25,7 @@ import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import javax.print.attribute.standard.MediaSize;
-import javax.swing.CellEditor;
 
 import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
@@ -47,11 +42,9 @@ import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
-import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
-import org.dspace.pack.bagit.xml.policy.Policy;
-import org.elasticsearch.common.recycler.Recycler;
+import org.dspace.pack.bagit.xml.policy.Policies;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -135,7 +128,7 @@ public class ItemPacker implements Packer {
         }
 
         // policy.xml
-        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), item);
+        final Policies policy = policyUtil.getPolicy(Curator.curationContext(), item);
 
         // proceed to bundles, in sub-directories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
@@ -174,7 +167,7 @@ public class ItemPacker implements Packer {
                     }
 
                     // bitstream policy
-                    final Policy bitstreamPolicy = policyUtil.getPolicy(Curator.curationContext(), bs);
+                    final Policies bitstreamPolicy = policyUtil.getPolicy(Curator.curationContext(), bs);
 
                     // write the bitstream itself, unless reference filter applies
                     final String fetchUrl = byReference(bundle, bs);
@@ -188,7 +181,7 @@ public class ItemPacker implements Packer {
         }
 
         return new BagItAipWriter(packDir, archFmt, properties)
-            .withPolicy(policy)
+            .withPolicies(policy)
             .withMetadata(metadata)
             .withBitstreams(bitstreams)
             .packageAip();
@@ -214,8 +207,8 @@ public class ItemPacker implements Packer {
 
         // set the policies for the item
         try {
-            final Policy policy = reader.readPolicy();
-            policyUtil.registerPolicies(item, policy);
+            final Policies policies = reader.readPolicy();
+            policyUtil.registerPolicies(item, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }
@@ -253,8 +246,8 @@ public class ItemPacker implements Packer {
 
             // and the bitstream policies
             try {
-                final Policy bitstreamPolicy = packaged.getPolicy();
-                policyUtil.registerPolicies(bitstream, bitstreamPolicy);
+                final Policies bitstreamPolicies = packaged.getPolicies();
+                policyUtil.registerPolicies(bitstream, bitstreamPolicies);
             } catch (PackageException e) {
                 throw new IOException(e.getMessage(), e);
             }

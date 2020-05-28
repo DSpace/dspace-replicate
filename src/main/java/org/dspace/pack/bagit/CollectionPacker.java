@@ -15,7 +15,6 @@ import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
 import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COLLECTION;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
-import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,10 +41,9 @@ import org.dspace.content.service.ItemService;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
-import org.dspace.pack.bagit.xml.policy.Policy;
+import org.dspace.pack.bagit.xml.policy.Policies;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -117,10 +115,10 @@ public class CollectionPacker implements Packer
         }
 
         // collect xml policy
-        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), collection);
+        final Policies policy = policyUtil.getPolicy(Curator.curationContext(), collection);
 
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
-            .withPolicy(policy)
+            .withPolicies(policy)
             .withMetadata(metadata)
             .packageAip();
     }
@@ -141,8 +139,8 @@ public class CollectionPacker implements Packer
         }
 
         try {
-            final Policy policy = reader.readPolicy();
-            policyUtil.registerPolicies(collection, policy);
+            final Policies policies = reader.readPolicy();
+            policyUtil.registerPolicies(collection, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }

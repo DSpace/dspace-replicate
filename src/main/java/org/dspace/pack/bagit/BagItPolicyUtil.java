@@ -14,9 +14,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -36,9 +34,8 @@ import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
-import org.dspace.pack.bagit.xml.Element;
+import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
-import org.dspace.pack.bagit.xml.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,16 +50,6 @@ public class BagItPolicyUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(BagItPolicyUtil.class);
 
-    // ResourcePolicy XML Attributes
-    private static final String RP_NAME = "name";
-    private static final String RP_TYPE = "type";
-    private static final String RP_GROUP = "group";
-    private static final String RP_ACTION = "action";
-    private static final String RP_EPERSON = "eperson";
-    private static final String RP_END_DATE = "end-date";
-    private static final String RP_START_DATE = "start-date";
-    private static final String RP_DESCRIPTION = "description";
-
     private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     /**
@@ -71,24 +58,24 @@ public class BagItPolicyUtil {
      * @param dso The {@link DSpaceObject} to get the {@link Policy} for
      * @return the {@link Policy}
      */
-    public Policy getPolicy(final Context context, final DSpaceObject dso) throws IOException {
-        final Policy policy = new Policy();
+    public Policies getPolicy(final Context context, final DSpaceObject dso) throws IOException {
+        final Policies policies = new Policies();
         final BiMap<Integer, String> actions = actionMapper().inverse();
 
         for (ResourcePolicy resourcePolicy : dso.getResourcePolicies()) {
-            final Map<String, String> attributes = new HashMap<>();
+            final Policy policy = new Policy();
 
             // name and description
-            attributes.put(RP_NAME, resourcePolicy.getRpName());
-            attributes.put(RP_DESCRIPTION, resourcePolicy.getRpDescription());
+            policy.setName(resourcePolicy.getRpName());
+            policy.setDescription(resourcePolicy.getRpDescription());
 
             final Date endDate = resourcePolicy.getEndDate();
             final Date startDate = resourcePolicy.getStartDate();
             if (startDate != null) {
-                attributes.put(RP_START_DATE, dateFormat.format(startDate));
+                policy.setStartDate(dateFormat.format(startDate));
             }
             if (endDate != null) {
-                attributes.put(RP_END_DATE, dateFormat.format(endDate));
+                policy.setEndDate(dateFormat.format(endDate));
             }
 
             // attributes for determining if adding policies on a group + what type of group or policies for a user
@@ -97,12 +84,12 @@ public class BagItPolicyUtil {
             if (group != null) {
                 final String groupName = group.getName();
                 if (groupName.equals(Group.ANONYMOUS)) {
-                    attributes.put(RP_GROUP, Group.ANONYMOUS);
+                    policy.setGroup(Group.ANONYMOUS);
                 } else if (groupName.equals(Group.ADMIN)) {
-                    attributes.put(RP_GROUP, Group.ADMIN);
+                    policy.setGroup(Group.ADMIN);
                 } else {
                     try {
-                        attributes.put(RP_GROUP, PackageUtils.translateGroupNameForExport(context, groupName));
+                        policy.setGroup(PackageUtils.translateGroupNameForExport(context, groupName));
                     } catch (PackageException exception) {
                         // since this is called by a Packer, wrap the PackageException in an IOException so it can
                         // continue to be thrown up the stack
@@ -110,32 +97,32 @@ public class BagItPolicyUtil {
                     }
                 }
             } else if (ePerson != null) {
-                attributes.put(RP_EPERSON, ePerson.getEmail());
+                policy.setEperson(ePerson.getEmail());
             } else {
                 logger.warn("No EPerson or Group found for policy!");
             }
 
             final String action = actions.get(resourcePolicy.getAction());
-            attributes.put(RP_ACTION, action);
+            policy.setAction(action);
 
             final String type = resourcePolicy.getRpType();
-            attributes.put(RP_TYPE, type);
+            policy.setType(type);
 
-            policy.addChild(new Value(Policy.CHILD_LOCAL_NAME, "", attributes));
+            policies.addPolicy(policy);
         }
 
-        return policy;
+        return policies;
     }
 
     /**
-     * Register all policies found from {@link Policy#getChildren()} by mapping them to a new {@link ResourcePolicy}.
+     * Register all policies found from {@link Policies#getPolicies()} by mapping them to a new {@link ResourcePolicy}.
      * This operation will replace all existing ResourcePolicies for a given {@link DSpaceObject} unless there is an
-     * error during the mapping from a {@link Value} to a {@link ResourcePolicy}.
+     * error during the mapping from a {@link Policy} to a {@link ResourcePolicy}.
      *
      * @param dSpaceObject the {@link DSpaceObject} to register policies for
-     * @param policy the {@link Policy} pojo to create each {@link ResourcePolicy}
+     * @param policies the {@link Policies} pojo to create each {@link ResourcePolicy}
      */
-    public void registerPolicies(final DSpaceObject dSpaceObject, final Policy policy)
+    public void registerPolicies(final DSpaceObject dSpaceObject, final Policies policies)
         throws SQLException, AuthorizeException, PackageException {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
@@ -145,22 +132,21 @@ public class BagItPolicyUtil {
 
         // Need to map policy children from List<Element> to List<ResourcePolicy>
         // then use the authorizationService to add all policies to the dso
-        final List<ResourcePolicy> policies = new ArrayList<>();
-        for (Element element : policy.getChildren()) {
-            final Map<String, String> attributes = element.getAttributes();
+        final List<ResourcePolicy> resourcePolicies = new ArrayList<>();
+        for (Policy policy : policies.getPolicies()) {
             final ResourcePolicy resourcePolicy = resourcePolicyService.create(Curator.curationContext());
 
-            final String rpName = attributes.get(RP_NAME);
+            final String rpName = policy.getName();
             if (rpName != null) {
                 resourcePolicy.setRpName(rpName);
             }
 
-            final String rpDescription = attributes.get(RP_DESCRIPTION);
+            final String rpDescription = policy.getDescription();
             if (rpDescription != null) {
                 resourcePolicy.setRpDescription(rpDescription);
             }
 
-            final String rpStartDate = attributes.get(RP_START_DATE);
+            final String rpStartDate = policy.getStartDate();
             if (rpStartDate != null) {
                 try {
                     final Date date = dateFormat.parse(rpStartDate);
@@ -170,7 +156,7 @@ public class BagItPolicyUtil {
                 }
             }
 
-            final String rpEndDate = attributes.get(RP_END_DATE);
+            final String rpEndDate = policy.getEndDate();
             if (rpEndDate != null) {
                 try {
                     final Date date = dateFormat.parse(rpEndDate);
@@ -180,8 +166,8 @@ public class BagItPolicyUtil {
                 }
             }
 
-            final String groupName = attributes.get(RP_GROUP);
-            final String epersonEmail = attributes.get(RP_EPERSON);
+            final String groupName = policy.getGroup();
+            final String epersonEmail = policy.getEperson();
             if (groupName != null) {
                 final String nameForImport;
 
@@ -211,22 +197,22 @@ public class BagItPolicyUtil {
                 logger.warn("Cannot import policy, no rp-group or rp-eperson attribute found on value!");
             }
 
-            final Integer action = actionMapper().get(attributes.get(RP_ACTION));
+            final Integer action = actionMapper().get(policy.getAction());
             // exception if null?
             if (action != null) {
                 resourcePolicy.setAction(action);
             }
 
-            final String type = attributes.get(RP_TYPE);
+            final String type = policy.getType();
             if (type != null) {
                 resourcePolicy.setRpType(type);
             }
 
-            policies.add(resourcePolicy);
+            resourcePolicies.add(resourcePolicy);
         }
 
         authorizeService.removeAllPolicies(Curator.curationContext(), dSpaceObject);
-        authorizeService.addPolicies(Curator.curationContext(), policies, dSpaceObject);
+        authorizeService.addPolicies(Curator.curationContext(), resourcePolicies, dSpaceObject);
     }
 
     /**

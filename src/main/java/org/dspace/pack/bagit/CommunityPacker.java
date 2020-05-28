@@ -15,7 +15,6 @@ import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
 import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COMMUNITY;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
-import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,10 +39,9 @@ import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
-import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
-import org.dspace.pack.bagit.xml.policy.Policy;
+import org.dspace.pack.bagit.xml.policy.Policies;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -112,11 +110,11 @@ public class CommunityPacker implements Packer
         }
 
         // collect the policy
-        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policy = policyUtil.getPolicy(Curator.curationContext(), community);
 
         return new BagItAipWriter(packDir, archFmt, properties)
             .withLogo(logo)
-            .withPolicy(policy)
+            .withPolicies(policy)
             .withMetadata(metadata)
             .packageAip();
     }
@@ -140,8 +138,8 @@ public class CommunityPacker implements Packer
         }
 
         try {
-            final Policy policy = reader.readPolicy();
-            policyUtil.registerPolicies(community, policy);
+            final Policies policies = reader.readPolicy();
+            policyUtil.registerPolicies(community, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }

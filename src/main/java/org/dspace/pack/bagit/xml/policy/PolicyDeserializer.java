@@ -20,11 +20,11 @@ import org.dspace.pack.bagit.xml.ValueDeserializer;
  *
  * @author mikejritter
  */
-public class PolicyDeserializer implements ElementDeserializer<Policy> {
+public class PolicyDeserializer  { //implements ElementDeserializer<Policy> {
 
-    @Override
-    public Policy readElement(XMLStreamReader reader) throws XMLStreamException {
-        final Policy policy = new Policy();
+    public Policies readElement(XMLStreamReader reader) throws XMLStreamException {
+        final Policies policy = new Policies();
+        /*
         while (reader.hasNext()) {
             if (reader.next() == XMLStreamConstants.START_ELEMENT &&
                 reader.getLocalName().equalsIgnoreCase(policy.getLocalName())) {
@@ -42,6 +42,7 @@ public class PolicyDeserializer implements ElementDeserializer<Policy> {
                 }
             }
         }
+         */
 
         return policy;
     }

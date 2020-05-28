@@ -40,6 +40,7 @@ import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.Element;
+import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
 import org.joda.time.DateTime;
 import org.junit.Before;
@@ -88,27 +89,26 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
         // now test that the Policy pojo we get back is correct
         final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = policyUtil.getPolicy(Curator.curationContext(), community);
 
-        assertThat(policy).isNotNull();
-        final List<Element> children = policy.getChildren();
-        assertThat(children)
+        assertThat(policies).isNotNull();
+        final List<Policy> policyList = policies.getPolicies();
+        assertThat(policyList)
             .isNotNull()
             .hasSize(1);
 
-        final Element child = children.get(0);
-        assertThat(child.getLocalName()).isEqualTo(Policy.CHILD_LOCAL_NAME);
+        final Policy child = policyList.get(0);
 
-        // in-effect should be true, start date == groupDateTime, end date == null
-        assertThat(child.getAttributes())
-            .containsEntry("group", Group.ADMIN)
-            .containsEntry("start-date", dateFormat.format(groupDateTime.toDate()))
-            .containsEntry("action", "READ")
-            .containsEntry("name", null)
-            .containsEntry("type", TYPE_CUSTOM)
-            .containsEntry("description", null)
-            .doesNotContainKey("eperson")
-            .doesNotContainKey("end-date");
+        // start date == groupDateTime, end date == null
+        assertThat(child.getAction()).isEqualTo("READ");
+        assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
+        assertThat(child.getGroup()).isEqualTo(Group.ADMIN);
+        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(groupDateTime.toDate()));
+
+        assertThat(child.getName()).isNull();
+        assertThat(child.getEndDate()).isNull();
+        assertThat(child.getEperson()).isNull();
+        assertThat(child.getDescription()).isNull();
 
         verify(adminGroup, times(1)).getName();
     }
@@ -132,26 +132,24 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
         // now test that the Policy pojo we get back is correct
         final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = policyUtil.getPolicy(Curator.curationContext(), community);
 
-        assertThat(policy).isNotNull();
-        final List<Element> children = policy.getChildren();
+        assertThat(policies).isNotNull();
+        final List<Policy> children = policies.getPolicies();
         assertThat(children)
             .isNotNull()
             .hasSize(1);
 
-        final Element child = children.get(0);
-        assertThat(child.getLocalName()).isEqualTo(Policy.CHILD_LOCAL_NAME);
+        final Policy child = children.get(0);
+        assertThat(child.getAction()).isEqualTo("READ");
+        assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
+        assertThat(child.getGroup()).isEqualTo(Group.ANONYMOUS);
+        assertThat(child.getEndDate()).isEqualTo(dateFormat.format(groupDateTime.toDate()));
 
-        assertThat(child.getAttributes())
-            .containsEntry("group", Group.ANONYMOUS)
-            .containsEntry("end-date", dateFormat.format(groupDateTime.toDate()))
-            .containsEntry("action", "READ")
-            .containsEntry("name", null)
-            .containsEntry("type", TYPE_CUSTOM)
-            .containsEntry("description", null)
-            .doesNotContainKey("eperson")
-            .doesNotContainKey("start-date");
+        assertThat(child.getName()).isNull();
+        assertThat(child.getEperson()).isNull();
+        assertThat(child.getStartDate()).isNull();
+        assertThat(child.getDescription()).isNull();
 
         verify(anonGroup, times(1)).getName();
     }
@@ -176,27 +174,24 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
         // now test that the Policy pojo we get back is correct
         final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        final Policy policy = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = policyUtil.getPolicy(Curator.curationContext(), community);
 
-        assertThat(policy).isNotNull();
-        final List<Element> children = policy.getChildren();
+        assertThat(policies).isNotNull();
+        final List<Policy> children = policies.getPolicies();
         assertThat(children)
             .isNotNull()
             .hasSize(1);
 
-        final Element child = children.get(0);
-        assertThat(child.getLocalName()).isEqualTo(Policy.CHILD_LOCAL_NAME);
+        final Policy child = children.get(0);
+        assertThat(child.getAction()).isEqualTo("READ");
+        assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
+        assertThat(child.getEperson()).isEqualTo(epersonEmail);
+        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(ePersonDateTime.toDate()));
 
-        // in-effect should be true, start date == ePersonDateTime, end date == null
-        assertThat(child.getAttributes())
-            .containsEntry("eperson", epersonEmail)
-            .containsEntry("start-date", dateFormat.format(ePersonDateTime.toDate()))
-            .containsEntry("name", null)
-            .containsEntry("type", TYPE_CUSTOM)
-            .containsEntry("action", "READ")
-            .containsEntry("description", null)
-            .doesNotContainKey("group")
-            .doesNotContainKey("end-date");
+        assertThat(child.getName()).isNull();
+        assertThat(child.getGroup()).isNull();
+        assertThat(child.getEndDate()).isNull();
+        assertThat(child.getDescription()).isNull();
 
         verify(ePerson, times(1)).getEmail();
     }
@@ -210,7 +205,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         final Path aip = Paths.get(resources.toURI()).resolve("existing-bagit-aip");
         final BagItAipReader reader = new BagItAipReader(aip);
 
-        final Policy policy = reader.readPolicy();
+        final Policies policy = reader.readPolicy();
         assertThat(policy).isNotNull();
 
         // Create each of the expected groups and an ePerson: Admin, Anonymous, GROUP, dspace-user@localhost.localdomain

@@ -10,6 +10,7 @@ package org.dspace.pack.bagit;
 import com.google.common.base.Preconditions;
 import org.dspace.content.Bitstream;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
 
 /**
@@ -22,7 +23,7 @@ public class BagBitstream {
     private String fetchUrl;
 
     private final String bundle;
-    private final Policy policy;
+    private final Policies policies;
     private final Metadata metadata;
     private final Bitstream bitstream;
 
@@ -32,12 +33,12 @@ public class BagBitstream {
      * @param fetchUrl the url to fetch the {@link Bitstream} from
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param policy the {@link Policy} metadata associated with the {@link Bitstream}
+     * @param policies the {@link Policies} metadata associated with the {@link Bitstream}
      * @param metadata the metadata associated with the {@link Bitstream}
      */
-    public BagBitstream(final String fetchUrl, final Bitstream bitstream, final String bundle, final Policy policy,
+    public BagBitstream(final String fetchUrl, final Bitstream bitstream, final String bundle, final Policies policies,
                         final Metadata metadata) {
-        this.policy = policy;
+        this.policies = policies;
         this.metadata = metadata;
         this.bundle = Preconditions.checkNotNull(bundle);
         this.fetchUrl = Preconditions.checkNotNull(fetchUrl);
@@ -49,11 +50,11 @@ public class BagBitstream {
      *
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param policy the {@link Policy} metadata associated with the {@link Bitstream}
+     * @param policies the {@link Policy} metadata associated with the {@link Bitstream}
      * @param metadata the metadata associated with the {@link Bitstream}
      */
-    public BagBitstream(final Bitstream bitstream, final String bundle, final Policy policy, final Metadata metadata) {
-        this.policy = policy;
+    public BagBitstream(final Bitstream bitstream, final String bundle, final Policies policies, final Metadata metadata) {
+        this.policies = policies;
         this.metadata = metadata;
         this.bundle = Preconditions.checkNotNull(bundle);
         this.bitstream = Preconditions.checkNotNull(bitstream);
@@ -82,8 +83,8 @@ public class BagBitstream {
      *
      * @return the {@link Policy}
      */
-    public Policy getPolicy() {
-        return policy;
+    public Policies getPolicies() {
+        return policies;
     }
 
     /**

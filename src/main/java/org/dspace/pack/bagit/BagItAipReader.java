@@ -39,9 +39,9 @@ import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
-import org.apache.jena.atlas.io.IO;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.MetadataDeserializer;
+import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
 import org.dspace.pack.bagit.xml.policy.PolicyDeserializer;
 import org.dspace.services.ConfigurationService;
@@ -210,14 +210,13 @@ public class BagItAipReader {
      * @return the {@link Policy} with values read from data/policy.xml
      * @throws IOException if there was an error reading the file or parsing the xml
      */
-    public Policy readPolicy() throws IOException {
+    public Policies readPolicy() throws IOException {
         final Path xml = bag.resolve("data/policy.xml");
-        final PolicyDeserializer deserializer = new PolicyDeserializer();
-        try (InputStream inputStream = Files.newInputStream(xml)) {
-            final XMLInputFactory factory = XMLInputFactory.newFactory();
-            final XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
-            return deserializer.readElement(reader);
-        } catch (XMLStreamException e) {
+        try {
+            JAXBContext context = JAXBContext.newInstance(Policies.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            return (Policies) unmarshaller.unmarshal(xml.toFile());
+        } catch (JAXBException e) {
             throw new IOException(e.getMessage(), e);
         }
     }
@@ -259,7 +258,6 @@ public class BagItAipReader {
         // iterate all bundles
         final XMLInputFactory factory = XMLInputFactory.newFactory();
         final PolicyDeserializer policyDeserializer = new PolicyDeserializer();
-        final MetadataDeserializer metadataDeserializer = new MetadataDeserializer();
         try (DirectoryStream<Path> directories = Files.newDirectoryStream(data, directoryFilter)) {
             for (Path bundle : directories) {
                 final String bundleName = bundle.getFileName().toString();
@@ -272,7 +270,7 @@ public class BagItAipReader {
                         // load the bitstream metadata
                         final Matcher matcher = uuid.matcher(bitstreamName);
                         if (matcher.matches()) {
-                            final Policy policy;
+                            final Policies policies;
                             final Metadata metadata;
 
                             final String metadataPath = matcher.group("uuid");
@@ -286,14 +284,15 @@ public class BagItAipReader {
                             }
 
                             final Path bsPolicy = bundle.resolve(metadataPath + "-policy.xml");
-                            try (InputStream inputStream = Files.newInputStream(bsPolicy)) {
-                                final XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
-                                policy = policyDeserializer.readElement(reader);
-                            } catch (XMLStreamException e) {
+                            try {
+                                JAXBContext context = JAXBContext.newInstance(Policies.class);
+                                Unmarshaller unmarshaller = context.createUnmarshaller();
+                                policies = (Policies) unmarshaller.unmarshal(bsPolicy.toFile());
+                            } catch (JAXBException e) {
                                 throw new IOException(e.getMessage(), e);
                             }
 
-                            packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata, policy));
+                            packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata, policies));
                         }
                     }
                 }
