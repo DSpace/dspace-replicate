@@ -9,8 +9,8 @@ package org.dspace.pack.bagit;
 
 import java.nio.file.Path;
 
-import org.dspace.pack.bagit.xml.Metadata;
-import org.dspace.pack.bagit.xml.Policy;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.policy.Policy;
 
 /**
  * Information about a {@link org.dspace.content.Bitstream} packaged in an aip

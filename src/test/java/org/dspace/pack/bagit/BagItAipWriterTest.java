@@ -34,7 +34,7 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.pack.PackerFactory;
-import org.dspace.pack.bagit.xml.Metadata;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.Value;
 import org.junit.Before;
 import org.junit.Test;

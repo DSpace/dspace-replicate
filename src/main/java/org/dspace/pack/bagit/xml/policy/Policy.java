@@ -5,7 +5,9 @@
  *
  * http://www.dspace.org/license/
  */
-package org.dspace.pack.bagit.xml;
+package org.dspace.pack.bagit.xml.policy;
+
+import org.dspace.pack.bagit.xml.Parent;
 
 /**
  * Pojo for policy xml

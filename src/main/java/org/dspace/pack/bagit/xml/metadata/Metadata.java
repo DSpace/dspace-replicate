@@ -5,7 +5,9 @@
  *
  * http://www.dspace.org/license/
  */
-package org.dspace.pack.bagit.xml;
+package org.dspace.pack.bagit.xml.metadata;
+
+import org.dspace.pack.bagit.xml.Parent;
 
 /**
  * BagIt specific pojo for DSO metadata.xml

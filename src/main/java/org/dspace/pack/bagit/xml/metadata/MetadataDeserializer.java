@@ -5,11 +5,16 @@
  *
  * http://www.dspace.org/license/
  */
-package org.dspace.pack.bagit.xml;
+package org.dspace.pack.bagit.xml.metadata;
 
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+
+import org.dspace.pack.bagit.xml.Element;
+import org.dspace.pack.bagit.xml.ElementDeserializer;
+import org.dspace.pack.bagit.xml.Value;
+import org.dspace.pack.bagit.xml.ValueDeserializer;
 
 /**
  * Read a {@link Metadata} from an {@link XMLStreamReader}

@@ -9,8 +9,8 @@ package org.dspace.pack.bagit;
 
 import com.google.common.base.Preconditions;
 import org.dspace.content.Bitstream;
-import org.dspace.pack.bagit.xml.Metadata;
-import org.dspace.pack.bagit.xml.Policy;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.policy.Policy;
 
 /**
  * Hold information about a {@link Bitstream} and its metadata.

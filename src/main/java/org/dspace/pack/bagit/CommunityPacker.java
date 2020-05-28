@@ -41,8 +41,8 @@ import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.Element;
-import org.dspace.pack.bagit.xml.Metadata;
-import org.dspace.pack.bagit.xml.Policy;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.policy.Policy;
 import org.dspace.pack.bagit.xml.Value;
 
 /**

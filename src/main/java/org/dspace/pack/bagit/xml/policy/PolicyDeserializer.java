@@ -5,11 +5,15 @@
  *
  * http://www.dspace.org/license/
  */
-package org.dspace.pack.bagit.xml;
+package org.dspace.pack.bagit.xml.policy;
 
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+
+import org.dspace.pack.bagit.xml.Element;
+import org.dspace.pack.bagit.xml.ElementDeserializer;
+import org.dspace.pack.bagit.xml.ValueDeserializer;
 
 /**
  * Create a {@link Policy} pojo from an {@link XMLStreamReader}

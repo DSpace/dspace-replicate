@@ -40,7 +40,7 @@ import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.Element;
-import org.dspace.pack.bagit.xml.Policy;
+import org.dspace.pack.bagit.xml.policy.Policy;
 import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
