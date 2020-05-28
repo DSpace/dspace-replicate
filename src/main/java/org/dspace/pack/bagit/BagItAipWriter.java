@@ -72,7 +72,6 @@ public class BagItAipWriter {
     public static final String OBJ_TYPE_DELETION = "deletion";
     public static final String OBJ_TYPE_COMMUNITY = "community";
     public static final String OBJ_TYPE_COLLECTION = "collection";
-    public static final String XML_NAME_KEY = "name";
     public static final String PROPERTIES_DELIMITER = "  ";
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
@@ -187,6 +186,16 @@ public class BagItAipWriter {
         final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
         final String profileName = configurationService.getProperty(BAG_PROFILE_KEY, DEFAULT_PROFILE);
 
+        // setup xml marshalling
+        final Marshaller marshaller;
+        try {
+            final JAXBContext context = JAXBContext.newInstance(Metadata.class, Policies.class);
+            marshaller = context.createMarshaller();
+            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+        } catch (JAXBException e) {
+            throw new IOException("Unable to create JAXBContext!", e);
+        }
+
         // validate the tag file configuration before starting to write
         // Note: the validateTagFiles method will throw a RuntimeException if validation fails
         final BagProfile profile = new BagProfile(BagProfile.BuiltIn.from(profileName));
@@ -237,12 +246,13 @@ public class BagItAipWriter {
         if (metadata != null) {
             messageDigest.reset();
             final Path metadataXml = dataDir.resolve(METADATA_XML);
-            try {
-                JAXBContext jaxbContext = JAXBContext.newInstance(Metadata.class);
-                Marshaller marshaller = jaxbContext.createMarshaller();
-                marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            try (final OutputStream output = Files.newOutputStream(metadataXml, StandardOpenOption.CREATE_NEW);
+                 final CountingOutputStream countingOS = new CountingOutputStream(output);
+                 final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
+                marshaller.marshal(metadata, digestOS);
 
-                marshaller.marshal(metadata, metadataXml.toFile());
+                successFiles.incrementAndGet();
+                successBytes.addAndGet(countingOS.getCount());
             } catch (JAXBException e) {
                 throw new IOException("Unable to create XML Marshaller");
             }
@@ -252,12 +262,13 @@ public class BagItAipWriter {
         if (policies != null) {
             messageDigest.reset();
             final Path policyXml = dataDir.resolve("policy.xml");
-            try {
-                JAXBContext jaxbContext = JAXBContext.newInstance(Policies.class);
-                Marshaller marshaller = jaxbContext.createMarshaller();
-                marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+            try (final OutputStream output = Files.newOutputStream(policyXml, StandardOpenOption.CREATE_NEW);
+                 final CountingOutputStream countingOS = new CountingOutputStream(output);
+                 final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)){
+                marshaller.marshal(policies, digestOS);
 
-                marshaller.marshal(policies, policyXml.toFile());
+                successFiles.incrementAndGet();
+                successBytes.addAndGet(countingOS.getCount());
             } catch (JAXBException e) {
                 throw new IOException("Unable to create XML Marshaller");
             }
@@ -276,12 +287,13 @@ public class BagItAipWriter {
             if (bagBitstream.getMetadata() != null) {
                 final String mdName = BITSTREAM_PREFIX + bitstreamID + "-" + METADATA_XML;
                 final Path xml = bitstreamDirectory.resolve(mdName);
-                try {
-                    JAXBContext jaxbContext = JAXBContext.newInstance(Metadata.class);
-                    Marshaller marshaller = jaxbContext.createMarshaller();
-                    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+                try (final OutputStream output = Files.newOutputStream(xml, StandardOpenOption.CREATE_NEW);
+                     final CountingOutputStream countingOS = new CountingOutputStream(output);
+                     final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)){
+                    marshaller.marshal(bagBitstream.getMetadata(), digestOS);
 
-                    marshaller.marshal(bagBitstream.getMetadata(), xml.toFile());
+                    successFiles.incrementAndGet();
+                    successBytes.addAndGet(countingOS.getCount());
                 } catch (JAXBException e) {
                     throw new IOException("Unable to create XML Marshaller");
                 }
@@ -290,12 +302,13 @@ public class BagItAipWriter {
             if (bagBitstream.getPolicies() != null) {
                 final String mdName = BITSTREAM_PREFIX + bitstreamID + "-policy.xml";
                 final Path xml = bitstreamDirectory.resolve(mdName);
-                try {
-                    JAXBContext jaxbContext = JAXBContext.newInstance(Policies.class);
-                    Marshaller marshaller = jaxbContext.createMarshaller();
-                    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+                try (final OutputStream output = Files.newOutputStream(xml, StandardOpenOption.CREATE_NEW);
+                     final CountingOutputStream countingOS = new CountingOutputStream(output);
+                     final DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
+                    marshaller.marshal(bagBitstream.getPolicies(), digestOS);
 
-                    marshaller.marshal(bagBitstream.getPolicies(), xml.toFile());
+                    successFiles.incrementAndGet();
+                    successBytes.addAndGet(countingOS.getCount());
                 } catch (JAXBException e) {
                     throw new IOException("Unable to create XML Marshaller");
                 }
