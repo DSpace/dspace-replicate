@@ -53,7 +53,8 @@ public class BagBitstream {
      * @param policies the {@link Policy} metadata associated with the {@link Bitstream}
      * @param metadata the metadata associated with the {@link Bitstream}
      */
-    public BagBitstream(final Bitstream bitstream, final String bundle, final Policies policies, final Metadata metadata) {
+    public BagBitstream(final Bitstream bitstream, final String bundle, final Policies policies,
+                        final Metadata metadata) {
         this.policies = policies;
         this.metadata = metadata;
         this.bundle = Preconditions.checkNotNull(bundle);

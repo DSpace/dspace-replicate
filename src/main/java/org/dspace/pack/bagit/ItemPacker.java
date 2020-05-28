@@ -57,10 +57,6 @@ public class ItemPacker implements Packer {
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // XML constants
-    private static final String SCHEMA = "schema";
-    private static final String ELEMENT = "element";
-    private static final String QUALIFIER = "qualifier";
-    private static final String LANGUAGE = "language";
     private static final String NAME = "name";
     private static final String SOURCE = "source";
     private static final String DESCRIPTION = "description";

@@ -63,6 +63,7 @@ public class BagItAipReader {
 
     private final Path bag;
     private final BagProfile profile;
+    private final Unmarshaller unmarshaller;
 
     /**
      * Constructor for a {@link BagItAipReader}. If the given path to the {@code bag} is a single file, it is assumed
@@ -74,6 +75,13 @@ public class BagItAipReader {
     public BagItAipReader(final Path bag) throws IOException {
         if (bag == null || Files.notExists(bag)) {
             throw new IOException("Missing archive: " + bag);
+        }
+
+        try {
+            final JAXBContext jaxbContext = JAXBContext.newInstance(Metadata.class, Policies.class);
+            unmarshaller = jaxbContext.createUnmarshaller();
+        } catch (JAXBException e) {
+            throw new IOException("Unable to create JAXBContext!", e);
         }
 
         // get the BagProfile
@@ -191,11 +199,9 @@ public class BagItAipReader {
     public Metadata readMetadata() throws IOException {
         final Path xml = bag.resolve(metadataLocation);
         try {
-            JAXBContext context = JAXBContext.newInstance(Metadata.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
             return (Metadata) unmarshaller.unmarshal(xml.toFile());
         } catch (JAXBException e) {
-            throw new IOException(e.getMessage(), e);
+            throw new IOException("Unable to read metadata.xml!", e);
         }
     }
 
@@ -208,11 +214,9 @@ public class BagItAipReader {
     public Policies readPolicy() throws IOException {
         final Path xml = bag.resolve("data/policy.xml");
         try {
-            JAXBContext context = JAXBContext.newInstance(Policies.class);
-            Unmarshaller unmarshaller = context.createUnmarshaller();
             return (Policies) unmarshaller.unmarshal(xml.toFile());
         } catch (JAXBException e) {
-            throw new IOException(e.getMessage(), e);
+            throw new IOException("Unable to read policy.xml!", e);
         }
     }
 
@@ -267,22 +271,13 @@ public class BagItAipReader {
                             final Metadata metadata;
 
                             final String metadataPath = matcher.group("uuid");
+                            final Path bsPolicy = bundle.resolve(metadataPath + "-policy.xml");
                             final Path bsMetadata = bundle.resolve(metadataPath + "-metadata.xml");
                             try {
-                                JAXBContext context = JAXBContext.newInstance(Metadata.class);
-                                Unmarshaller unmarshaller = context.createUnmarshaller();
+                                policies = (Policies) unmarshaller.unmarshal(bsPolicy.toFile());
                                 metadata = (Metadata) unmarshaller.unmarshal(bsMetadata.toFile());
                             } catch (JAXBException e) {
-                                throw new IOException(e.getMessage(), e);
-                            }
-
-                            final Path bsPolicy = bundle.resolve(metadataPath + "-policy.xml");
-                            try {
-                                JAXBContext context = JAXBContext.newInstance(Policies.class);
-                                Unmarshaller unmarshaller = context.createUnmarshaller();
-                                policies = (Policies) unmarshaller.unmarshal(bsPolicy.toFile());
-                            } catch (JAXBException e) {
-                                throw new IOException(e.getMessage(), e);
+                                throw new IOException("Unable to read bitstream xml!", e);
                             }
 
                             packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata, policies));
