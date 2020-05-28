@@ -39,7 +39,6 @@ import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
-import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
 import org.joda.time.DateTime;

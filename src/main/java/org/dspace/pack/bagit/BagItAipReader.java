@@ -26,9 +26,6 @@ import java.util.regex.Pattern;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 
 import com.google.common.base.Optional;
 import gov.loc.repository.bagit.domain.Bag;
@@ -40,10 +37,8 @@ import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
-import org.dspace.pack.bagit.xml.metadata.MetadataDeserializer;
 import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
-import org.dspace.pack.bagit.xml.policy.PolicyDeserializer;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagDeserializer;
@@ -256,8 +251,6 @@ public class BagItAipReader {
         final List<PackagedBitstream> packagedBitstreams = new ArrayList<>();
 
         // iterate all bundles
-        final XMLInputFactory factory = XMLInputFactory.newFactory();
-        final PolicyDeserializer policyDeserializer = new PolicyDeserializer();
         try (DirectoryStream<Path> directories = Files.newDirectoryStream(data, directoryFilter)) {
             for (Path bundle : directories) {
                 final String bundleName = bundle.getFileName().toString();
