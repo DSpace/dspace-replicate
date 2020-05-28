@@ -29,6 +29,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.print.attribute.standard.MediaSize;
+import javax.swing.CellEditor;
+
 import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -46,8 +49,9 @@ import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policy;
-import org.dspace.pack.bagit.xml.Value;
+import org.elasticsearch.common.recycler.Recycler;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -121,13 +125,13 @@ public class ItemPacker implements Packer {
         // metadata.xml
         final Metadata metadata = new Metadata();
         final List<MetadataValue> itemMetadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (MetadataValue value : itemMetadata) {
-            final HashMap<String, String> attributes = new HashMap<>();
-            attributes.put(SCHEMA, value.getMetadataField().getMetadataSchema().getName());
-            attributes.put(ELEMENT, value.getMetadataField().getElement());
-            attributes.put(QUALIFIER, value.getMetadataField().getQualifier());
-            attributes.put(LANGUAGE, value.getLanguage());
-            metadata.addChild(new Value(value.getValue(), attributes));
+        for (MetadataValue mv : itemMetadata) {
+            Value value = new Value();
+            value.setLanguage(mv.getLanguage());
+            value.setElement(mv.getMetadataField().getElement());
+            value.setQualifier(mv.getMetadataField().getQualifier());
+            value.setSchema(mv.getMetadataField().getMetadataSchema().getName());
+            metadata.addValue(value);
         }
 
         // policy.xml
@@ -146,12 +150,27 @@ public class ItemPacker implements Packer {
 
                     // field access is hard-coded in Bitstream class, ugh!
                     final Metadata bitstreamMetadata = new Metadata();
-                    bitstreamMetadata.addChild(new Value(bs.getName(), ImmutableMap.of(NAME, NAME)));
-                    bitstreamMetadata.addChild(new Value(bs.getSource(), ImmutableMap.of(NAME, SOURCE)));
-                    bitstreamMetadata.addChild(new Value(bs.getDescription(), ImmutableMap.of(NAME, DESCRIPTION)));
-                    bitstreamMetadata.addChild(new Value(seqId, ImmutableMap.of(NAME, SEQUENCE_ID)));
+                    Value name = new Value();
+                    name.setBody(bs.getName());
+                    name.setName(NAME);
+                    Value source = new Value();
+                    source.setBody(bs.getSource());
+                    source.setName(SOURCE);
+                    Value description = new Value();
+                    description.setBody(bs.getDescription());
+                    description.setName(DESCRIPTION);
+                    Value sequence = new Value();
+                    sequence.setBody(seqId);
+                    sequence.setName(SEQUENCE_ID);
+                    bitstreamMetadata.addValue(name);
+                    bitstreamMetadata.addValue(source);
+                    bitstreamMetadata.addValue(description);
+                    bitstreamMetadata.addValue(sequence);
                     if (bs.equals(bundle.getPrimaryBitstream())) {
-                        bitstreamMetadata.addChild(new Value(TRUE.toString(), ImmutableMap.of(NAME, BUNDLE_PRIMARY)));
+                        Value primary = new Value();
+                        primary.setBody(TRUE.toString());
+                        primary.setName(BUNDLE_PRIMARY);
+                        bitstreamMetadata.addValue(primary);
                     }
 
                     // bitstream policy
@@ -188,14 +207,9 @@ public class ItemPacker implements Packer {
 
         // load the item metadata
         final Metadata metadata = reader.readMetadata();
-        for (Element element : metadata.getChildren()) {
-            final Map<String, String> attrs = element.getAttributes();
-            itemService.addMetadata(context, item,
-                                    attrs.get(SCHEMA),
-                                    attrs.get(ELEMENT),
-                                    attrs.get(QUALIFIER),
-                                    attrs.get(LANGUAGE),
-                                    element.getBody());
+        for (Value value : metadata.getValues()) {
+            itemService.addMetadata(context, item, value.getSchema(), value.getElement(), value.getQualifier(),
+                                    value.getLanguage(), value.getBody());
         }
 
         // set the policies for the item
@@ -222,16 +236,16 @@ public class ItemPacker implements Packer {
                                                                 Files.newInputStream(packaged.getBitstream()));
 
             // load the bitstream metadata
-            for (Element element : packaged.getMetadata().getChildren()) {
-                final String bitstreamField = element.getAttributes().get(NAME);
+            for (Value value : packaged.getMetadata().getValues()) {
+                final String bitstreamField = value.getName();
                 if (NAME.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setName(context, element.getBody());
+                    bitstream.setName(context, value.getBody());
                 } else if (SOURCE.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setSource(context, element.getBody());
+                    bitstream.setSource(context, value.getBody());
                 } else if (SEQUENCE_ID.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setSequenceID(Integer.parseInt(element.getBody()));
+                    bitstream.setSequenceID(Integer.parseInt(value.getBody()));
                 } else if (DESCRIPTION.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setDescription(context, element.getBody());
+                    bitstream.setDescription(context, value.getBody());
                 } else if (BUNDLE_PRIMARY.equalsIgnoreCase(bitstreamField)) {
                     bundle.setPrimaryBitstreamID(bitstream);
                 }

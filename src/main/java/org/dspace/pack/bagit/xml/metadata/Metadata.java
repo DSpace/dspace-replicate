@@ -1,24 +1,25 @@
-/**
- * The contents of this file are subject to the license and copyright
- * detailed in the LICENSE and NOTICE files at the root of the source
- * tree and available online at
- *
- * http://www.dspace.org/license/
- */
 package org.dspace.pack.bagit.xml.metadata;
 
-import org.dspace.pack.bagit.xml.Parent;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
-/**
- * BagIt specific pojo for DSO metadata.xml
- *
- * @author mikejritter
- */
-public class Metadata extends Parent {
+@XmlRootElement(name = "metadata")
+public class Metadata {
 
-    @Override
-    public String getLocalName() {
-        return "metadata";
+    private List<Value> values = new ArrayList<>();
+
+    @XmlElement(name = "value")
+    public List<Value> getValues() {
+        return values;
     }
 
+    public void addValue(Value valueB) {
+        values.add(valueB);
+    }
+
+    public void setValues(List<Value> values) {
+        this.values = values;
+    }
 }

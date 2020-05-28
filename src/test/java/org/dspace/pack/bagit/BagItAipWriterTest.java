@@ -35,7 +35,8 @@ import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
-import org.dspace.pack.bagit.xml.Value;
+import org.dspace.pack.bagit.xml.metadata.Value;
+import org.elasticsearch.common.recycler.Recycler;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,7 +65,10 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final String objectTypeLine = PackerFactory.OBJECT_TYPE + objectType;
         properties = ImmutableMap.of(PackerFactory.OBJFILE, Collections.singletonList(objectTypeLine));
         metadata = new Metadata();
-        metadata.addChild(new Value(xmlBody, ImmutableMap.of(xmlAttrName, xmlAttr)));
+        Value value = new Value();
+        value.setName(xmlAttr);
+        value.setBody(xmlBody);
+        metadata.addValue(value);
 
         bitstreams = new ArrayList<>();
 

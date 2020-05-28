@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -36,6 +39,7 @@ import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
+import org.apache.jena.atlas.io.IO;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.MetadataDeserializer;
 import org.dspace.pack.bagit.xml.policy.Policy;
@@ -191,12 +195,11 @@ public class BagItAipReader {
      */
     public Metadata readMetadata() throws IOException {
         final Path xml = bag.resolve(metadataLocation);
-        final MetadataDeserializer deserializer = new MetadataDeserializer();
-        try (InputStream metadataStream = Files.newInputStream(xml)) {
-            final XMLInputFactory factory = XMLInputFactory.newFactory();
-            final XMLStreamReader reader = factory.createXMLStreamReader(metadataStream);
-            return deserializer.readElement(reader);
-        } catch (XMLStreamException e) {
+        try {
+            JAXBContext context = JAXBContext.newInstance(Metadata.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            return (Metadata) unmarshaller.unmarshal(xml.toFile());
+        } catch (JAXBException e) {
             throw new IOException(e.getMessage(), e);
         }
     }
@@ -274,10 +277,11 @@ public class BagItAipReader {
 
                             final String metadataPath = matcher.group("uuid");
                             final Path bsMetadata = bundle.resolve(metadataPath + "-metadata.xml");
-                            try (InputStream inputStream = Files.newInputStream(bsMetadata)) {
-                                final XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
-                                metadata = metadataDeserializer.readElement(reader);
-                            } catch (XMLStreamException e) {
+                            try {
+                                JAXBContext context = JAXBContext.newInstance(Metadata.class);
+                                Unmarshaller unmarshaller = context.createUnmarshaller();
+                                metadata = (Metadata) unmarshaller.unmarshal(bsMetadata.toFile());
+                            } catch (JAXBException e) {
                                 throw new IOException(e.getMessage(), e);
                             }
 

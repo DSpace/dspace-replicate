@@ -42,8 +42,8 @@ import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policy;
-import org.dspace.pack.bagit.xml.Value;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -105,7 +105,10 @@ public class CommunityPacker implements Packer
         final Metadata metadata = new Metadata();
         for (String field : fields) {
             final String body = communityService.getMetadata(community, field);
-            metadata.addChild(new Value(body, ImmutableMap.of(XML_NAME_KEY, field)));
+            Value value = new Value();
+            value.setBody(body);
+            value.setName(field);
+            metadata.addValue(value);
         }
 
         // collect the policy
@@ -130,10 +133,10 @@ public class CommunityPacker implements Packer
         reader.validateBag();
 
         final Metadata metadata= reader.readMetadata();
-        for (Element element : metadata.getChildren()) {
-            final String name = element.getAttributes().get("name");
-            final String value = element.getBody();
-            communityService.setMetadata(context, community, name, value);
+        for (Value value : metadata.getValues()) {
+            final String name = value.getName();
+            final String body = value.getBody();
+            communityService.setMetadata(context, community, name, body);
         }
 
         try {

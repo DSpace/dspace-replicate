@@ -26,6 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -238,7 +241,16 @@ public class BagItAipWriter {
         if (metadata != null) {
             messageDigest.reset();
             final Path metadataXml = dataDir.resolve(METADATA_XML);
-            writeXml(metadata, metadataXml, messageDigest);
+            try {
+                JAXBContext jaxbContext = JAXBContext.newInstance(Metadata.class);
+                Marshaller marshaller = jaxbContext.createMarshaller();
+                marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+                marshaller.marshal(metadata, metadataXml.toFile());
+            } catch (JAXBException e) {
+                throw new IOException("Unable to create XML Marshaller");
+            }
+            // writeXml(metadata, metadataXml, messageDigest);
         }
 
         // policy info
@@ -261,7 +273,16 @@ public class BagItAipWriter {
             if (bagBitstream.getMetadata() != null) {
                 final String mdName = BITSTREAM_PREFIX + bitstreamID + "-" + METADATA_XML;
                 final Path xml = bitstreamDirectory.resolve(mdName);
-                writeXml(bagBitstream.getMetadata(), xml, messageDigest);
+                try {
+                    JAXBContext jaxbContext = JAXBContext.newInstance(Metadata.class);
+                    Marshaller marshaller = jaxbContext.createMarshaller();
+                    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+                    marshaller.marshal(metadata, xml.toFile());
+                } catch (JAXBException e) {
+                    throw new IOException("Unable to create XML Marshaller");
+                }
+                // writeXml(bagBitstream.getMetadata(), xml, messageDigest);
             }
 
             if (bagBitstream.getPolicy() != null) {

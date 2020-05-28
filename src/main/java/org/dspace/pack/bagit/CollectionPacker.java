@@ -44,8 +44,8 @@ import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.Element;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policy;
-import org.dspace.pack.bagit.xml.Value;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -110,7 +110,10 @@ public class CollectionPacker implements Packer
         final Metadata metadata = new Metadata();
         for (String field : fields) {
             final String body = collectionService.getMetadata(collection, field);
-            metadata.addChild(new Value(body, ImmutableMap.of(XML_NAME_KEY, field)));
+            Value value = new Value();
+            value.setName(field);
+            value.setBody(body);
+            metadata.addValue(value);
         }
 
         // collect xml policy
@@ -133,10 +136,8 @@ public class CollectionPacker implements Packer
         reader.validateBag();
 
         final Metadata metadata = reader.readMetadata();
-        for (Element element : metadata.getChildren()) {
-            final String name = element.getAttributes().get("name");
-            final String value = element.getBody();
-            collectionService.setMetadata(Curator.curationContext(), collection, name, value);
+        for (Value value : metadata.getValues()) {
+            collectionService.setMetadata(Curator.curationContext(), collection, value.getName(), value.getBody());
         }
 
         try {

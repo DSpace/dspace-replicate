@@ -21,10 +21,11 @@ import org.dspace.pack.bagit.xml.ValueDeserializer;
  *
  * @author mikejritter
  */
-public class MetadataDeserializer implements ElementDeserializer<Metadata> {
-    @Override
+public class MetadataDeserializer { //} implements ElementDeserializer<Metadata> {
+    // @Override
     public Metadata readElement(XMLStreamReader reader) throws XMLStreamException {
         final Metadata metadata = new Metadata();
+        /*
         while (reader.hasNext()) {
             if (reader.next() == XMLStreamConstants.START_ELEMENT &&
                 reader.getLocalName().equalsIgnoreCase(metadata.getLocalName())) {
@@ -42,6 +43,7 @@ public class MetadataDeserializer implements ElementDeserializer<Metadata> {
                 }
             }
         }
+         */
 
         return metadata;
     }
