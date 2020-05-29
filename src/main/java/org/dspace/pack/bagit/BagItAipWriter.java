@@ -58,8 +58,6 @@ import org.joda.time.format.ISODateTimeFormat;
  * bitstreams given to it by the various {@link org.dspace.pack.Packer}s in order to write the object.properties,
  * metadata.xml, etc for each AIP.
  *
- * todo: any xml marshalling needs to go through a properly created stream
- *
  * @author mikejritter
  * @since 2020-03-02
  */
