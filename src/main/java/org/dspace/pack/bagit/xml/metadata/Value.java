@@ -1,9 +1,21 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace.pack.bagit.xml.metadata;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlValue;
 
+/**
+ * Pojo to contain information from {@link org.dspace.content.MetadataValue}. Should be populated by each
+ * {@link org.dspace.pack.Packer} implementation
+ *
+ * @author mikejritter
+ */
 public class Value {
 
     private String body;

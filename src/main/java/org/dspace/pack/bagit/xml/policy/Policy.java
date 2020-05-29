@@ -10,7 +10,7 @@ package org.dspace.pack.bagit.xml.policy;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
- * Pojo for policy xml
+ * Pojo for {@link org.dspace.authorize.ResourcePolicy} objects
  *
  * @author mikejritter
  */
