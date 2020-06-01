@@ -320,33 +320,6 @@ public class BagItAipWriter {
     }
 
     /**
-     * Create an xml document for a given object and its path
-     *
-     * @param object the object to marshal
-     * @param xml the path of the xml file to create
-     * @param marshaller the jaxb {@link Marshaller}
-     * @param messageDigest the message digest to capture what is written
-     * @throws IOException if there's an error writing the file
-     */
-    private void writeXml(final Object object, final Path xml, final Marshaller marshaller,
-                          final MessageDigest messageDigest) throws IOException {
-        messageDigest.reset();
-
-        if (object != null) {
-            try (OutputStream output = Files.newOutputStream(xml);
-                 CountingOutputStream countingOS = new CountingOutputStream(output);
-                 DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
-                marshaller.marshal(object, digestOS);
-                successFiles.incrementAndGet();
-                successBytes.addAndGet(countingOS.getCount());
-            } catch (JAXBException e) {
-                throw new IOException("Error writing xml for " + xml.getFileName(), e);
-            }
-            checksums.put(xml.toFile(), Utils.toHex(messageDigest.digest()));
-        }
-    }
-
-    /**
      * Create a filename for a bitstream in a similar manner to the METSDisseminator:
      * - prefix of bitstream_
      * - Bitstream ID
@@ -405,6 +378,33 @@ public class BagItAipWriter {
         }
 
         directory.delete();
+    }
+
+    /**
+     * Create an xml document for a given object and its path
+     *
+     * @param object the object to marshal
+     * @param xml the path of the xml file to create
+     * @param marshaller the jaxb {@link Marshaller}
+     * @param messageDigest the message digest to capture what is written
+     * @throws IOException if there's an error writing the file
+     */
+    private void writeXml(final Object object, final Path xml, final Marshaller marshaller,
+                          final MessageDigest messageDigest) throws IOException {
+        messageDigest.reset();
+
+        if (object != null) {
+            try (OutputStream output = Files.newOutputStream(xml);
+                 CountingOutputStream countingOS = new CountingOutputStream(output);
+                 DigestOutputStream digestOS = new DigestOutputStream(countingOS, messageDigest)) {
+                marshaller.marshal(object, digestOS);
+                successFiles.incrementAndGet();
+                successBytes.addAndGet(countingOS.getCount());
+            } catch (JAXBException e) {
+                throw new IOException("Error writing xml for " + xml.getFileName(), e);
+            }
+            checksums.put(xml.toFile(), Utils.toHex(messageDigest.digest()));
+        }
     }
 
 }
