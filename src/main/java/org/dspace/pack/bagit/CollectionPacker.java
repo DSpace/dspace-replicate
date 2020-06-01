@@ -108,10 +108,7 @@ public class CollectionPacker implements Packer
         final Metadata metadata = new Metadata();
         for (String field : fields) {
             final String body = collectionService.getMetadata(collection, field);
-            Value value = new Value();
-            value.setName(field);
-            value.setBody(body);
-            metadata.addValue(value);
+            metadata.addValue(new Value(body, field));
         }
 
         // collect xml policy

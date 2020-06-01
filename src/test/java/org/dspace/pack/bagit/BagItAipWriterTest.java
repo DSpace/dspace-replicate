@@ -25,12 +25,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.Predicate;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -46,7 +43,6 @@ import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
-import org.elasticsearch.common.recycler.Recycler;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,10 +71,7 @@ public class BagItAipWriterTest extends BagItPackerTest {
         final String objectTypeLine = PackerFactory.OBJECT_TYPE + objectType;
         properties = ImmutableMap.of(PackerFactory.OBJFILE, Collections.singletonList(objectTypeLine));
         metadata = new Metadata();
-        Value value = new Value();
-        value.setName(xmlAttr);
-        value.setBody(xmlBody);
-        metadata.addValue(value);
+        metadata.addValue(new Value(xmlBody, xmlAttr));
 
         policies = new Policies();
         Policy policy = new Policy();

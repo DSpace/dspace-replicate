@@ -33,6 +33,8 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Item;
+import org.dspace.content.MetadataField;
+import org.dspace.content.MetadataSchema;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
@@ -114,13 +116,8 @@ public class ItemPacker implements Packer {
         // metadata.xml
         final Metadata metadata = new Metadata();
         final List<MetadataValue> itemMetadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (MetadataValue mv : itemMetadata) {
-            Value value = new Value();
-            value.setLanguage(mv.getLanguage());
-            value.setElement(mv.getMetadataField().getElement());
-            value.setQualifier(mv.getMetadataField().getQualifier());
-            value.setSchema(mv.getMetadataField().getMetadataSchema().getName());
-            metadata.addValue(value);
+        for (MetadataValue metadataValue : itemMetadata) {
+            metadata.addValue(new Value(metadataValue));
         }
 
         // policy.xml
@@ -139,27 +136,12 @@ public class ItemPacker implements Packer {
 
                     // field access is hard-coded in Bitstream class, ugh!
                     final Metadata bitstreamMetadata = new Metadata();
-                    Value name = new Value();
-                    name.setBody(bs.getName());
-                    name.setName(NAME);
-                    Value source = new Value();
-                    source.setBody(bs.getSource());
-                    source.setName(SOURCE);
-                    Value description = new Value();
-                    description.setBody(bs.getDescription());
-                    description.setName(DESCRIPTION);
-                    Value sequence = new Value();
-                    sequence.setBody(seqId);
-                    sequence.setName(SEQUENCE_ID);
-                    bitstreamMetadata.addValue(name);
-                    bitstreamMetadata.addValue(source);
-                    bitstreamMetadata.addValue(description);
-                    bitstreamMetadata.addValue(sequence);
+                    bitstreamMetadata.addValue(new Value(bs.getName(), NAME));
+                    bitstreamMetadata.addValue(new Value(bs.getSource(), SOURCE));
+                    bitstreamMetadata.addValue(new Value(bs.getDescription(), DESCRIPTION));
+                    bitstreamMetadata.addValue(new Value(seqId, SEQUENCE_ID));
                     if (bs.equals(bundle.getPrimaryBitstream())) {
-                        Value primary = new Value();
-                        primary.setBody(TRUE.toString());
-                        primary.setName(BUNDLE_PRIMARY);
-                        bitstreamMetadata.addValue(primary);
+                        bitstreamMetadata.addValue(new Value(TRUE.toString(), BUNDLE_PRIMARY));
                     }
 
                     // bitstream policy

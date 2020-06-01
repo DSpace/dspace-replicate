@@ -103,10 +103,7 @@ public class CommunityPacker implements Packer
         final Metadata metadata = new Metadata();
         for (String field : fields) {
             final String body = communityService.getMetadata(community, field);
-            Value value = new Value();
-            value.setBody(body);
-            value.setName(field);
-            metadata.addValue(value);
+            metadata.addValue(new Value(body, field));
         }
 
         // collect the policy
