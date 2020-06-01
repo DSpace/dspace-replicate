@@ -57,9 +57,10 @@ public class BagItAipReader {
 
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
 
+    private static final String POLICY_XML = "policy.xml";
+    private static final String METADATA_XML = "metadata.xml";
+
     private final String dataDirectory = "data";
-    private final String metadataLocation = dataDirectory + "/metadata.xml";
-    private final String objectPropertiesLocation = dataDirectory + "/object.properties";
 
     private final Path bag;
     private final BagProfile profile;
@@ -125,12 +126,13 @@ public class BagItAipReader {
     /**
      * Retrieve the object.properties for an aip
      *
-     * @return the {@link Properties}, loaded from the object.properties
+     * @return the {@link Properties}, loaded from the data/object.properties
      * @throws IOException if there is an error loading the properties
      */
     public Properties readProperties() throws IOException {
         final Properties properties = new Properties();
-        try (InputStream is = Files.newInputStream(bag.resolve(objectPropertiesLocation))) {
+        final Path objectProperties = bag.resolve(dataDirectory).resolve("object.properties");
+        try (InputStream is = Files.newInputStream(objectProperties)) {
             properties.load(is);
         }
         return properties;
@@ -197,7 +199,7 @@ public class BagItAipReader {
      * @throws IOException if there was an error reading the file or parsing the xml
      */
     public Metadata readMetadata() throws IOException {
-        final Path xml = bag.resolve(metadataLocation);
+        final Path xml = bag.resolve(dataDirectory).resolve(METADATA_XML);
         try {
             return (Metadata) unmarshaller.unmarshal(xml.toFile());
         } catch (JAXBException e) {
@@ -212,7 +214,7 @@ public class BagItAipReader {
      * @throws IOException if there was an error reading the file or parsing the xml
      */
     public Policies readPolicy() throws IOException {
-        final Path xml = bag.resolve("data/policy.xml");
+        final Path xml = bag.resolve(dataDirectory).resolve(POLICY_XML);
         try {
             return (Policies) unmarshaller.unmarshal(xml.toFile());
         } catch (JAXBException e) {
@@ -270,9 +272,9 @@ public class BagItAipReader {
                             final Policies policies;
                             final Metadata metadata;
 
-                            final String metadataPath = matcher.group("uuid");
-                            final Path bsPolicy = bundle.resolve(metadataPath + "-policy.xml");
-                            final Path bsMetadata = bundle.resolve(metadataPath + "-metadata.xml");
+                            final String uuidPath = matcher.group("uuid");
+                            final Path bsPolicy = bundle.resolve(uuidPath + "-" + POLICY_XML);
+                            final Path bsMetadata = bundle.resolve(uuidPath + "-" + METADATA_XML);
                             try {
                                 policies = (Policies) unmarshaller.unmarshal(bsPolicy.toFile());
                                 metadata = (Metadata) unmarshaller.unmarshal(bsMetadata.toFile());
