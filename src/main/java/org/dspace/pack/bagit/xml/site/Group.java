@@ -8,18 +8,18 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 
 public class Group {
 
-    private Long id;
+    private String id;
     private String name;
     private String type;
     private List<Member> members;
     private List<Member> memberGroups;
 
     @XmlAttribute(name = "ID")
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(final Long id) {
+    public void setId(final String id) {
         this.id = id;
     }
 

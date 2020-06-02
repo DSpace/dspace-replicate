@@ -5,7 +5,7 @@ import javax.xml.bind.annotation.XmlElement;
 
 public class Person {
 
-    private Long id;
+    private String id;
     private String email;
     private String netId;
     private String firstName;
@@ -15,7 +15,7 @@ public class Person {
     private String selfRegistered;
 
     @XmlAttribute(name = "ID")
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
@@ -54,7 +54,7 @@ public class Person {
         return selfRegistered;
     }
 
-    public Person setId(Long id) {
+    public Person setId(String id) {
         this.id = id;
         return this;
     }
