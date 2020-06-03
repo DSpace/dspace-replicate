@@ -6,7 +6,6 @@ import javax.xml.bind.Marshaller;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
-import org.springframework.security.access.method.P;
 
 public class DSpaceRolesTest {
 
@@ -14,7 +13,7 @@ public class DSpaceRolesTest {
     public void testOutput() throws JAXBException {
         DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
-        Group group = new Group();
+        AssociatedGroup group = new AssociatedGroup();
         group.setId("1");
         group.setName("Administrator");
 
@@ -41,7 +40,7 @@ public class DSpaceRolesTest {
               .canLogin();
         dSpaceRoles.addPerson(person);
 
-        JAXBContext context = JAXBContext.newInstance(DSpaceRoles.class, Group.class, Member.class);
+        JAXBContext context = JAXBContext.newInstance(DSpaceRoles.class, AssociatedGroup.class, Member.class);
         Marshaller marshaller = context.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 
