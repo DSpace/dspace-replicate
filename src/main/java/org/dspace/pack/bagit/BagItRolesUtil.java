@@ -6,17 +6,15 @@ import java.util.List;
 
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
-import org.dspace.content.DSpaceObject;
 import org.dspace.content.Site;
-import org.dspace.core.Constants;
 import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
+import org.dspace.pack.bagit.xml.site.AssociatedGroup;
 import org.dspace.pack.bagit.xml.site.DSpaceRoles;
-import org.dspace.pack.bagit.xml.site.Member;
 import org.dspace.pack.bagit.xml.site.Person;
 
 /**
@@ -28,124 +26,78 @@ import org.dspace.pack.bagit.xml.site.Person;
  */
 public class BagItRolesUtil {
 
-    private final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
-    private final EPersonService ePersonService=  EPersonServiceFactory.getInstance().getEPersonService();
+    private static final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
+    private static final EPersonService ePersonService=  EPersonServiceFactory.getInstance().getEPersonService();
 
-    public void getRoles(final DSpaceObject dso) {
-        DSpaceRoles dSpaceRoles = new DSpaceRoles();
-        List<Group> groups;
-        List<EPerson> ePeople;
-        if (dso.getType() == Constants.SITE) {
+    public static DSpaceRoles getDSpaceRoles(final Site site) throws SQLException {
+        final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
-        } else if (dso.getType() == Constants.COMMUNITY) {
-
-        } else if (dso.getType() == Constants.COLLECTION) {
-
-        }
-
-
-    }
-
-    public void getGroups(final Site site) throws SQLException {
         List<Group> groups = groupService.findAll(Curator.curationContext(), null);
-        // GroupService groupService;
-    }
-
-    public void getGroups(final Community community) throws SQLException {
-        List<Group> groups = new ArrayList<>();
-        Group administrators = community.getAdministrators();
-        groups.add(administrators);
-
-        List<Group> matchingGroups = groupService.search(Curator.curationContext(), "COMMUNITY\\_" + community.getID() + "\\_");
-        for (Group group : matchingGroups) {
-            if (!groups.contains(group)) {
-                groups.add(group);
-            }
+        for (Group group : groups) {
+            dSpaceRoles.addGroup(new AssociatedGroup(group));
         }
 
+        List<EPerson> ePeople = ePersonService.findAll(Curator.curationContext(), EPerson.EMAIL);
+        for (EPerson ePerson : ePeople) {
+            dSpaceRoles.addPerson(new Person(ePerson));
+        }
+
+        return dSpaceRoles;
     }
 
-    public void getGroups(final Collection collection) throws SQLException {
-        List<Group> groups = new ArrayList<>();
+    public static DSpaceRoles getDSpaceRoles(final Community community) throws SQLException {
+        final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
-        Group administrators = collection.getAdministrators();
+        final List<Group> groups = new ArrayList<>();
+        final Group administrators = community.getAdministrators();
         if (administrators != null) {
-            groups.add(administrators);
+            dSpaceRoles.addGroup(new AssociatedGroup(administrators));
         }
 
-        Group submitters = collection.getSubmitters();
-        if (submitters != null) {
-            groups.add(submitters);
-        }
-
-        Group workflowStep1 = collection.getWorkflowStep1();
-        if (workflowStep1 != null) {
-            groups.add(workflowStep1);
-        }
-
-        Group workflowStep2 = collection.getWorkflowStep2();
-        if (workflowStep2 != null) {
-            groups.add(workflowStep2);
-        }
-
-        Group workflowStep3 = collection.getWorkflowStep3();
-        if (workflowStep3 != null) {
-            groups.add(workflowStep3);
-        }
-
-        List<Group> matchingGroups = groupService.search(Curator.curationContext(), "COMMUNITY\\_" + collection.getID() + "\\_");
+        final String groupIdentifier = "COMMUNITY\\_" + community.getID() + "\\_";
+        final List<Group> matchingGroups = groupService.search(Curator.curationContext(), groupIdentifier);
         for (Group group : matchingGroups) {
-            if (!groups.contains(group)) {
-                groups.add(group);
-            }
+            dSpaceRoles.addGroup(new AssociatedGroup(group));
         }
+
+        return dSpaceRoles;
     }
 
-    private org.dspace.pack.bagit.xml.site.Group groupToPojo(Group group) {
-        org.dspace.pack.bagit.xml.site.Group pojo = new org.dspace.pack.bagit.xml.site.Group();
-        for (EPerson ePerson : group.getMembers()) {
-            Member member = new Member();
-            member.setId(String.valueOf(ePerson.getID()));
-            member.setName(ePerson.getName());
-            pojo.addMember(member);
+    public static DSpaceRoles getDSpaceRoles(final Collection collection) throws SQLException {
+        final DSpaceRoles dSpaceRoles = new DSpaceRoles();
+
+        final Group administrators = collection.getAdministrators();
+        if (administrators != null) {
+            dSpaceRoles.addGroup(new AssociatedGroup(administrators));
         }
 
-        for (Group memberGroup : group.getMemberGroups()) {
-            Member mb = new Member();
-            mb.setId(String.valueOf(memberGroup.getID()));
-            mb.setName(memberGroup.getName());
-            pojo.addMemberGroup(mb);
+        final Group submitters = collection.getSubmitters();
+        if (submitters != null) {
+            dSpaceRoles.addGroup(new AssociatedGroup(submitters));
         }
 
-        return null;
-    }
-
-    private Member ePersonToMember(EPerson ep) {
-        return null;
-    }
-
-    private Member groupToMember(Group group) {
-        return null;
-    }
-
-    private Person ePersonToPerson(EPerson ePerson) {
-        Person person = new Person();
-
-        person.setNetId(ePerson.getNetid())
-              .setId(String.valueOf(ePerson.getID()))
-              .setEmail(ePerson.getEmail())
-              .setLastName(ePerson.getLastName())
-              .setFirstName(ePerson.getFirstName())
-              .setLanguage(ePerson.getLanguage());
-
-        if (ePerson.canLogIn()) {
-            person.canLogin();
-        }
-        if (ePerson.getSelfRegistered()) {
-            person.selfRegistered();
+        final Group workflowStep1 = collection.getWorkflowStep1();
+        if (workflowStep1 != null) {
+            dSpaceRoles.addGroup(new AssociatedGroup(workflowStep1));
         }
 
-        return person;
+        final Group workflowStep2 = collection.getWorkflowStep2();
+        if (workflowStep2 != null) {
+            dSpaceRoles.addGroup(new AssociatedGroup(workflowStep2));
+        }
+
+        final Group workflowStep3 = collection.getWorkflowStep3();
+        if (workflowStep3 != null) {
+            dSpaceRoles.addGroup(new AssociatedGroup(workflowStep3));
+        }
+
+        final String groupIdentifier = "COMMUNITY\\_" + collection.getID() + "\\_";
+        final List<Group> matchingGroups = groupService.search(Curator.curationContext(), groupIdentifier);
+        for (Group group : matchingGroups) {
+            dSpaceRoles.addGroup(new AssociatedGroup(group));
+        }
+
+        return dSpaceRoles;
     }
 
 }
