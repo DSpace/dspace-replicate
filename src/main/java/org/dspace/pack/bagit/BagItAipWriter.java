@@ -41,6 +41,7 @@ import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.policy.Policies;
+import org.dspace.pack.bagit.xml.site.DSpaceRoles;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagConfig;
@@ -73,6 +74,7 @@ public class BagItAipWriter {
     public static final String PROPERTIES_DELIMITER = "  ";
 
     private static final String DATA_DIR = "data";
+    private static final String ROLES_XML = "roles.xml";
     private static final String POLICY_XML = "policy.xml";
     private static final String METADATA_XML = "metadata.xml";
     private static final String BITSTREAM_PREFIX = "bitstream_";
@@ -113,6 +115,11 @@ public class BagItAipWriter {
      * Pojo for xml metadata on a DSpaceObject
      */
     private Metadata metadata;
+
+    /**
+     * Pojo for xml roles
+     */
+    private DSpaceRoles dSpaceRoles;
 
     /**
      * A map of Bitstreams to package with the AIP
@@ -165,6 +172,15 @@ public class BagItAipWriter {
     }
 
     /**
+     * @param dSpaceRoles the {@link DSpaceRoles} to write to the bags data/roles.xml
+     * @return the {@link BagItAipWriter} used for creating the aip
+     */
+    public BagItAipWriter withDSpaceRoles(final DSpaceRoles dSpaceRoles) {
+        this.dSpaceRoles = dSpaceRoles;
+        return this;
+    }
+
+    /**
      * @param bitstreams a {@link List} of {@link BagBitstream}s which should be written as payload files for the bag
      * @return the {@link BagItAipWriter} used for creating the aip
      */
@@ -189,7 +205,7 @@ public class BagItAipWriter {
         // setup xml marshalling
         final Marshaller marshaller;
         try {
-            final JAXBContext context = JAXBContext.newInstance(Metadata.class, Policies.class);
+            final JAXBContext context = JAXBContext.newInstance(Metadata.class, Policies.class, DSpaceRoles.class);
             marshaller = context.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
         } catch (JAXBException e) {
@@ -242,9 +258,10 @@ public class BagItAipWriter {
             checksums.put(propertiesFile.toFile(), objFileDigest);
         }
 
-        // then metadata and policy
+        // then xml files: metadata, policies, roles
         writeXml(metadata, dataDir.resolve(METADATA_XML), marshaller, messageDigest);
         writeXml(policies, dataDir.resolve(POLICY_XML), marshaller, messageDigest);
+        writeXml(dSpaceRoles, dataDir.resolve(ROLES_XML), marshaller, messageDigest);
 
         // write any bitstreams
         for (BagBitstream bagBitstream : bitstreams) {
