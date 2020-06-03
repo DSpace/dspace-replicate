@@ -42,6 +42,7 @@ import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policies;
+import org.dspace.pack.bagit.xml.site.DSpaceRoles;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -107,10 +108,14 @@ public class CommunityPacker implements Packer
         // collect the policy
         final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
 
+        // and finally get he roles
+        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(community);
+
         return new BagItAipWriter(packDir, archFmt, properties)
             .withLogo(logo)
             .withPolicies(policy)
             .withMetadata(metadata)
+            .withDSpaceRoles(dSpaceRoles)
             .packageAip();
     }
 

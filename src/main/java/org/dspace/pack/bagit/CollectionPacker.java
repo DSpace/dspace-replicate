@@ -45,6 +45,7 @@ import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policies;
+import org.dspace.pack.bagit.xml.site.DSpaceRoles;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -114,9 +115,13 @@ public class CollectionPacker implements Packer
         // collect xml policy
         final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
 
+        // roles
+        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
+
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
             .withPolicies(policy)
             .withMetadata(metadata)
+            .withDSpaceRoles(dSpaceRoles)
             .packageAip();
     }
 
