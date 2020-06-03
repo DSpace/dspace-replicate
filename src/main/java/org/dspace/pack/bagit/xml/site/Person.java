@@ -3,6 +3,8 @@ package org.dspace.pack.bagit.xml.site;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
+import org.dspace.eperson.EPerson;
+
 public class Person {
 
     private String id;
@@ -13,6 +15,20 @@ public class Person {
     private String language;
     private String canLogin;
     private String selfRegistered;
+
+    protected Person() {
+    }
+
+    public Person(EPerson ePerson) {
+        this.id = ePerson.getID().toString();
+        this.email = ePerson.getEmail();
+        this.netId = ePerson.getNetid();
+        this.firstName = ePerson.getFirstName();
+        this.lastName = ePerson.getLastName();
+        this.language = ePerson.getLanguage();
+        this.canLogin = ePerson.canLogIn() ? "" : null;
+        this.selfRegistered = ePerson.getSelfRegistered() ? "" : null;
+    }
 
     @XmlAttribute(name = "ID")
     public String getId() {

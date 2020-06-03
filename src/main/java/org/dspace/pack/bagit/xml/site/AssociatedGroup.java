@@ -6,13 +6,38 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 
-public class Group {
+import org.dspace.eperson.EPerson;
+import org.dspace.eperson.Group;
+
+/**
+ * The Group tag for roles.xml
+ *
+ * Named as to not conflict with {@link Group} but still be clear for what it is
+ *
+ */
+public class AssociatedGroup {
 
     private String id;
     private String name;
     private String type;
     private List<Member> members;
     private List<Member> memberGroups;
+
+    protected AssociatedGroup() {
+    }
+
+    public AssociatedGroup(Group group) {
+        this.id = group.getID().toString();
+        this.name = group.getName();
+        this.type = String.valueOf(group.getType());
+
+        for (EPerson member : group.getMembers()) {
+            addMember(new Member(member));
+        }
+        for (Group memberGroup : group.getMemberGroups()) {
+            addMemberGroup(new Member(memberGroup));
+        }
+    }
 
     @XmlAttribute(name = "ID")
     public String getId() {

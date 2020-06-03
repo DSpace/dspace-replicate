@@ -9,16 +9,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "DSpaceRoles")
 public class DSpaceRoles {
 
-    private List<Group> groups;
+    private List<AssociatedGroup> groups;
     private List<Person> people;
 
     @XmlElement(name = "Group")
     @XmlElementWrapper(name = "Groups")
-    public List<Group> getGroups() {
+    public List<AssociatedGroup> getGroups() {
         return groups;
     }
 
-    public void addGroup(final Group group) {
+    public void addGroup(final AssociatedGroup group) {
         if (groups == null) {
             groups = new ArrayList<>();
         }
@@ -26,7 +26,7 @@ public class DSpaceRoles {
         groups.add(group);
     }
 
-    public void setGroups(final List<Group> groups) {
+    public void setGroups(final List<AssociatedGroup> groups) {
         this.groups = groups;
     }
 
