@@ -1,12 +1,20 @@
 package org.dspace.pack.bagit;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.DSpaceObject;
 import org.dspace.content.Site;
+import org.dspace.content.packager.PackageException;
+import org.dspace.content.packager.PackageParameters;
+import org.dspace.content.packager.RoleIngester;
 import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
@@ -98,6 +106,12 @@ public class BagItRolesUtil {
         }
 
         return dSpaceRoles;
+    }
+
+    public static void ingest(DSpaceObject dso, Path xml) throws IOException, SQLException, PackageException, AuthorizeException {
+        RoleIngester ingester = new RoleIngester();
+        PackageParameters params = new PackageParameters();
+        ingester.ingestStream(Curator.curationContext(), dso, params, Files.newInputStream(xml));
     }
 
 }
