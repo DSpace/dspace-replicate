@@ -83,8 +83,6 @@ public class CommunityPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, SQLException, IOException {
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-
         final Bitstream logo = community.getLogo();
 
         // object.properties
@@ -107,7 +105,7 @@ public class CommunityPacker implements Packer
         }
 
         // collect the policy
-        final Policies policy = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
 
         return new BagItAipWriter(packDir, archFmt, properties)
             .withLogo(logo)
@@ -123,7 +121,6 @@ public class CommunityPacker implements Packer
         }
 
         final Context context = Curator.curationContext();
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
@@ -136,7 +133,7 @@ public class CommunityPacker implements Packer
 
         try {
             final Policies policies = reader.readPolicy();
-            policyUtil.registerPolicies(community, policies);
+            BagItPolicyUtil.registerPolicies(community, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }

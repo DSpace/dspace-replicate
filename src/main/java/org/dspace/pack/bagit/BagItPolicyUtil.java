@@ -50,17 +50,16 @@ public class BagItPolicyUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(BagItPolicyUtil.class);
 
-    private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
     /**
      * Create a {@link Policy} for a {@link DSpaceObject}
      *
      * @param dso The {@link DSpaceObject} to get the {@link Policy} for
      * @return the {@link Policy}
      */
-    public Policies getPolicy(final Context context, final DSpaceObject dso) throws IOException {
+    public static Policies getPolicy(final Context context, final DSpaceObject dso) throws IOException {
         final Policies policies = new Policies();
         final BiMap<Integer, String> actions = actionMapper().inverse();
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
         for (ResourcePolicy resourcePolicy : dso.getResourcePolicies()) {
             final Policy policy = new Policy();
@@ -122,8 +121,9 @@ public class BagItPolicyUtil {
      * @param dSpaceObject the {@link DSpaceObject} to register policies for
      * @param policies the {@link Policies} pojo to create each {@link ResourcePolicy}
      */
-    public void registerPolicies(final DSpaceObject dSpaceObject, final Policies policies)
+    public static void registerPolicies(final DSpaceObject dSpaceObject, final Policies policies)
         throws SQLException, AuthorizeException, PackageException {
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
         final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
@@ -220,7 +220,7 @@ public class BagItPolicyUtil {
      *
      * @return the mapping between action String and Int representations
      */
-    private BiMap<String, Integer> actionMapper() {
+    private static BiMap<String, Integer> actionMapper() {
         return ImmutableBiMap.<String, Integer>builder()
                       .put("ADD", Constants.ADD)
                       .put("READ", Constants.READ)

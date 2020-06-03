@@ -89,7 +89,6 @@ public class CollectionPacker implements Packer
 
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final Bitstream logo = collection.getLogo();
 
         // collect the object.properties
@@ -112,7 +111,7 @@ public class CollectionPacker implements Packer
         }
 
         // collect xml policy
-        final Policies policy = policyUtil.getPolicy(Curator.curationContext(), collection);
+        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
 
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
             .withPolicies(policy)
@@ -126,7 +125,6 @@ public class CollectionPacker implements Packer
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
 
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
@@ -137,7 +135,7 @@ public class CollectionPacker implements Packer
 
         try {
             final Policies policies = reader.readPolicy();
-            policyUtil.registerPolicies(collection, policies);
+            BagItPolicyUtil.registerPolicies(collection, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }

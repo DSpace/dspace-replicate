@@ -87,8 +87,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         community.getResourcePolicies().add(adminGroupPolicy);
 
         // now test that the Policy pojo we get back is correct
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        final Policies policies = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
 
         assertThat(policies).isNotNull();
         final List<Policy> policyList = policies.getPolicies();
@@ -130,8 +129,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         community.getResourcePolicies().add(anonGroupPolicy);
 
         // now test that the Policy pojo we get back is correct
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        final Policies policies = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
 
         assertThat(policies).isNotNull();
         final List<Policy> children = policies.getPolicies();
@@ -172,8 +170,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         community.getResourcePolicies().add(ePersonPolicy);
 
         // now test that the Policy pojo we get back is correct
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        final Policies policies = policyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
 
         assertThat(policies).isNotNull();
         final List<Policy> children = policies.getPolicies();
@@ -223,8 +220,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         when(ePersonService.findByEmail(any(Context.class), eq(personEmail))).thenReturn(ePerson);
 
         // Register the policy on a DSpaceObject
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-        policyUtil.registerPolicies(community, policy);
+        BagItPolicyUtil.registerPolicies(community, policy);
 
         // verify service interactions
         verify(resourcePolicyService, times(8)).create(any(Context.class));

@@ -33,8 +33,6 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Item;
-import org.dspace.content.MetadataField;
-import org.dspace.content.MetadataSchema;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
@@ -89,8 +87,6 @@ public class ItemPacker implements Packer {
 
     @Override
     public File pack(final File packDir) throws AuthorizeException, IOException, SQLException {
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
-
         // object properties
         final List<String> objectProperties = new ArrayList<>();
         objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);
@@ -121,7 +117,7 @@ public class ItemPacker implements Packer {
         }
 
         // policy.xml
-        final Policies policy = policyUtil.getPolicy(Curator.curationContext(), item);
+        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), item);
 
         // proceed to bundles, in sub-directories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
@@ -145,7 +141,7 @@ public class ItemPacker implements Packer {
                     }
 
                     // bitstream policy
-                    final Policies bitstreamPolicy = policyUtil.getPolicy(Curator.curationContext(), bs);
+                    final Policies bitstreamPolicy = BagItPolicyUtil.getPolicy(Curator.curationContext(), bs);
 
                     // write the bitstream itself, unless reference filter applies
                     final String fetchUrl = byReference(bundle, bs);
@@ -172,7 +168,6 @@ public class ItemPacker implements Packer {
         }
 
         final Context context = Curator.curationContext();
-        final BagItPolicyUtil policyUtil = new BagItPolicyUtil();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
@@ -186,7 +181,7 @@ public class ItemPacker implements Packer {
         // set the policies for the item
         try {
             final Policies policies = reader.readPolicy();
-            policyUtil.registerPolicies(item, policies);
+            BagItPolicyUtil.registerPolicies(item, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }
@@ -225,7 +220,7 @@ public class ItemPacker implements Packer {
             // and the bitstream policies
             try {
                 final Policies bitstreamPolicies = packaged.getPolicies();
-                policyUtil.registerPolicies(bitstream, bitstreamPolicies);
+                BagItPolicyUtil.registerPolicies(bitstream, bitstreamPolicies);
             } catch (PackageException e) {
                 throw new IOException(e.getMessage(), e);
             }
