@@ -116,7 +116,12 @@ public class CollectionPacker implements Packer
         final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
 
         // roles
-        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
+        DSpaceRoles dSpaceRoles = null;
+        try {
+            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
+        } catch (PackageException exception) {
+            exception.printStackTrace();
+        }
 
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
             .withPolicies(policy)

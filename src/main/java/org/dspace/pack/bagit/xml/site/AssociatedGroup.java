@@ -1,5 +1,6 @@
 package org.dspace.pack.bagit.xml.site;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -7,6 +8,9 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 
+import org.dspace.content.packager.PackageException;
+import org.dspace.content.packager.PackageUtils;
+import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 
@@ -27,9 +31,15 @@ public class AssociatedGroup {
     protected AssociatedGroup() {
     }
 
-    public AssociatedGroup(Group group) {
+    public AssociatedGroup(Group group) throws SQLException, PackageException {
         this.id = group.getID().toString();
-        this.name = group.getName();
+
+        if (Group.ADMIN.equalsIgnoreCase(group.getName()) || Group.ANONYMOUS.equalsIgnoreCase(group.getName())) {
+            this.name = group.getName();
+        } else {
+            this.name = PackageUtils.translateGroupNameForExport(Curator.curationContext(), group.getName());
+        }
+
         this.type = String.valueOf(group.getType());
 
         for (EPerson member : group.getMembers()) {

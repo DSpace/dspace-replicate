@@ -109,7 +109,12 @@ public class CommunityPacker implements Packer
         final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
 
         // and finally get he roles
-        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(community);
+        DSpaceRoles dSpaceRoles = null;
+        try {
+            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(community);
+        } catch (PackageException exception) {
+            exception.printStackTrace();
+        }
 
         return new BagItAipWriter(packDir, archFmt, properties)
             .withLogo(logo)

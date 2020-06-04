@@ -37,7 +37,7 @@ public class BagItRolesUtil {
     private static final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
     private static final EPersonService ePersonService=  EPersonServiceFactory.getInstance().getEPersonService();
 
-    public static DSpaceRoles getDSpaceRoles(final Site site) throws SQLException {
+    public static DSpaceRoles getDSpaceRoles(final Site site) throws SQLException, PackageException {
         final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
         List<Group> groups = groupService.findAll(Curator.curationContext(), null);
@@ -53,10 +53,9 @@ public class BagItRolesUtil {
         return dSpaceRoles;
     }
 
-    public static DSpaceRoles getDSpaceRoles(final Community community) throws SQLException {
+    public static DSpaceRoles getDSpaceRoles(final Community community) throws SQLException, PackageException {
         final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
-        final List<Group> groups = new ArrayList<>();
         final Group administrators = community.getAdministrators();
         if (administrators != null) {
             dSpaceRoles.addGroup(new AssociatedGroup(administrators));
@@ -71,7 +70,7 @@ public class BagItRolesUtil {
         return dSpaceRoles;
     }
 
-    public static DSpaceRoles getDSpaceRoles(final Collection collection) throws SQLException {
+    public static DSpaceRoles getDSpaceRoles(final Collection collection) throws SQLException, PackageException {
         final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
         final Group administrators = collection.getAdministrators();
@@ -108,10 +107,11 @@ public class BagItRolesUtil {
         return dSpaceRoles;
     }
 
-    public static void ingest(DSpaceObject dso, Path xml) throws IOException, SQLException, PackageException, AuthorizeException {
-        RoleIngester ingester = new RoleIngester();
-        PackageParameters params = new PackageParameters();
-        ingester.ingestStream(Curator.curationContext(), dso, params, Files.newInputStream(xml));
+    public static void ingest(final DSpaceObject dso, final Path xml) throws IOException, SQLException,
+        PackageException, AuthorizeException {
+        final RoleIngester roleIngester = new RoleIngester();
+        final PackageParameters params = new PackageParameters();
+        roleIngester.ingestStream(Curator.curationContext(), dso, params, Files.newInputStream(xml));
     }
 
 }
