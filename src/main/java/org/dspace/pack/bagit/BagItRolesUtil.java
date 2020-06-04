@@ -4,14 +4,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
-import org.dspace.content.Site;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageParameters;
 import org.dspace.content.packager.RoleIngester;
@@ -37,15 +35,15 @@ public class BagItRolesUtil {
     private static final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
     private static final EPersonService ePersonService=  EPersonServiceFactory.getInstance().getEPersonService();
 
-    public static DSpaceRoles getDSpaceRoles(final Site site) throws SQLException, PackageException {
+    public static DSpaceRoles getDSpaceRoles() throws SQLException, PackageException {
         final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
-        List<Group> groups = groupService.findAll(Curator.curationContext(), null);
+        final List<Group> groups = groupService.findAll(Curator.curationContext(), null);
         for (Group group : groups) {
             dSpaceRoles.addGroup(new AssociatedGroup(group));
         }
 
-        List<EPerson> ePeople = ePersonService.findAll(Curator.curationContext(), EPerson.EMAIL);
+        final List<EPerson> ePeople = ePersonService.findAll(Curator.curationContext(), EPerson.EMAIL);
         for (EPerson ePerson : ePeople) {
             dSpaceRoles.addPerson(new Person(ePerson));
         }
