@@ -1,8 +1,13 @@
 package org.dspace.pack.bagit.xml.site;
 
+import java.sql.SQLException;
 import javax.xml.bind.annotation.XmlAttribute;
 
-import org.dspace.content.DSpaceObject;
+import org.dspace.content.packager.PackageException;
+import org.dspace.content.packager.PackageUtils;
+import org.dspace.curate.Curator;
+import org.dspace.eperson.EPerson;
+import org.dspace.eperson.Group;
 
 public class Member {
 
@@ -12,9 +17,18 @@ public class Member {
     protected Member() {
     }
 
-    public Member(final DSpaceObject object) {
-        this.id = object.getID().toString();
-        this.name = object.getName();
+    public Member(final EPerson ePerson) {
+        this.id = ePerson.getID().toString();
+        this.name = ePerson.getName();
+    }
+
+    public Member(final Group group) throws SQLException, PackageException {
+        this.id = group.getID().toString();
+        if (Group.ADMIN.equalsIgnoreCase(group.getName()) || Group.ANONYMOUS.equalsIgnoreCase(group.getName())) {
+            this.name = group.getName();
+        } else {
+            this.name = PackageUtils.translateGroupNameForExport(Curator.curationContext(), group.getName());
+        }
     }
 
     @XmlAttribute(name = "ID")
