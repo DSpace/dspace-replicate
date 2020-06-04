@@ -2,6 +2,7 @@ package org.dspace.pack.bagit.xml.site;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -98,5 +99,22 @@ public class AssociatedGroup {
 
     public void setMemberGroups(final List<Member> memberGroups) {
         this.memberGroups = memberGroups;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        AssociatedGroup that = (AssociatedGroup) o;
+        return id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
