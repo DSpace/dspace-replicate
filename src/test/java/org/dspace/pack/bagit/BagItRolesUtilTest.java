@@ -203,7 +203,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
                     .isNotNull()
                     .hasSize(1);
 
-                final Member member = associatedGroup.getMemberGroups().get(0);
+                final Member member = associatedGroup.getMembers().get(0);
                 assertThat(member).isNotNull();
                 assertThat(member.getName()).isEqualTo(ePerson.getName());
                 assertThat(member.getId()).isEqualTo(valueOf(ePerson.getID()));
