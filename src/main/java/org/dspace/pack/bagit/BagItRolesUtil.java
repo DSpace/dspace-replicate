@@ -101,7 +101,7 @@ public class BagItRolesUtil {
             dSpaceRoles.addGroup(new AssociatedGroup(workflowStep3));
         }
 
-        final String groupIdentifier = "COMMUNITY\\_" + collection.getID() + "\\_";
+        final String groupIdentifier = "COLLECTION\\_" + collection.getID() + "\\_";
         final List<Group> matchingGroups = groupService.search(Curator.curationContext(), groupIdentifier);
         for (Group group : matchingGroups) {
             dSpaceRoles.addGroup(new AssociatedGroup(group));
