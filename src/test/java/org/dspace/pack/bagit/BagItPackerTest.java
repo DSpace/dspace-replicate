@@ -25,6 +25,7 @@ import org.dspace.TestContentServiceFactory;
 import org.dspace.TestDSpaceKernelImpl;
 import org.dspace.TestDSpaceServicesFactory;
 import org.dspace.TestEPersonServiceFactory;
+import org.dspace.TestHandleServiceFactory;
 import org.dspace.TestServiceManager;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.DBConnection;
@@ -49,6 +50,7 @@ import org.junit.Before;
 public abstract class BagItPackerTest {
 
     public static final String EVENT_SERVICE_FACTORY = "eventServiceFactory";
+    public static final String HANDLE_SERVICE_FACTORY = "handleServiceFactory";
     public static final String EPERSON_SERVICE_FACTORY = "ePersonServiceFactory";
     public static final String AUTHORIZE_SERVICE_FACTORY = "authorizeServiceFactory";
     // Mocks for Context init
@@ -68,6 +70,7 @@ public abstract class BagItPackerTest {
         serviceManager.registerService(DBConnection.class.getName(), dbConnection);
         serviceManager.registerService(ConfigurationService.class.getName(), configurationService);
         serviceManager.registerService(EVENT_SERVICE_FACTORY, eventServiceFactory);
+        serviceManager.registerService(HANDLE_SERVICE_FACTORY, new TestHandleServiceFactory());
         serviceManager.registerService(EPERSON_SERVICE_FACTORY, new TestEPersonServiceFactory());
         serviceManager.registerService(AUTHORIZE_SERVICE_FACTORY, new TestAuthorizeServiceFactory());
         serviceManager.registerService(DSPACE_SERVICES_FACTORY, new TestDSpaceServicesFactory());

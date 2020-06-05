@@ -28,6 +28,7 @@ import org.dspace.content.service.MetadataValueService;
 import org.dspace.content.service.SiteService;
 import org.dspace.content.service.SupervisedItemService;
 import org.dspace.content.service.WorkspaceItemService;
+import org.dspace.handle.service.HandleService;
 
 /**
  * A {@link ContentServiceFactory} which returns mock services
@@ -38,11 +39,15 @@ public class TestContentServiceFactory extends ContentServiceFactory {
 
     public static final String CONTENT_SERVICE_FACTORY = "contentServiceFactory";
 
-    private BitstreamService bitstreamService = mock(BitstreamService.class);
-    private ItemService itemService = mock(ItemService.class);
-    private CollectionService collectionService = mock(CollectionService.class);
-    private CommunityService communityService = mock(CommunityService.class);
-    private BundleService bundleService = mock(BundleService.class);
+    private final SiteService siteService = mock(SiteService.class);
+    private final BitstreamService bitstreamService = mock(BitstreamService.class);
+    private final BitstreamFormatService bitstreamFormatService = mock(BitstreamFormatService.class);
+    private final ItemService itemService = mock(ItemService.class);
+    private final InstallItemService installItemService = mock(InstallItemService.class);
+    private final WorkspaceItemService workspaceItemService = mock(WorkspaceItemService.class);
+    private final CollectionService collectionService = mock(CollectionService.class);
+    private final CommunityService communityService = mock(CommunityService.class);
+    private final BundleService bundleService = mock(BundleService.class);
 
     @Override
     public List<DSpaceObjectService<? extends DSpaceObject>> getDSpaceObjectServices() {
@@ -56,7 +61,7 @@ public class TestContentServiceFactory extends ContentServiceFactory {
 
     @Override
     public BitstreamFormatService getBitstreamFormatService() {
-        throw new UnsupportedOperationException();
+        return bitstreamFormatService;
     }
 
     @Override
@@ -101,12 +106,12 @@ public class TestContentServiceFactory extends ContentServiceFactory {
 
     @Override
     public WorkspaceItemService getWorkspaceItemService() {
-        throw new UnsupportedOperationException();
+        return workspaceItemService;
     }
 
     @Override
     public InstallItemService getInstallItemService() {
-        throw new UnsupportedOperationException();
+        return installItemService;
     }
 
     @Override
@@ -116,6 +121,6 @@ public class TestContentServiceFactory extends ContentServiceFactory {
 
     @Override
     public SiteService getSiteService() {
-        throw new UnsupportedOperationException();
+        return siteService;
     }
 }

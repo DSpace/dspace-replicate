@@ -10,6 +10,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
@@ -17,7 +20,10 @@ import com.google.common.collect.ImmutableList;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
+import org.dspace.content.Site;
+import org.dspace.content.packager.PackageParameters;
 import org.dspace.core.Context;
+import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
@@ -36,7 +42,6 @@ import org.junit.Test;
  * - collection roles
  *
  * todo: verify mocks
- * todo: ingest
  *
  * @author mikejriter
  */
@@ -209,6 +214,32 @@ public class BagItRolesUtilTest extends BagItPackerTest {
     }
 
     @Test
-    public void ingest() {
+    public void ingest() throws Exception {
+        // get the roles.xml file
+        final String location = "existing-bagit-aip/data/roles.xml";
+        final URL resource = BagItRolesUtilTest.class.getClassLoader().getResource(location);
+        assertThat(resource).isNotNull();
+        Path xml = Paths.get(resource.toURI());
+
+        // set up some interactions we expect to see in the RoleIngester
+        // - an EPerson attached to the Context sharing the email from our roles.xml (in order to skip ops)
+        // - a Group with name ADMINISTRATOR which exists (with keepExistingMode=true, this allows us to skip more ops)
+        final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
+        Site site = mock(Site.class);
+        Group group = mock(Group.class);
+        EPerson ePerson = mock(EPerson.class);
+
+        when(ePerson.getEmail()).thenReturn(EPERSON_EMAIL);
+        when(ePerson.getNetid()).thenReturn(EPERSON_NETID);
+        when(groupService.findByName(any(Context.class), eq(Group.ADMIN))).thenReturn(group);
+
+        // attach the EPerson to the context and create the PackageParameters then we're set to run
+        Context context = Curator.curationContext();
+        context.setCurrentUser(ePerson);
+
+        PackageParameters parameters = new PackageParameters();
+        parameters.setKeepExistingModeEnabled(true);
+
+        BagItRolesUtil.ingest(context, parameters, site, xml);
     }
 }
