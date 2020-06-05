@@ -3,18 +3,24 @@ package org.dspace.pack.bagit;
 import static java.lang.String.valueOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import com.google.common.collect.ImmutableList;
 import org.dspace.content.Collection;
@@ -33,6 +39,7 @@ import org.dspace.pack.bagit.xml.site.AssociatedGroup;
 import org.dspace.pack.bagit.xml.site.DSpaceRoles;
 import org.dspace.pack.bagit.xml.site.Member;
 import org.dspace.pack.bagit.xml.site.Person;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -41,23 +48,30 @@ import org.junit.Test;
  * - community roles
  * - collection roles
  *
- * todo: verify mocks
- *
  * @author mikejriter
  */
 public class BagItRolesUtilTest extends BagItPackerTest {
 
-    public static final String NAME_FIELD = "name";
-    public static final String EPERSON_LANGUAGE = "en_US";
-    public static final String EPERSON_LAST_NAME = "last-name";
-    public static final String EPERSON_FIRST_NAME = "first-name";
-    public static final String EPERSON_EMAIL = "person@localhost";
-    public static final String EPERSON_NETID = "netid";
+    private static final String NAME_FIELD = "name";
+    private static final String EPERSON_LANGUAGE = "en_US";
+    private static final String EPERSON_LAST_NAME = "last-name";
+    private static final String EPERSON_FIRST_NAME = "first-name";
+    private static final String EPERSON_EMAIL = "person@localhost";
+    private static final String EPERSON_NETID = "netid";
+
+    private GroupService groupService;
+    private EPersonService ePersonService;
+
+    @Before
+    public void setup() throws SQLException {
+        super.setup();
+
+        groupService = EPersonServiceFactory.getInstance().getGroupService();
+        ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
+    }
 
     @Test
     public void testGetDSpaceRolesForSite() throws Exception {
-        final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
-        final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
 
         final Group group = initDSO(Group.class);
         final Field name = Group.class.getDeclaredField(NAME_FIELD);
@@ -75,15 +89,30 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         when(ePersonService.findAll(any(Context.class), eq(EPerson.EMAIL))).thenReturn(ImmutableList.of(ePerson));
 
         // metadata queries for the ePerson
-        when(ePersonService.getMetadataFirstValue(eq(ePerson), eq("eperson"), eq("firstname"), isNull(String.class),
+        final String schema = "eperson";
+        final String firstName = "firstname";
+        final String lastName = "lastname";
+        final String language = "language";
+        when(ePersonService.getMetadataFirstValue(eq(ePerson), eq(schema), eq(firstName), isNull(String.class),
                                                   eq(Item.ANY))).thenReturn(EPERSON_FIRST_NAME);
-        when(ePersonService.getMetadataFirstValue(eq(ePerson), eq("eperson"), eq("lastname"), isNull(String.class),
+        when(ePersonService.getMetadataFirstValue(eq(ePerson), eq(schema), eq(lastName), isNull(String.class),
                                                   eq(Item.ANY))).thenReturn(EPERSON_LAST_NAME);
-        when(ePersonService.getMetadataFirstValue(eq(ePerson), eq("eperson"), eq("language"), isNull(String.class),
+        when(ePersonService.getMetadataFirstValue(eq(ePerson), eq(schema), eq(language), isNull(String.class),
                                                   eq(Item.ANY))).thenReturn(EPERSON_LANGUAGE);
 
         final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles();
 
+        // verifications
+        verify(groupService, times(1)).findAll(any(Context.class), isNull(List.class));
+        verify(ePersonService, times(1)).findAll(any(Context.class), eq(EPerson.EMAIL));
+        verify(ePersonService, times(1)).getMetadataFirstValue(eq(ePerson), eq(schema), eq(firstName),
+                                                               isNull(String.class), eq(Item.ANY));
+        verify(ePersonService, times(1)).getMetadataFirstValue(eq(ePerson), eq(schema), eq(lastName),
+                                                               isNull(String.class), eq(Item.ANY));
+        verify(ePersonService, times(1)).getMetadataFirstValue(eq(ePerson), eq(schema), eq(language),
+                                                               isNull(String.class), eq(Item.ANY));
+
+        // mocks were good, check the role mappings are correct
         assertThat(dSpaceRoles).isNotNull();
         final Set<Person> people = dSpaceRoles.getPeople();
         final Set<AssociatedGroup> groups = dSpaceRoles.getGroups();
@@ -108,12 +137,12 @@ public class BagItRolesUtilTest extends BagItPackerTest {
             assertThat(associatedGroup.getId()).isEqualTo(valueOf(group.getID()));
             assertThat(associatedGroup.getName()).isEqualTo(group.getName());
         }
-
     }
 
     @Test
     public void testGetDSpaceRolesForCommunity() throws Exception {
         // mock the community so that we can easily use community.getAdministrators to return our group
+        final UUID uuid = UUID.randomUUID();
         final Community community = mock(Community.class);
 
         final Group adminGroup = initDSO(Group.class);
@@ -127,10 +156,17 @@ public class BagItRolesUtilTest extends BagItPackerTest {
 
         adminGroup.getMemberGroups().add(groupMember);
 
+        when(community.getID()).thenReturn(uuid);
         when(community.getAdministrators()).thenReturn(adminGroup);
 
         // run the function and validate the result
         final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(community);
+
+        // verify mocks
+        final String query = "COMMUNITY\\_" + uuid + "\\_";
+        verify(groupService, times(1)).search(any(Context.class), eq(query));
+        verifyZeroInteractions(ePersonService);
+
         assertThat(dSpaceRoles).isNotNull();
 
         // communities have no people :(
@@ -165,6 +201,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
     @Test
     public void testGetDSpaceRolesForCollection() throws Exception {
         // mock the collection so that we can easily get groups from the collection getters
+        final UUID uuid = UUID.randomUUID();
         final Collection collection = mock(Collection.class);
 
         final Group administrators = initDSO(Group.class);
@@ -178,10 +215,17 @@ public class BagItRolesUtilTest extends BagItPackerTest {
 
         administrators.getMembers().add(ePerson);
 
+        when(collection.getID()).thenReturn(uuid);
         when(collection.getAdministrators()).thenReturn(administrators);
 
         // run the function and validate the result
         final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
+
+        // verify mocks
+        final String query = "COLLECTION\\_" + uuid + "\\_";
+        verify(groupService, times(1)).search(any(Context.class), eq(query));
+        verifyZeroInteractions(ePersonService);
+
         assertThat(dSpaceRoles).isNotNull();
 
         // collections also have no people :(
@@ -224,22 +268,32 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         // set up some interactions we expect to see in the RoleIngester
         // - an EPerson attached to the Context sharing the email from our roles.xml (in order to skip ops)
         // - a Group with name ADMINISTRATOR which exists (with keepExistingMode=true, this allows us to skip more ops)
-        final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
-        Site site = mock(Site.class);
-        Group group = mock(Group.class);
-        EPerson ePerson = mock(EPerson.class);
+        final Site site = mock(Site.class);
+        final Group group = mock(Group.class);
+        final EPerson ePerson = mock(EPerson.class);
 
         when(ePerson.getEmail()).thenReturn(EPERSON_EMAIL);
         when(ePerson.getNetid()).thenReturn(EPERSON_NETID);
         when(groupService.findByName(any(Context.class), eq(Group.ADMIN))).thenReturn(group);
+        when(groupService.findByName(any(Context.class), eq(Group.ANONYMOUS))).thenReturn(group);
 
         // attach the EPerson to the context and create the PackageParameters then we're set to run
-        Context context = Curator.curationContext();
+        final Context context = Curator.curationContext();
         context.setCurrentUser(ePerson);
 
-        PackageParameters parameters = new PackageParameters();
+        final PackageParameters parameters = new PackageParameters();
         parameters.setKeepExistingModeEnabled(true);
 
         BagItRolesUtil.ingest(context, parameters, site, xml);
+
+        verify(ePerson, times(1)).getEmail();
+        verify(ePerson, times(1)).getNetid();
+        // the main group (admins) is retrieved twice by the RoleIngester
+        verify(groupService, times(2)).findByName(any(Context.class), eq(Group.ADMIN));
+        verify(groupService, times(1)).findByName(any(Context.class), eq(Group.ANONYMOUS));
+        verify(groupService, times(1)).addMember(any(Context.class), eq(group), eq(group));
+        verify(groupService, times(1)).update(any(Context.class), eq(group));
+        verifyZeroInteractions(ePersonService);
+        verifyNoMoreInteractions(groupService);
     }
 }
