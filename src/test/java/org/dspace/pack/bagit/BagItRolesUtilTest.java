@@ -42,24 +42,28 @@ import org.junit.Test;
  */
 public class BagItRolesUtilTest extends BagItPackerTest {
 
+    public static final String NAME_FIELD = "name";
+    public static final String EPERSON_LANGUAGE = "en_US";
+    public static final String EPERSON_LAST_NAME = "last-name";
+    public static final String EPERSON_FIRST_NAME = "first-name";
+    public static final String EPERSON_EMAIL = "person@localhost";
+    public static final String EPERSON_NETID = "netid";
+
     @Test
     public void testGetDSpaceRolesForSite() throws Exception {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
 
         final Group group = initDSO(Group.class);
-        final Field name = Group.class.getDeclaredField("name");
+        final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);
         name.set(group, Group.ADMIN);
 
         final EPerson ePerson = initDSO(EPerson.class);
-        ePerson.setEmail("dspace-site");
-        ePerson.setNetid("netid");
+        ePerson.setEmail(EPERSON_EMAIL);
+        ePerson.setNetid(EPERSON_NETID);
         ePerson.setCanLogIn(true);
         ePerson.setSelfRegistered(true);
-        final String ePersonFirstName = "BagItRolesUtilTest";
-        final String ePersonLastName = "testGetDSpaceRolesForSite";
-        final String ePersonLanguage = "en_US";
 
         // queries in BagItRolesUtil
         when(groupService.findAll(any(Context.class), isNull(List.class))).thenReturn(ImmutableList.of(group));
@@ -67,11 +71,11 @@ public class BagItRolesUtilTest extends BagItPackerTest {
 
         // metadata queries for the ePerson
         when(ePersonService.getMetadataFirstValue(eq(ePerson), eq("eperson"), eq("firstname"), isNull(String.class),
-                                                  eq(Item.ANY))).thenReturn(ePersonFirstName);
+                                                  eq(Item.ANY))).thenReturn(EPERSON_FIRST_NAME);
         when(ePersonService.getMetadataFirstValue(eq(ePerson), eq("eperson"), eq("lastname"), isNull(String.class),
-                                                  eq(Item.ANY))).thenReturn(ePersonLastName);
+                                                  eq(Item.ANY))).thenReturn(EPERSON_LAST_NAME);
         when(ePersonService.getMetadataFirstValue(eq(ePerson), eq("eperson"), eq("language"), isNull(String.class),
-                                                  eq(Item.ANY))).thenReturn(ePersonLanguage);
+                                                  eq(Item.ANY))).thenReturn(EPERSON_LANGUAGE);
 
         final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles();
 
@@ -87,9 +91,9 @@ public class BagItRolesUtilTest extends BagItPackerTest {
             assertThat(person.getId()).isEqualTo(valueOf(ePerson.getID()));
             assertThat(person.getNetId()).isEqualTo(ePerson.getNetid());
             assertThat(person.getEmail()).isEqualTo(ePerson.getEmail());
-            assertThat(person.getFirstName()).isEqualTo(ePersonFirstName);
-            assertThat(person.getLastName()).isEqualTo(ePersonLastName);
-            assertThat(person.getLanguage()).isEqualTo(ePersonLanguage);
+            assertThat(person.getFirstName()).isEqualTo(EPERSON_FIRST_NAME);
+            assertThat(person.getLastName()).isEqualTo(EPERSON_LAST_NAME);
+            assertThat(person.getLanguage()).isEqualTo(EPERSON_LANGUAGE);
         }
 
         for (AssociatedGroup associatedGroup : groups) {
@@ -111,7 +115,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         final Group groupMember = initDSO(Group.class);
 
         // set the name for both groups
-        final Field name = Group.class.getDeclaredField("name");
+        final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);
         name.set(adminGroup, Group.ADMIN);
         name.set(groupMember, Group.ANONYMOUS);
@@ -138,7 +142,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
                 // members were never set, so they should be null
                 assertThat(associatedGroup.getMembers()).isNull();
 
-                // and get the memberGroup
+                // validate the memberGroup
                 assertThat(associatedGroup.getMemberGroups())
                     .isNotNull()
                     .hasSize(1);
@@ -162,7 +166,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         final EPerson ePerson = initDSO(EPerson.class);
 
         // set the name for both groups
-        final Field name = Group.class.getDeclaredField("name");
+        final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);
         name.set(administrators, Group.ADMIN);
         ePerson.setEmail("bagitroles");
@@ -186,10 +190,10 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         for (AssociatedGroup associatedGroup : associatedGroups) {
             // a bit awkward but works
             if (associatedGroup.getId().equalsIgnoreCase(valueOf(administrators.getID()))) {
-                // members were never set, so they should be null
+                // memberGroups were never set, so they should be null
                 assertThat(associatedGroup.getMemberGroups()).isNull();
 
-                // and get the memberGroup
+                // members were set, so validate
                 assertThat(associatedGroup.getMembers())
                     .isNotNull()
                     .hasSize(1);
