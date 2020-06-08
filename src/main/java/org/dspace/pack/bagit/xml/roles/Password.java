@@ -10,39 +10,59 @@ package org.dspace.pack.bagit.xml.roles;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlValue;
 
+/**
+ * The Password tag for a {@link Member}
+ *
+ * @author mikejritter
+ */
 public class Password {
 
     private String hash;
     private String salt;
     private String algorithm;
 
+    /**
+     * @return the hashed password
+     */
     @XmlValue
     public String getHash() {
         return hash;
     }
 
-    public Password setHash(String hash) {
+    /**
+     * @param hash the hashed version of the password to use
+     */
+    public void setHash(String hash) {
         this.hash = hash;
-        return this;
     }
 
+    /**
+     * @return the salt for the password
+     */
     @XmlAttribute(name = "salt")
     public String getSalt() {
         return salt;
     }
 
-    public Password setSalt(String salt) {
+    /**
+     * @param salt the salt of the password
+     */
+    public void setSalt(String salt) {
         this.salt = salt;
-        return this;
     }
 
+    /**
+     * @return the message digest of the password
+     */
     @XmlAttribute(name = "digest")
     public String getAlgorithm() {
         return algorithm;
     }
 
-    public Password setAlgorithm(String algorithm) {
+    /**
+     * @param algorithm the algorithm to set for the password
+     */
+    public void setAlgorithm(String algorithm) {
         this.algorithm = algorithm;
-        return this;
     }
 }
