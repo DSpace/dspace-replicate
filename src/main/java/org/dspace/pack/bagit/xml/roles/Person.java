@@ -1,4 +1,4 @@
-package org.dspace.pack.bagit.xml.site;
+package org.dspace.pack.bagit.xml.roles;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;

@@ -21,13 +21,13 @@ import org.dspace.eperson.PasswordHash;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
-import org.dspace.pack.bagit.xml.site.AssociatedGroup;
-import org.dspace.pack.bagit.xml.site.DSpaceRoles;
-import org.dspace.pack.bagit.xml.site.Password;
-import org.dspace.pack.bagit.xml.site.Person;
+import org.dspace.pack.bagit.xml.roles.AssociatedGroup;
+import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
+import org.dspace.pack.bagit.xml.roles.Password;
+import org.dspace.pack.bagit.xml.roles.Person;
 
 /**
- * Create a {@link org.dspace.pack.bagit.xml.site.DSpaceRoles} for a BagIt bag
+ * Create a {@link org.dspace.pack.bagit.xml.roles.DSpaceRoles} for a BagIt bag
  *
  * Uses {@link org.dspace.content.packager.RoleDisseminator} as a reference for obtaining groups/epeople
  *

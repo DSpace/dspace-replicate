@@ -41,7 +41,7 @@ import org.dspace.core.Utils;
 import org.dspace.curate.Curator;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.policy.Policies;
-import org.dspace.pack.bagit.xml.site.DSpaceRoles;
+import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagConfig;

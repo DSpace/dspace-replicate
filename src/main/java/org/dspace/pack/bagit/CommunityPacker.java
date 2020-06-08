@@ -42,7 +42,7 @@ import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policies;
-import org.dspace.pack.bagit.xml.site.DSpaceRoles;
+import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.

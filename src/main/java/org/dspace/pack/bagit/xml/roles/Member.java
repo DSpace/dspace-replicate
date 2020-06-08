@@ -1,4 +1,4 @@
-package org.dspace.pack.bagit.xml.site;
+package org.dspace.pack.bagit.xml.roles;
 
 import java.sql.SQLException;
 import javax.xml.bind.annotation.XmlAttribute;
