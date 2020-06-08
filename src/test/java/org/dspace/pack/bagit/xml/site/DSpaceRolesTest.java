@@ -4,7 +4,8 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import org.dspace.eperson.Group;
 import org.junit.Test;
 
 public class DSpaceRolesTest {
@@ -15,7 +16,7 @@ public class DSpaceRolesTest {
 
         AssociatedGroup group = new AssociatedGroup();
         group.setId("1");
-        group.setName("Administrator");
+        group.setName(Group.ADMIN);
 
         Member member = new Member();
         member.setId("2");
@@ -23,11 +24,11 @@ public class DSpaceRolesTest {
 
         Member member1 = new Member();
         member1.setId("0");
-        member1.setName("Eponymous");
+        member1.setName(Group.ANONYMOUS);
 
         group.addMember(member);
         group.addMemberGroup(member1);
-        dSpaceRoles.setGroups(ImmutableList.of(group));
+        dSpaceRoles.setGroups(ImmutableSet.of(group));
 
         Person person = new Person();
         person.setId("1")
