@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace.pack.bagit;
 
 import static java.lang.String.valueOf;
@@ -35,6 +42,7 @@ import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
+import org.dspace.pack.bagit.BagItPackerTest;
 import org.dspace.pack.bagit.xml.roles.AssociatedGroup;
 import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 import org.dspace.pack.bagit.xml.roles.Member;
