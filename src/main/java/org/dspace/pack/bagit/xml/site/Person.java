@@ -15,6 +15,8 @@ public class Person {
     private String language;
     private String canLogin;
     private String selfRegistered;
+    private String requiredCertificate;
+    private Password password;
 
     protected Person() {
     }
@@ -28,6 +30,7 @@ public class Person {
         this.language = ePerson.getLanguage();
         this.canLogin = ePerson.canLogIn() ? "" : null;
         this.selfRegistered = ePerson.getSelfRegistered() ? "" : null;
+        this.requiredCertificate = ePerson.getRequireCertificate() ? "" : null;
     }
 
     @XmlAttribute(name = "ID")
@@ -70,6 +73,15 @@ public class Person {
         return selfRegistered;
     }
 
+    @XmlElement(name = "RequiredCertificate")
+    public String getRequiredCertificate() {
+        return requiredCertificate;
+    }
+
+    public Password getPassword() {
+        return password;
+    }
+
     public Person setId(String id) {
         this.id = id;
         return this;
@@ -107,6 +119,16 @@ public class Person {
 
     public Person selfRegistered() {
         this.selfRegistered = "";
+        return this;
+    }
+
+    public Person requiredCertificate() {
+        this.requiredCertificate = "";
+        return this;
+    }
+
+    public Person setPassword(Password password) {
+        this.password = password;
         return this;
     }
 

@@ -17,11 +17,13 @@ import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
+import org.dspace.eperson.PasswordHash;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.site.AssociatedGroup;
 import org.dspace.pack.bagit.xml.site.DSpaceRoles;
+import org.dspace.pack.bagit.xml.site.Password;
 import org.dspace.pack.bagit.xml.site.Person;
 
 /**
@@ -44,9 +46,23 @@ public class BagItRolesUtil {
             dSpaceRoles.addGroup(new AssociatedGroup(group));
         }
 
+        boolean includePasswords = false; // retrieve from service
         final List<EPerson> ePeople = ePersonService.findAll(Curator.curationContext(), EPerson.EMAIL);
         for (EPerson ePerson : ePeople) {
-            dSpaceRoles.addPerson(new Person(ePerson));
+            final Person person = new Person(ePerson);
+            if (includePasswords) {
+                final PasswordHash passwordHash = ePersonService.getPasswordHash(ePerson);
+                if (passwordHash != null) {
+                    final Password password = new Password();
+                    password.setHash(passwordHash.getHashString());
+                    password.setSalt(passwordHash.getSaltString());
+                    password.setAlgorithm(passwordHash.getAlgorithm());
+
+                    person.setPassword(password);
+                }
+            }
+
+            dSpaceRoles.addPerson(person);
         }
 
         return dSpaceRoles;

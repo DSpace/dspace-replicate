@@ -120,6 +120,8 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         assertThat(groups).isNotNull().hasSize(1);
 
         for (Person person : people) {
+            assertThat(person.getPassword()).isNull();
+            assertThat(person.getRequiredCertificate()).isNull();
             assertThat(person.getCanLogin()).isNotNull();
             assertThat(person.getSelfRegistered()).isNotNull();
             assertThat(person.getId()).isEqualTo(valueOf(ePerson.getID()));
