@@ -35,6 +35,8 @@ import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.Site;
 import org.dspace.content.packager.PackageParameters;
+import org.dspace.content.packager.RoleDisseminator;
+import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
@@ -79,6 +81,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
 
     @Test
     public void testGetDSpaceRolesForSite() throws Exception {
+        final Site site = initDSO(Site.class);
         final Group group = initDSO(Group.class);
         final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);
@@ -106,7 +109,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         when(ePersonService.getMetadataFirstValue(eq(ePerson), eq(schema), eq(language), isNull(String.class),
                                                   eq(Item.ANY))).thenReturn(EPERSON_LANGUAGE);
 
-        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles();
+        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(site);
 
         // verifications
         verify(groupService, times(1)).findAll(any(Context.class), isNull(List.class));
@@ -164,6 +167,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         adminGroup.getMemberGroups().add(groupMember);
 
         when(community.getID()).thenReturn(uuid);
+        when(community.getType()).thenReturn(Constants.COMMUNITY);
         when(community.getAdministrators()).thenReturn(adminGroup);
 
         // run the function and validate the result
@@ -187,6 +191,8 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         for (AssociatedGroup associatedGroup : associatedGroups) {
             // a bit awkward but works
             if (associatedGroup.getId().equalsIgnoreCase(valueOf(adminGroup.getID()))) {
+                assertThat(associatedGroup.getType()).isEqualTo(RoleDisseminator.GROUP_TYPE_ADMIN);
+
                 // members were never set, so they should be null
                 assertThat(associatedGroup.getMembers()).isNull();
 
@@ -223,6 +229,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         administrators.getMembers().add(ePerson);
 
         when(collection.getID()).thenReturn(uuid);
+        when(collection.getType()).thenReturn(Constants.COLLECTION);
         when(collection.getAdministrators()).thenReturn(administrators);
 
         // run the function and validate the result
@@ -246,6 +253,8 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         for (AssociatedGroup associatedGroup : associatedGroups) {
             // a bit awkward but works
             if (associatedGroup.getId().equalsIgnoreCase(valueOf(administrators.getID()))) {
+                assertThat(associatedGroup.getType()).isEqualTo(RoleDisseminator.GROUP_TYPE_ADMIN);
+
                 // memberGroups were never set, so they should be null
                 assertThat(associatedGroup.getMemberGroups()).isNull();
 

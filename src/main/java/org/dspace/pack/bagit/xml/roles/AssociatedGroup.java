@@ -15,8 +15,13 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 
+import org.dspace.content.Collection;
+import org.dspace.content.Community;
+import org.dspace.content.DSpaceObject;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageUtils;
+import org.dspace.content.packager.RoleDisseminator;
+import org.dspace.core.Constants;
 import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
@@ -45,11 +50,12 @@ public class AssociatedGroup {
     /**
      * Constructor to create an {@link AssociatedGroup} from a {@link Group}
      *
+     * @param dso the related DSpaceObject
      * @param group the group to use
      * @throws SQLException if there is an error translating a Group's name
      * @throws PackageException if there is an error translating a Group's name
      */
-    public AssociatedGroup(final Group group) throws SQLException, PackageException {
+    public AssociatedGroup(final DSpaceObject dso, final Group group) throws SQLException, PackageException {
         this.id = group.getID().toString();
 
         if (Group.ADMIN.equalsIgnoreCase(group.getName()) || Group.ANONYMOUS.equalsIgnoreCase(group.getName())) {
@@ -58,7 +64,7 @@ public class AssociatedGroup {
             this.name = PackageUtils.translateGroupNameForExport(Curator.curationContext(), group.getName());
         }
 
-        this.type = String.valueOf(group.getType());
+        this.type = findGroupType(dso, group);
 
         for (EPerson member : group.getMembers()) {
             addMember(new Member(member));
@@ -66,6 +72,44 @@ public class AssociatedGroup {
         for (Group memberGroup : group.getMemberGroups()) {
             addMemberGroup(new Member(memberGroup));
         }
+    }
+
+    /**
+     * Get the group type to use for a given DSpaceObject and group
+     * based on org.dspace.content.packager.RoleDisseminator#getGroupType(DSpaceObject, Group)
+     *
+     * @param dso the related DSpaceObject
+     * @param group the group associated to the DSpaceObject
+     * @return the group type string or null
+     */
+    private String findGroupType(final DSpaceObject dso, final Group group) {
+        if (dso == null || group == null) {
+            return null;
+        }
+
+        if (dso.getType() == Constants.COMMUNITY) {
+            final Community community = (Community) dso;
+
+            if (group.equals(community.getAdministrators())) {
+                return RoleDisseminator.GROUP_TYPE_ADMIN;
+            }
+        } else if (dso.getType() == Constants.COLLECTION) {
+            final Collection collection = (Collection) dso;
+
+            if (group.equals(collection.getAdministrators())) {
+                return RoleDisseminator.GROUP_TYPE_ADMIN;
+            } else if (group.equals(collection.getSubmitters())) {
+                return RoleDisseminator.GROUP_TYPE_SUBMIT;
+            } else if (group.equals(collection.getWorkflowStep1())) {
+                return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_1;
+            } else if (group.equals(collection.getWorkflowStep2())) {
+                return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_2;
+            } else if (group.equals(collection.getWorkflowStep3())) {
+                return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_3;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -85,7 +129,8 @@ public class AssociatedGroup {
     }
 
     /**
-     * @return the type of the group, {@link Group#getType()}
+     * @see #findGroupType(DSpaceObject, Group)
+     * @return the group type
      */
     @XmlAttribute(name = "Type")
     public String getType() {

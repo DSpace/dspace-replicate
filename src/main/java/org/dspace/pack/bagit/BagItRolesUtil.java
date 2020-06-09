@@ -17,6 +17,7 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.Site;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageParameters;
 import org.dspace.content.packager.RoleIngester;
@@ -43,11 +44,12 @@ public class BagItRolesUtil {
     /**
      * Retrieve all roles in a DSpace site. Gets all {@link Group}s and {@link EPerson}s.
      *
+     * @param site the Site to get all roles for
      * @return the DSpaceRoles
      * @throws SQLException if there are any errors querying the database
      * @throws PackageException if there are any errors translating group names
      */
-    public static DSpaceRoles getDSpaceRoles() throws SQLException, PackageException {
+    public static DSpaceRoles getDSpaceRoles(final Site site) throws SQLException, PackageException {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService=  EPersonServiceFactory.getInstance().getEPersonService();
 
@@ -55,7 +57,7 @@ public class BagItRolesUtil {
 
         final List<Group> groups = groupService.findAll(Curator.curationContext(), null);
         for (Group group : groups) {
-            dSpaceRoles.addGroup(new AssociatedGroup(group));
+            dSpaceRoles.addGroup(new AssociatedGroup(site, group));
         }
 
         final List<EPerson> ePeople = ePersonService.findAll(Curator.curationContext(), EPerson.EMAIL);
@@ -82,13 +84,13 @@ public class BagItRolesUtil {
 
         final Group administrators = community.getAdministrators();
         if (administrators != null) {
-            dSpaceRoles.addGroup(new AssociatedGroup(administrators));
+            dSpaceRoles.addGroup(new AssociatedGroup(community, administrators));
         }
 
         final String groupIdentifier = "COMMUNITY\\_" + community.getID() + "\\_";
         final List<Group> matchingGroups = groupService.search(Curator.curationContext(), groupIdentifier);
         for (Group group : matchingGroups) {
-            dSpaceRoles.addGroup(new AssociatedGroup(group));
+            dSpaceRoles.addGroup(new AssociatedGroup(community, group));
         }
 
         return dSpaceRoles;
@@ -110,33 +112,33 @@ public class BagItRolesUtil {
 
         final Group administrators = collection.getAdministrators();
         if (administrators != null) {
-            dSpaceRoles.addGroup(new AssociatedGroup(administrators));
+            dSpaceRoles.addGroup(new AssociatedGroup(collection, administrators));
         }
 
         final Group submitters = collection.getSubmitters();
         if (submitters != null) {
-            dSpaceRoles.addGroup(new AssociatedGroup(submitters));
+            dSpaceRoles.addGroup(new AssociatedGroup(collection, submitters));
         }
 
         final Group workflowStep1 = collection.getWorkflowStep1();
         if (workflowStep1 != null) {
-            dSpaceRoles.addGroup(new AssociatedGroup(workflowStep1));
+            dSpaceRoles.addGroup(new AssociatedGroup(collection, workflowStep1));
         }
 
         final Group workflowStep2 = collection.getWorkflowStep2();
         if (workflowStep2 != null) {
-            dSpaceRoles.addGroup(new AssociatedGroup(workflowStep2));
+            dSpaceRoles.addGroup(new AssociatedGroup(collection, workflowStep2));
         }
 
         final Group workflowStep3 = collection.getWorkflowStep3();
         if (workflowStep3 != null) {
-            dSpaceRoles.addGroup(new AssociatedGroup(workflowStep3));
+            dSpaceRoles.addGroup(new AssociatedGroup(collection, workflowStep3));
         }
 
         final String groupIdentifier = "COLLECTION\\_" + collection.getID() + "\\_";
         final List<Group> matchingGroups = groupService.search(Curator.curationContext(), groupIdentifier);
         for (Group group : matchingGroups) {
-            dSpaceRoles.addGroup(new AssociatedGroup(group));
+            dSpaceRoles.addGroup(new AssociatedGroup(collection, group));
         }
 
         return dSpaceRoles;
