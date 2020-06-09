@@ -8,6 +8,7 @@
 package org.dspace.pack.bagit;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -42,6 +43,13 @@ import org.dspace.pack.bagit.xml.roles.Person;
  */
 public class BagItRolesUtil {
 
+    /**
+     * Retrieve all roles in a DSpace site. Gets all {@link Group}s and {@link EPerson}s.
+     *
+     * @return the DSpaceRoles
+     * @throws SQLException if there are any errors querying the database
+     * @throws PackageException if there are any errors translating group names
+     */
     public static DSpaceRoles getDSpaceRoles() throws SQLException, PackageException {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService=  EPersonServiceFactory.getInstance().getEPersonService();
@@ -75,6 +83,15 @@ public class BagItRolesUtil {
         return dSpaceRoles;
     }
 
+    /**
+     * Retrieve all roles for a {@link Community}. Only queries for {@link Group}s which belong to the given
+     * {@link Community}.
+     *
+     * @param community the community to retrieve the roles for
+     * @return the DSpaceRoles
+     * @throws SQLException if there is an error querying the database
+     * @throws PackageException if there is an error translating group names
+     */
     public static DSpaceRoles getDSpaceRoles(final Community community) throws SQLException, PackageException {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
 
@@ -94,6 +111,15 @@ public class BagItRolesUtil {
         return dSpaceRoles;
     }
 
+    /**
+     * Retrieve all roles for a {@link Collection}. Only queries for {@link Group}s which belong to the given
+     * {@link Collection}.
+     *
+     * @param collection the collection to get the roles for
+     * @return the DSpaceRoles
+     * @throws SQLException if there is an error querying the database
+     * @throws PackageException if there is an error translating group names
+     */
     public static DSpaceRoles getDSpaceRoles(final Collection collection) throws SQLException, PackageException {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
 
@@ -133,6 +159,19 @@ public class BagItRolesUtil {
         return dSpaceRoles;
     }
 
+    /**
+     * Ingest an xml file and search for any DSpaceRoles. This is essentially a pass through to
+     * {@link RoleIngester#ingestStream} as the DSpaceRoles schema is well defined.
+     *
+     * @param context the curation context
+     * @param params the packaging parameters
+     * @param dso the DSpaceObject to ingest roles on
+     * @param xml the path to the xml files containing the DSpaceRoles
+     * @throws IOException if there is an error reading the xml file
+     * @throws SQLException if there is an error querying the database
+     * @throws PackageException if there is an error translating a group name
+     * @throws AuthorizeException if there is an authorization error
+     */
     public static void ingest(final Context context, final PackageParameters params, final DSpaceObject dso,
                               final Path xml) throws IOException, SQLException, PackageException, AuthorizeException {
         final RoleIngester roleIngester = new RoleIngester();
