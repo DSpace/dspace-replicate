@@ -42,7 +42,6 @@ import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
-import org.dspace.pack.bagit.BagItPackerTest;
 import org.dspace.pack.bagit.xml.roles.AssociatedGroup;
 import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 import org.dspace.pack.bagit.xml.roles.Member;

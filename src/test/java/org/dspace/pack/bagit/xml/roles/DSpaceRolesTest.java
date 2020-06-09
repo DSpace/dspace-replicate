@@ -12,17 +12,17 @@ public class DSpaceRolesTest {
 
     @Test
     public void testOutput() throws JAXBException {
-        DSpaceRoles dSpaceRoles = new DSpaceRoles();
+        final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 
-        AssociatedGroup group = new AssociatedGroup();
+        final AssociatedGroup group = new AssociatedGroup();
         group.setId("1");
         group.setName(Group.ADMIN);
 
-        Member member = new Member();
+        final Member member = new Member();
         member.setId("2");
         member.setName("admin@localhost");
 
-        Member member1 = new Member();
+        final Member member1 = new Member();
         member1.setId("0");
         member1.setName(Group.ANONYMOUS);
 
@@ -30,7 +30,7 @@ public class DSpaceRolesTest {
         group.addMemberGroup(member1);
         dSpaceRoles.setGroups(ImmutableSet.of(group));
 
-        Person person = new Person();
+        final Person person = new Person();
         person.setId("1")
               .setLanguage("en")
               .setNetId("person")
@@ -41,8 +41,8 @@ public class DSpaceRolesTest {
               .canLogin();
         dSpaceRoles.addPerson(person);
 
-        JAXBContext context = JAXBContext.newInstance(DSpaceRoles.class, AssociatedGroup.class, Member.class);
-        Marshaller marshaller = context.createMarshaller();
+        final JAXBContext context = JAXBContext.newInstance(DSpaceRoles.class, AssociatedGroup.class, Member.class);
+        final Marshaller marshaller = context.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 
         marshaller.marshal(dSpaceRoles, System.out);

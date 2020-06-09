@@ -49,7 +49,7 @@ public class AssociatedGroup {
      * @throws SQLException if there is an error translating a Group's name
      * @throws PackageException if there is an error translating a Group's name
      */
-    public AssociatedGroup(Group group) throws SQLException, PackageException {
+    public AssociatedGroup(final Group group) throws SQLException, PackageException {
         this.id = group.getID().toString();
 
         if (Group.ADMIN.equalsIgnoreCase(group.getName()) || Group.ANONYMOUS.equalsIgnoreCase(group.getName())) {

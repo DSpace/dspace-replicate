@@ -11,7 +11,6 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
 import org.dspace.eperson.EPerson;
-import sun.security.util.Password;
 
 /**
  * A Person tag for the {@link DSpaceRoles} schema
@@ -41,7 +40,7 @@ public class Person {
      *
      * @param ePerson the {@link EPerson} to use
      */
-    public Person(EPerson ePerson) {
+    public Person(final EPerson ePerson) {
         this.id = ePerson.getID().toString();
         this.email = ePerson.getEmail();
         this.netId = ePerson.getNetid();
@@ -136,7 +135,7 @@ public class Person {
      * @param id the id to set
      * @return the Person
      */
-    public Person setId(String id) {
+    public Person setId(final String id) {
         this.id = id;
         return this;
     }
@@ -145,7 +144,7 @@ public class Person {
      * @param email the email to set
      * @return the Person
      */
-    public Person setEmail(String email) {
+    public Person setEmail(final String email) {
         this.email = email;
         return this;
     }
@@ -154,7 +153,7 @@ public class Person {
      * @param netId the netId to set
      * @return the Person
      */
-    public Person setNetId(String netId) {
+    public Person setNetId(final String netId) {
         this.netId = netId;
         return this;
     }
@@ -163,7 +162,7 @@ public class Person {
      * @param firstName the firstName to set
      * @return the Person
      */
-    public Person setFirstName(String firstName) {
+    public Person setFirstName(final String firstName) {
         this.firstName = firstName;
         return this;
     }
@@ -172,7 +171,7 @@ public class Person {
      * @param lastName the lastName to set
      * @return the Person
      */
-    public Person setLastName(String lastName) {
+    public Person setLastName(final String lastName) {
         this.lastName = lastName;
         return this;
     }
@@ -181,7 +180,7 @@ public class Person {
      * @param language the language to set
      * @return the Person
      */
-    public Person setLanguage(String language) {
+    public Person setLanguage(final String language) {
         this.language = language;
         return this;
     }
