@@ -79,7 +79,6 @@ public class BagItRolesUtilTest extends BagItPackerTest {
 
     @Test
     public void testGetDSpaceRolesForSite() throws Exception {
-
         final Group group = initDSO(Group.class);
         final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);

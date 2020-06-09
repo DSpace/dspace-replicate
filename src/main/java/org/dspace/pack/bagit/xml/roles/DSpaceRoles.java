@@ -47,13 +47,6 @@ public class DSpaceRoles {
     }
 
     /**
-     * @param groups the set to use for {@link DSpaceRoles#groups}
-     */
-    public void setGroups(final Set<AssociatedGroup> groups) {
-        this.groups = groups;
-    }
-
-    /**
      * @return the {@link Person}s which exist
      */
     @XmlElement(name = "Person")
@@ -75,10 +68,4 @@ public class DSpaceRoles {
         people.add(person);
     }
 
-    /**
-     * @param people the set to use for {@link DSpaceRoles#people}
-     */
-    public void setPeople(final Set<Person> people) {
-        this.people = people;
-    }
 }

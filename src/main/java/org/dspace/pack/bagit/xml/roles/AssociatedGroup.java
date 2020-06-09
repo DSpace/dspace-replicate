@@ -77,13 +77,6 @@ public class AssociatedGroup {
     }
 
     /**
-     * @param id the id to set for the group
-     */
-    public void setId(final String id) {
-        this.id = id;
-    }
-
-    /**
      * @return the name of the group, {@link Group#getName()}
      */
     @XmlAttribute(name = "Name")
@@ -92,25 +85,11 @@ public class AssociatedGroup {
     }
 
     /**
-     * @param name the name to set for the group
-     */
-    public void setName(final String name) {
-        this.name = name;
-    }
-
-    /**
      * @return the type of the group, {@link Group#getType()}
      */
     @XmlAttribute(name = "Type")
     public String getType() {
         return type;
-    }
-
-    /**
-     * @param type the type to set for the group
-     */
-    public void setType(final String type) {
-        this.type = type;
     }
 
     /**
@@ -139,13 +118,6 @@ public class AssociatedGroup {
     }
 
     /**
-     * @param members the list of members to use
-     */
-    public void setMembers(final List<Member> members) {
-        this.members = members;
-    }
-
-    /**
      * The groups associated with this {@link AssociatedGroup}. When converting to XML a parent group MemberGroups is
      * created and each list item is in a single MemberGroup tag.
      *
@@ -167,13 +139,6 @@ public class AssociatedGroup {
             memberGroups = new ArrayList<>();
         }
         memberGroups.add(member);
-    }
-
-    /**
-     * @param memberGroups set the {@link AssociatedGroup#memberGroups}
-     */
-    public void setMemberGroups(final List<Member> memberGroups) {
-        this.memberGroups = memberGroups;
     }
 
     @Override

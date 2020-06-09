@@ -67,13 +67,6 @@ public class Member {
     }
 
     /**
-     * @param id the id to set
-     */
-    public void setId(final String id) {
-        this.id = id;
-    }
-
-    /**
      * @return the name of the Member
      */
     @XmlAttribute(name = "Name")
@@ -81,10 +74,4 @@ public class Member {
         return name;
     }
 
-    /**
-     * @param name the name to set
-     */
-    public void setName(final String name) {
-        this.name = name;
-    }
 }
