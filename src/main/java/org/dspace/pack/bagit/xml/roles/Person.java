@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 
 import org.dspace.eperson.EPerson;
+import sun.security.util.Password;
 
 /**
  * A Person tag for the {@link DSpaceRoles} schema
@@ -28,7 +29,6 @@ public class Person {
     private String canLogin;
     private String selfRegistered;
     private String requiredCertificate;
-    private Password password;
 
     /**
      * Default constructor for JAXB
@@ -133,15 +133,6 @@ public class Person {
     }
 
     /**
-     * The Password tag for a Person
-     *
-     * @return the {@link Password} of the Person
-     */
-    public Password getPassword() {
-        return password;
-    }
-
-    /**
      * @param id the id to set
      * @return the Person
      */
@@ -222,15 +213,6 @@ public class Person {
      */
     public Person requiredCertificate() {
         this.requiredCertificate = "";
-        return this;
-    }
-
-    /**
-     * @param password the {@link Password} to set
-     * @return the Person
-     */
-    public Person setPassword(Password password) {
-        this.password = password;
         return this;
     }
 
