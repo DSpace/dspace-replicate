@@ -158,7 +158,7 @@ public class CommunityPacker implements Packer
         Bitstream logo = community.getLogo();
         if (logo != null)
         {
-            size += logo.getSize();
+            size += logo.getSizeBytes();
         }
         // proceed to children, unless 'norecurse' set
         if (! "norecurse".equals(method))

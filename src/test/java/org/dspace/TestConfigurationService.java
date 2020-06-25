@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration2.Configuration;
 import org.dspace.services.ConfigurationService;
 
 /**
@@ -121,6 +121,13 @@ public class TestConfigurationService implements ConfigurationService {
     @Override
     public boolean hasProperty(String name) {
         return properties.containsKey(name);
+    }
+
+    @Override
+    public boolean addPropertyValue(String name, Object value) {
+        boolean isNew = properties.containsKey(name);
+        properties.put(name, value);
+        return isNew;
     }
 
     @Override

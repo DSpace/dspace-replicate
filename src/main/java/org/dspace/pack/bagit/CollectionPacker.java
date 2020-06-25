@@ -162,7 +162,7 @@ public class CollectionPacker implements Packer
         Bitstream logo = collection.getLogo();
         if (logo != null)
         {
-            size += logo.getSize();
+            size += logo.getSizeBytes();
         }
         // proceed to items, unless 'norecurse' set
         if (! "norecurse".equals(method))

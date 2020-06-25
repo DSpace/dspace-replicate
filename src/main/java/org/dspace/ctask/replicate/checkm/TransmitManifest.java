@@ -294,7 +294,7 @@ public class TransmitManifest extends AbstractCurationTask {
                                 break;
                             case 3:
                                 // length
-                                sb.append(bs.getSize());
+                                sb.append(bs.getSizeBytes());
                                 break;
                             case 4:
                                 // modified - use item level data?
