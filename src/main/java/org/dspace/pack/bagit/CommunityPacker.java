@@ -124,18 +124,18 @@ public class CommunityPacker implements Packer
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
-        final Metadata metadata= reader.readMetadata();
-        for (Value value : metadata.getValues()) {
-            final String name = value.getName();
-            final String body = value.getBody();
-            communityService.setMetadata(context, community, name, body);
-        }
-
         try {
             final Policies policies = reader.readPolicy();
             BagItPolicyUtil.registerPolicies(community, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
+        }
+
+        final Metadata metadata= reader.readMetadata();
+        for (Value value : metadata.getValues()) {
+            final String name = value.getName();
+            final String body = value.getBody();
+            communityService.setMetadata(context, community, name, body);
         }
 
         final Optional<Path> logo = reader.findLogo();

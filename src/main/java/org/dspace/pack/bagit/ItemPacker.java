@@ -171,19 +171,19 @@ public class ItemPacker implements Packer {
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
-        // load the item metadata
-        final Metadata metadata = reader.readMetadata();
-        for (Value value : metadata.getValues()) {
-            itemService.addMetadata(context, item, value.getSchema(), value.getElement(), value.getQualifier(),
-                                    value.getLanguage(), value.getBody());
-        }
-
         // set the policies for the item
         try {
             final Policies policies = reader.readPolicy();
             BagItPolicyUtil.registerPolicies(item, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
+        }
+
+        // load the item metadata
+        final Metadata metadata = reader.readMetadata();
+        for (Value value : metadata.getValues()) {
+            itemService.addMetadata(context, item, value.getSchema(), value.getElement(), value.getQualifier(),
+                                    value.getLanguage(), value.getBody());
         }
 
         final List<PackagedBitstream> bitstreams = reader.findBitstreams();

@@ -38,6 +38,7 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
+import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
@@ -125,13 +126,9 @@ public class CollectionPacker implements Packer
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
 
+        final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
-
-        final Metadata metadata = reader.readMetadata();
-        for (Value value : metadata.getValues()) {
-            collectionService.setMetadata(Curator.curationContext(), collection, value.getName(), value.getBody());
-        }
 
         try {
             final Policies policies = reader.readPolicy();
@@ -140,14 +137,19 @@ public class CollectionPacker implements Packer
             throw new IOException(e.getMessage(), e);
         }
 
+        final Metadata metadata = reader.readMetadata();
+        for (Value value : metadata.getValues()) {
+            collectionService.setMetadata(context, collection, value.getName(), value.getBody());
+        }
+
         final Optional<Path> logo = reader.findLogo();
         if (logo.isPresent()) {
             try (InputStream logoStream = Files.newInputStream(logo.get())) {
-                collectionService.setLogo(Curator.curationContext(), collection, logoStream);
+                collectionService.setLogo(context, collection, logoStream);
             }
         }
 
-        collectionService.update(Curator.curationContext(), collection);
+        collectionService.update(context, collection);
 
         reader.clean();
     }
