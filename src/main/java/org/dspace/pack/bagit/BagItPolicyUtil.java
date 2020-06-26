@@ -130,11 +130,14 @@ public class BagItPolicyUtil {
         final ResourcePolicyService resourcePolicyService =
             AuthorizeServiceFactory.getInstance().getResourcePolicyService();
 
+        final Context context = Curator.curationContext();
+
         // Need to map policy children from List<Element> to List<ResourcePolicy>
         // then use the authorizationService to add all policies to the dso
         final List<ResourcePolicy> resourcePolicies = new ArrayList<>();
         for (Policy policy : policies.getPolicies()) {
-            final ResourcePolicy resourcePolicy = resourcePolicyService.create(Curator.curationContext());
+            final ResourcePolicy resourcePolicy = resourcePolicyService.create(context);
+            resourcePolicy.setdSpaceObject(dSpaceObject);
 
             final String rpName = policy.getName();
             if (rpName != null) {
@@ -174,10 +177,10 @@ public class BagItPolicyUtil {
                 if (groupName.equalsIgnoreCase(Group.ADMIN) || groupName.equalsIgnoreCase(Group.ANONYMOUS)) {
                     nameForImport = groupName;
                 } else {
-                    nameForImport = PackageUtils.translateGroupNameForImport(Curator.curationContext(), groupName);
+                    nameForImport = PackageUtils.translateGroupNameForImport(context, groupName);
                 }
 
-                final Group group = groupService.findByName(Curator.curationContext(), nameForImport);
+                final Group group = groupService.findByName(context, nameForImport);
                 if (group == null) {
                     throw new PackageException("Could not find group " + nameForImport + " in the database! If this" +
                                                "is either the ADMIN or ANONYMOUS group check that your database is" +
@@ -186,7 +189,7 @@ public class BagItPolicyUtil {
 
                 resourcePolicy.setGroup(group);
             } else if (epersonEmail != null) {
-                final EPerson ePerson = ePersonService.findByEmail(Curator.curationContext(), epersonEmail);
+                final EPerson ePerson = ePersonService.findByEmail(context, epersonEmail);
                 if (ePerson == null) {
                     throw new PackageException("Could not find ePerson " + epersonEmail + " in the database!");
                 }
@@ -211,8 +214,8 @@ public class BagItPolicyUtil {
             resourcePolicies.add(resourcePolicy);
         }
 
-        authorizeService.removeAllPolicies(Curator.curationContext(), dSpaceObject);
-        authorizeService.addPolicies(Curator.curationContext(), resourcePolicies, dSpaceObject);
+        authorizeService.removeAllPolicies(context, dSpaceObject);
+        authorizeService.addPolicies(context, resourcePolicies, dSpaceObject);
     }
 
     /**
