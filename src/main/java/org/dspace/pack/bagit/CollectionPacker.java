@@ -15,7 +15,6 @@ import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
 import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COLLECTION;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
-import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +35,16 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
+import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.metadata.Value;
+import org.dspace.pack.bagit.xml.policy.Policies;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -102,16 +105,19 @@ public class CollectionPacker implements Packer
         final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // collect the xml metadata
-        final List<XmlElement> elements = new ArrayList<>();
+        final Metadata metadata = new Metadata();
         for (String field : fields) {
-            final String metadata = collectionService.getMetadata(collection, field);
-            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(XML_NAME_KEY, field));
-            elements.add(element);
+            final String body = collectionService.getMetadata(collection, field);
+            metadata.addValue(new Value(body, field));
         }
 
-        final BagItAipWriter writer = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
-                                                         Collections.<BagBitstream>emptyList());
-        return writer.packageAip();
+        // collect xml policy
+        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
+
+        return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
+            .withPolicies(policy)
+            .withMetadata(metadata)
+            .packageAip();
     }
 
     @Override
@@ -120,24 +126,30 @@ public class CollectionPacker implements Packer
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
 
+        final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
-        final List<XmlElement> elements = reader.readMetadata();
-        for (XmlElement element : elements) {
-            final String name = element.getAttributes().get("name");
-            final String value = element.getBody();
-            collectionService.setMetadata(Curator.curationContext(), collection, name, value);
+        try {
+            final Policies policies = reader.readPolicy();
+            BagItPolicyUtil.registerPolicies(collection, policies);
+        } catch (PackageException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        final Metadata metadata = reader.readMetadata();
+        for (Value value : metadata.getValues()) {
+            collectionService.setMetadata(context, collection, value.getName(), value.getBody());
         }
 
         final Optional<Path> logo = reader.findLogo();
         if (logo.isPresent()) {
             try (InputStream logoStream = Files.newInputStream(logo.get())) {
-                collectionService.setLogo(Curator.curationContext(), collection, logoStream);
+                collectionService.setLogo(context, collection, logoStream);
             }
         }
 
-        collectionService.update(Curator.curationContext(), collection);
+        collectionService.update(context, collection);
 
         reader.clean();
     }

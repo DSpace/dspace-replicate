@@ -7,10 +7,11 @@
  */
 package org.dspace.pack.bagit;
 
-import java.util.List;
-
 import com.google.common.base.Preconditions;
 import org.dspace.content.Bitstream;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.policy.Policies;
+import org.dspace.pack.bagit.xml.policy.Policy;
 
 /**
  * Hold information about a {@link Bitstream} and its metadata.
@@ -20,10 +21,11 @@ import org.dspace.content.Bitstream;
  */
 public class BagBitstream {
     private String fetchUrl;
-    private Bitstream bitstream;
 
     private final String bundle;
-    private final List<XmlElement> xml;
+    private final Policies policies;
+    private final Metadata metadata;
+    private final Bitstream bitstream;
 
     /**
      * A {@link Bitstream} which is to be fetched rather than added to a BagIt bag
@@ -31,11 +33,13 @@ public class BagBitstream {
      * @param fetchUrl the url to fetch the {@link Bitstream} from
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param xml the metadata associated with the {@link Bitstream}
+     * @param policies the {@link Policies} metadata associated with the {@link Bitstream}
+     * @param metadata the metadata associated with the {@link Bitstream}
      */
-    public BagBitstream(final String fetchUrl, final Bitstream bitstream, final String bundle,
-                        final List<XmlElement> xml) {
-        this.xml = Preconditions.checkNotNull(xml);
+    public BagBitstream(final String fetchUrl, final Bitstream bitstream, final String bundle, final Policies policies,
+                        final Metadata metadata) {
+        this.policies = policies;
+        this.metadata = metadata;
         this.bundle = Preconditions.checkNotNull(bundle);
         this.fetchUrl = Preconditions.checkNotNull(fetchUrl);
         this.bitstream = Preconditions.checkNotNull(bitstream);
@@ -46,10 +50,13 @@ public class BagBitstream {
      *
      * @param bitstream the {@link Bitstream} being packaged
      * @param bundle the name of the {@link org.dspace.content.Bundle} the {@link Bitstream} belongs to
-     * @param xml the metadata associated with the {@link Bitstream}
+     * @param policies the {@link Policy} metadata associated with the {@link Bitstream}
+     * @param metadata the metadata associated with the {@link Bitstream}
      */
-    public BagBitstream(final Bitstream bitstream, final String bundle, final List<XmlElement> xml) {
-        this.xml = Preconditions.checkNotNull(xml);
+    public BagBitstream(final Bitstream bitstream, final String bundle, final Policies policies,
+                        final Metadata metadata) {
+        this.policies = policies;
+        this.metadata = metadata;
         this.bundle = Preconditions.checkNotNull(bundle);
         this.bitstream = Preconditions.checkNotNull(bitstream);
     }
@@ -73,12 +80,21 @@ public class BagBitstream {
     }
 
     /**
-     * Get the metadata associated with the {@link Bitstream}, held in the form of an {@link XmlElement}
+     * Get the policy for a {@link Bitstream}
      *
-     * @return the metadata
+     * @return the {@link Policy}
      */
-    public List<XmlElement> getXml() {
-        return xml;
+    public Policies getPolicies() {
+        return policies;
+    }
+
+    /**
+     * Get the metadata associated with the {@link Bitstream}
+     *
+     * @return the {@link Metadata}
+     */
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     /**

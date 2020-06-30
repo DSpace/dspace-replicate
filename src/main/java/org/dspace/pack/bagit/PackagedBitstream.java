@@ -8,7 +8,9 @@
 package org.dspace.pack.bagit;
 
 import java.nio.file.Path;
-import java.util.List;
+
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.policy.Policies;
 
 /**
  * Information about a {@link org.dspace.content.Bitstream} packaged in an aip
@@ -20,19 +22,23 @@ public class PackagedBitstream {
 
     private final String bundle;
     private final Path bitstream;
-    private final List<XmlElement> metadata;
+    private final Policies policies;
+    private final Metadata metadata;
 
     /**
-     * Constructor
+     * Constructor for bitstreams packaged in a BagIt AIP
      *
      * @param bundle the name of the bundle for the bitstream
      * @param bitstream the path to the bitstream data
-     * @param metadata the metadata for the bitstream, as a {@link List} of {@link XmlElement}s
+     * @param metadata the metadata for the bitstream, as a {@link Metadata} pojo
+     * @param policies the policy for the bitstream
      */
-    public PackagedBitstream(final String bundle, final Path bitstream, final List<XmlElement> metadata) {
+    public PackagedBitstream(final String bundle, final Path bitstream, final Metadata metadata,
+                             final Policies policies) {
         this.bundle = bundle;
         this.bitstream = bitstream;
         this.metadata = metadata;
+        this.policies = policies;
     }
 
     /**
@@ -52,7 +58,14 @@ public class PackagedBitstream {
     /**
      * @return the metadata for the bitstream
      */
-    public List<XmlElement> getMetadata() {
+    public Metadata getMetadata() {
         return metadata;
+    }
+
+    /**
+     * @return the ResourcePolicies for the bitstream
+     */
+    public Policies getPolicies() {
+        return policies;
     }
 }

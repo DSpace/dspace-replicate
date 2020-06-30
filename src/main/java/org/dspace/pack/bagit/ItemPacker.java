@@ -25,9 +25,7 @@ import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
 import org.dspace.authorize.AuthorizeException;
@@ -37,12 +35,16 @@ import org.dspace.content.Collection;
 import org.dspace.content.Item;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.content.service.BundleService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.metadata.Value;
+import org.dspace.pack.bagit.xml.policy.Policies;
 
 /**
  * ItemPacker packs and unpacks Item AIPs in BagIt bag compressed archives
@@ -55,10 +57,6 @@ public class ItemPacker implements Packer {
     private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // XML constants
-    private static final String SCHEMA = "schema";
-    private static final String ELEMENT = "element";
-    private static final String QUALIFIER = "qualifier";
-    private static final String LANGUAGE = "language";
     private static final String NAME = "name";
     private static final String SOURCE = "source";
     private static final String DESCRIPTION = "description";
@@ -112,16 +110,14 @@ public class ItemPacker implements Packer {
         final ImmutableMap<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
         // metadata.xml
-        final List<XmlElement> metadataElements = new ArrayList<>();
-        final List<MetadataValue> metadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
-        for (MetadataValue value : metadata) {
-            final HashMap<String, String> attributes = new HashMap<>();
-            attributes.put(SCHEMA, value.getMetadataField().getMetadataSchema().getName());
-            attributes.put(ELEMENT, value.getMetadataField().getElement());
-            attributes.put(QUALIFIER, value.getMetadataField().getQualifier());
-            attributes.put(LANGUAGE, value.getLanguage());
-            metadataElements.add(new XmlElement(value.getValue(), attributes));
+        final Metadata metadata = new Metadata();
+        final List<MetadataValue> itemMetadata = itemService.getMetadata(item, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+        for (MetadataValue metadataValue : itemMetadata) {
+            metadata.addValue(new Value(metadataValue));
         }
+
+        // policy.xml
+        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), item);
 
         // proceed to bundles, in sub-directories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
@@ -135,29 +131,34 @@ public class ItemPacker implements Packer {
                     final String seqId = String.valueOf(bs.getSequenceID());
 
                     // field access is hard-coded in Bitstream class, ugh!
-                    final List<XmlElement> bsElements = new ArrayList<>();
-                    bsElements.add(new XmlElement(bs.getName(), ImmutableMap.of(NAME, NAME)));
-                    bsElements.add(new XmlElement(bs.getSource(), ImmutableMap.of(NAME, SOURCE)));
-                    bsElements.add(new XmlElement(bs.getDescription(), ImmutableMap.of(NAME, DESCRIPTION)));
-                    bsElements.add(new XmlElement(seqId, ImmutableMap.of(NAME, SEQUENCE_ID)));
+                    final Metadata bitstreamMetadata = new Metadata();
+                    bitstreamMetadata.addValue(new Value(bs.getName(), NAME));
+                    bitstreamMetadata.addValue(new Value(bs.getSource(), SOURCE));
+                    bitstreamMetadata.addValue(new Value(bs.getDescription(), DESCRIPTION));
+                    bitstreamMetadata.addValue(new Value(seqId, SEQUENCE_ID));
                     if (bs.equals(bundle.getPrimaryBitstream())) {
-                        bsElements.add(new XmlElement(TRUE.toString(), ImmutableMap.of(NAME, BUNDLE_PRIMARY)));
+                        bitstreamMetadata.addValue(new Value(TRUE.toString(), BUNDLE_PRIMARY));
                     }
+
+                    // bitstream policy
+                    final Policies bitstreamPolicy = BagItPolicyUtil.getPolicy(Curator.curationContext(), bs);
 
                     // write the bitstream itself, unless reference filter applies
                     final String fetchUrl = byReference(bundle, bs);
                     if (fetchUrl != null) {
-                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bsElements));
+                        bitstreams.add(new BagBitstream(fetchUrl, bs, bundleName, bitstreamPolicy, bitstreamMetadata));
                     } else {
-                        bitstreams.add(new BagBitstream(bs, bundleName, bsElements));
+                        bitstreams.add(new BagBitstream(bs, bundleName, bitstreamPolicy, bitstreamMetadata));
                     }
                 }
             }
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, null, properties, metadataElements,
-                                                            bitstreams);
-        return aipWriter.packageAip();
+        return new BagItAipWriter(packDir, archFmt, properties)
+            .withPolicies(policy)
+            .withMetadata(metadata)
+            .withBitstreams(bitstreams)
+            .packageAip();
     }
 
     @Override
@@ -170,16 +171,19 @@ public class ItemPacker implements Packer {
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
+        // set the policies for the item
+        try {
+            final Policies policies = reader.readPolicy();
+            BagItPolicyUtil.registerPolicies(item, policies);
+        } catch (PackageException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
         // load the item metadata
-        final List<XmlElement> metadata = reader.readMetadata();
-        for (XmlElement element : metadata) {
-            final Map<String, String> attrs = element.getAttributes();
-            itemService.addMetadata(context, item,
-                                    attrs.get(SCHEMA),
-                                    attrs.get(ELEMENT),
-                                    attrs.get(QUALIFIER),
-                                    attrs.get(LANGUAGE),
-                                    element.getBody());
+        final Metadata metadata = reader.readMetadata();
+        for (Value value : metadata.getValues()) {
+            itemService.addMetadata(context, item, value.getSchema(), value.getElement(), value.getQualifier(),
+                                    value.getLanguage(), value.getBody());
         }
 
         final List<PackagedBitstream> bitstreams = reader.findBitstreams();
@@ -198,19 +202,27 @@ public class ItemPacker implements Packer {
                                                                 Files.newInputStream(packaged.getBitstream()));
 
             // load the bitstream metadata
-            for (XmlElement element : packaged.getMetadata()) {
-                final String bitstreamField = element.getAttributes().get(NAME);
+            for (Value value : packaged.getMetadata().getValues()) {
+                final String bitstreamField = value.getName();
                 if (NAME.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setName(context, element.getBody());
+                    bitstream.setName(context, value.getBody());
                 } else if (SOURCE.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setSource(context, element.getBody());
+                    bitstream.setSource(context, value.getBody());
                 } else if (SEQUENCE_ID.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setSequenceID(Integer.parseInt(element.getBody()));
+                    bitstream.setSequenceID(Integer.parseInt(value.getBody()));
                 } else if (DESCRIPTION.equalsIgnoreCase(bitstreamField)) {
-                    bitstream.setDescription(context, element.getBody());
+                    bitstream.setDescription(context, value.getBody());
                 } else if (BUNDLE_PRIMARY.equalsIgnoreCase(bitstreamField)) {
                     bundle.setPrimaryBitstreamID(bitstream);
                 }
+            }
+
+            // and the bitstream policies
+            try {
+                final Policies bitstreamPolicies = packaged.getPolicies();
+                BagItPolicyUtil.registerPolicies(bitstream, bitstreamPolicies);
+            } catch (PackageException e) {
+                throw new IOException(e.getMessage(), e);
             }
 
             bitstreamService.update(context, bitstream);

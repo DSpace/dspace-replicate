@@ -18,17 +18,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 
 import com.google.common.base.Optional;
 import gov.loc.repository.bagit.domain.Bag;
@@ -39,6 +36,9 @@ import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.apache.commons.io.FileUtils;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.policy.Policies;
+import org.dspace.pack.bagit.xml.policy.Policy;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagDeserializer;
@@ -57,12 +57,14 @@ public class BagItAipReader {
 
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
 
+    private static final String POLICY_XML = "policy.xml";
+    private static final String METADATA_XML = "metadata.xml";
+
     private final String dataDirectory = "data";
-    private final String metadataLocation = dataDirectory + "/metadata.xml";
-    private final String objectPropertiesLocation = dataDirectory + "/object.properties";
 
     private final Path bag;
     private final BagProfile profile;
+    private final Unmarshaller unmarshaller;
 
     /**
      * Constructor for a {@link BagItAipReader}. If the given path to the {@code bag} is a single file, it is assumed
@@ -74,6 +76,13 @@ public class BagItAipReader {
     public BagItAipReader(final Path bag) throws IOException {
         if (bag == null || Files.notExists(bag)) {
             throw new IOException("Missing archive: " + bag);
+        }
+
+        try {
+            final JAXBContext jaxbContext = JAXBContext.newInstance(Metadata.class, Policies.class);
+            unmarshaller = jaxbContext.createUnmarshaller();
+        } catch (JAXBException e) {
+            throw new IOException("Unable to create JAXBContext!", e);
         }
 
         // get the BagProfile
@@ -117,12 +126,13 @@ public class BagItAipReader {
     /**
      * Retrieve the object.properties for an aip
      *
-     * @return the {@link Properties}, loaded from the object.properties
+     * @return the {@link Properties}, loaded from the data/object.properties
      * @throws IOException if there is an error loading the properties
      */
     public Properties readProperties() throws IOException {
         final Properties properties = new Properties();
-        try (InputStream is = Files.newInputStream(bag.resolve(objectPropertiesLocation))) {
+        final Path objectProperties = bag.resolve(dataDirectory).resolve("object.properties");
+        try (InputStream is = Files.newInputStream(objectProperties)) {
             properties.load(is);
         }
         return properties;
@@ -185,13 +195,30 @@ public class BagItAipReader {
     /**
      * Read the metadata.xml file located in a bags data directory
      *
-     * @return a list of {@link XmlElement}s which were read from the file
+     * @return the {@link Metadata} with values read from data/metadata.xml
      * @throws IOException if there was an error reading the file or parsing the xml
      */
-    public List<XmlElement> readMetadata() throws IOException {
-        final Path metadata = bag.resolve(metadataLocation);
-        try (InputStream metadataStream = Files.newInputStream(metadata)) {
-            return readXml(metadataStream);
+    public Metadata readMetadata() throws IOException {
+        final Path xml = bag.resolve(dataDirectory).resolve(METADATA_XML);
+        try {
+            return (Metadata) unmarshaller.unmarshal(xml.toFile());
+        } catch (JAXBException e) {
+            throw new IOException("Unable to read metadata.xml!", e);
+        }
+    }
+
+    /**
+     * Read the policy.xml file located in a bags data directory
+     *
+     * @return the {@link Policy} with values read from data/policy.xml
+     * @throws IOException if there was an error reading the file or parsing the xml
+     */
+    public Policies readPolicy() throws IOException {
+        final Path xml = bag.resolve(dataDirectory).resolve(POLICY_XML);
+        try {
+            return (Policies) unmarshaller.unmarshal(xml.toFile());
+        } catch (JAXBException e) {
+            throw new IOException("Unable to read policy.xml!", e);
         }
     }
 
@@ -242,12 +269,20 @@ public class BagItAipReader {
                         // load the bitstream metadata
                         final Matcher matcher = uuid.matcher(bitstreamName);
                         if (matcher.matches()) {
-                            final String metadataPath = matcher.group("uuid");
-                            final Path bitstreamXml = bundle.resolve(metadataPath + "-metadata.xml");
-                            try (InputStream inputStream = Files.newInputStream(bitstreamXml)) {
-                                final List<XmlElement> xmlElements = readXml(inputStream);
-                                packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, xmlElements));
+                            final Policies policies;
+                            final Metadata metadata;
+
+                            final String uuidPath = matcher.group("uuid");
+                            final Path bsPolicy = bundle.resolve(uuidPath + "-" + POLICY_XML);
+                            final Path bsMetadata = bundle.resolve(uuidPath + "-" + METADATA_XML);
+                            try {
+                                policies = (Policies) unmarshaller.unmarshal(bsPolicy.toFile());
+                                metadata = (Metadata) unmarshaller.unmarshal(bsMetadata.toFile());
+                            } catch (JAXBException e) {
+                                throw new IOException("Unable to read bitstream xml!", e);
                             }
+
+                            packagedBitstreams.add(new PackagedBitstream(bundleName, bitstream, metadata, policies));
                         }
                     }
                 }
@@ -264,73 +299,6 @@ public class BagItAipReader {
      */
     public void clean() throws IOException {
         FileUtils.deleteDirectory(bag.toFile());
-    }
-
-    /**
-     * Read an xml file in order to read metadata for a DSpaceObject. This requires the file to conform to having a
-     * metadata stanza as well as have value stanzas which store the data to read.
-     *
-     * @param inputStream the InputStream for the metadata file
-     * @return a list of {@link XmlElement}s read from the file
-     * @throws IOException if there is an error reading the file or parsing the xml
-     */
-    private List<XmlElement> readXml(final InputStream inputStream) throws IOException {
-        final XMLStreamReader reader;
-        final XMLInputFactory factory = XMLInputFactory.newFactory();
-        try {
-            reader = factory.createXMLStreamReader(inputStream);
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        final List<XmlElement> elements = new ArrayList<>();
-        try {
-            // search for metadata stanza
-            while (reader.hasNext()) {
-                if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                    reader.getLocalName().equalsIgnoreCase("metadata")) {
-
-                    // search for value stanzas
-                    while (reader.hasNext()) {
-                        if (reader.next() == XMLStreamConstants.START_ELEMENT &&
-                            reader.getLocalName().equalsIgnoreCase("value")) {
-                            XmlElement element = readElement(reader);
-                            if (element != null) {
-                                elements.add(element);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (XMLStreamException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-
-        return elements;
-    }
-
-    private XmlElement readElement(XMLStreamReader reader) throws XMLStreamException {
-        // we begin on a start element so initialize the attributes first
-        final Map<String, String> attributes = new HashMap<>();
-        for (int i = 0; i < reader.getAttributeCount(); i++) {
-            attributes.put(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
-        }
-
-        // now iterate to find the body and end element
-        String body = null;
-        while (reader.hasNext()) {
-            switch (reader.next()) {
-                case XMLStreamConstants.CHARACTERS:
-                    body = reader.getText();
-                    break;
-                case XMLStreamConstants.END_ELEMENT:
-                    return new XmlElement(body, attributes);
-                default:
-                    break;
-            }
-        }
-
-        return null;
     }
 
 }

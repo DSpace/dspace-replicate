@@ -15,7 +15,6 @@ import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
 import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COMMUNITY;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
-import static org.dspace.pack.bagit.BagItAipWriter.XML_NAME_KEY;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -35,11 +33,15 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CommunityService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
+import org.dspace.pack.bagit.xml.metadata.Metadata;
+import org.dspace.pack.bagit.xml.metadata.Value;
+import org.dspace.pack.bagit.xml.policy.Policies;
 
 /**
  * CommunityPacker Packs and unpacks Community AIPs in Bagit format.
@@ -95,17 +97,21 @@ public class CommunityPacker implements Packer
         }
         final Map<String, List<String>> properties = ImmutableMap.of(OBJFILE, objectProperties);
 
-        // collect the xml metadata
-        final List<XmlElement> elements = new ArrayList<>();
+        // collect the metadata
+        final Metadata metadata = new Metadata();
         for (String field : fields) {
-            final String metadata = communityService.getMetadata(community, field);
-            final XmlElement element = new XmlElement(metadata, ImmutableMap.of(XML_NAME_KEY, field));
-            elements.add(element);
+            final String body = communityService.getMetadata(community, field);
+            metadata.addValue(new Value(body, field));
         }
 
-        final BagItAipWriter aipWriter = new BagItAipWriter(packDir, archFmt, logo, properties, elements,
-                                                            Collections.<BagBitstream>emptyList());
-        return aipWriter.packageAip();
+        // collect the policy
+        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
+
+        return new BagItAipWriter(packDir, archFmt, properties)
+            .withLogo(logo)
+            .withPolicies(policy)
+            .withMetadata(metadata)
+            .packageAip();
     }
 
     @Override
@@ -118,11 +124,18 @@ public class CommunityPacker implements Packer
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
-        final List<XmlElement> xmlElements = reader.readMetadata();
-        for (XmlElement xmlElement : xmlElements) {
-            final String name = xmlElement.getAttributes().get("name");
-            final String value = xmlElement.getBody();
-            communityService.setMetadata(context, community, name, value);
+        try {
+            final Policies policies = reader.readPolicy();
+            BagItPolicyUtil.registerPolicies(community, policies);
+        } catch (PackageException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
+        final Metadata metadata= reader.readMetadata();
+        for (Value value : metadata.getValues()) {
+            final String name = value.getName();
+            final String body = value.getBody();
+            communityService.setMetadata(context, community, name, body);
         }
 
         final Optional<Path> logo = reader.findLogo();

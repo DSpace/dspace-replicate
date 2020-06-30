@@ -22,12 +22,21 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import org.dspace.authorize.ResourcePolicy;
+import org.dspace.authorize.factory.AuthorizeServiceFactory;
+import org.dspace.authorize.service.AuthorizeService;
+import org.dspace.authorize.service.ResourcePolicyService;
 import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
 import org.dspace.core.Context;
+import org.dspace.eperson.factory.EPersonServiceFactory;
+import org.dspace.eperson.service.EPersonService;
+import org.dspace.eperson.service.GroupService;
 import org.junit.Test;
 
 /**
@@ -74,6 +83,12 @@ public class CommunityPackerTest extends BagItPackerTest {
 
     @Test
     public void testUnpack() throws Exception {
+        final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
+        final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
+        final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
+        final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance()
+                                                                                   .getResourcePolicyService();
+
         // push to setup
         final URL resources = CollectionPackerTest.class.getClassLoader().getResource("unpack");
         assertNotNull(resources);
@@ -91,6 +106,15 @@ public class CommunityPackerTest extends BagItPackerTest {
         verify(communityService, times(5)).setMetadata(any(Context.class), eq(community), anyString(), anyString());
         verify(communityService, never()).setLogo(any(Context.class), eq(community), any(InputStream.class));
         verify(communityService, times(1)).update(any(Context.class), eq(community));
+
+        // since our policy.xml is empty, verify that we never fetched anything and still used the authorize service
+        // as expected
+        final List<ResourcePolicy> empty = new ArrayList<>();
+        verify(resourcePolicyService, never()).create(any(Context.class));
+        verify(groupService, never()).findByName(any(Context.class), anyString());
+        verify(ePersonService, never()).findByEmail(any(Context.class), anyString());
+        verify(authorizeService, times(1)).removeAllPolicies(any(Context.class), eq(community));
+        verify(authorizeService, times(1)).addPolicies(any(Context.class), eq(empty), eq(community));
 
         assertThat(openArchive).doesNotExist();
     }
