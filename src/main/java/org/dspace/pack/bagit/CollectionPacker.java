@@ -141,6 +141,12 @@ public class CollectionPacker implements Packer
         reader.validateBag();
 
         try {
+            // Ingest roles first in case there are policies which depend on them
+            final Optional<Path> rolesPath = reader.findRoles();
+            if (rolesPath.isPresent()) {
+                BagItRolesUtil.ingest(context, collection, rolesPath.get());
+            }
+
             final Policies policies = reader.readPolicy();
             BagItPolicyUtil.registerPolicies(collection, policies);
         } catch (PackageException e) {

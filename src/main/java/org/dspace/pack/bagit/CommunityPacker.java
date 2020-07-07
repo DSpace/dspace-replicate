@@ -135,6 +135,12 @@ public class CommunityPacker implements Packer
         reader.validateBag();
 
         try {
+            // Ingest roles first in case there are policies which depend on them
+            final Optional<Path> rolesPath = reader.findRoles();
+            if (rolesPath.isPresent()) {
+                BagItRolesUtil.ingest(context, community, rolesPath.get());
+            }
+
             final Policies policies = reader.readPolicy();
             BagItPolicyUtil.registerPolicies(community, policies);
         } catch (PackageException e) {
