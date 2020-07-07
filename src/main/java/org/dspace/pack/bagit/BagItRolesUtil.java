@@ -8,10 +8,15 @@
 package org.dspace.pack.bagit;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
@@ -31,6 +36,7 @@ import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.roles.AssociatedGroup;
 import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 import org.dspace.pack.bagit.xml.roles.Person;
+import org.w3c.dom.Document;
 
 /**
  * Create a {@link org.dspace.pack.bagit.xml.roles.DSpaceRoles} for a BagIt bag
@@ -149,7 +155,6 @@ public class BagItRolesUtil {
      * {@link RoleIngester#ingestStream} as the DSpaceRoles schema is well defined.
      *
      * @param context the curation context
-     * @param params the packaging parameters
      * @param dso the DSpaceObject to ingest roles on
      * @param xml the path to the xml files containing the DSpaceRoles
      * @throws IOException if there is an error reading the xml file
@@ -157,10 +162,15 @@ public class BagItRolesUtil {
      * @throws PackageException if there is an error translating a group name
      * @throws AuthorizeException if there is an authorization error
      */
-    public static void ingest(final Context context, final PackageParameters params, final DSpaceObject dso,
-                              final Path xml) throws IOException, SQLException, PackageException, AuthorizeException {
+    public static void ingest(final Context context, final DSpaceObject dso, final Path xml) throws IOException,
+        SQLException, PackageException, AuthorizeException {
+        final PackageParameters parameters = new PackageParameters();
+        parameters.setKeepExistingModeEnabled(true);
         final RoleIngester roleIngester = new RoleIngester();
-        roleIngester.ingestStream(context, dso, params, Files.newInputStream(xml));
+
+        try (InputStream inputStream = Files.newInputStream(xml)) {
+            roleIngester.ingestStream(context, dso, parameters, inputStream);
+        }
     }
 
 }

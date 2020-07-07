@@ -297,10 +297,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         final Context context = Curator.curationContext();
         context.setCurrentUser(ePerson);
 
-        final PackageParameters parameters = new PackageParameters();
-        parameters.setKeepExistingModeEnabled(true);
-
-        BagItRolesUtil.ingest(context, parameters, site, xml);
+        BagItRolesUtil.ingest(context, site, xml);
 
         verify(ePerson, times(1)).getEmail();
         verify(ePerson, times(1)).getNetid();
