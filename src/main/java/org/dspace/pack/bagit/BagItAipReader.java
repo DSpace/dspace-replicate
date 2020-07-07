@@ -57,6 +57,7 @@ public class BagItAipReader {
 
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
 
+    private static final String ROLES_XML = "roles.xml";
     private static final String POLICY_XML = "policy.xml";
     private static final String METADATA_XML = "metadata.xml";
 
@@ -220,6 +221,16 @@ public class BagItAipReader {
         } catch (JAXBException e) {
             throw new IOException("Unable to read policy.xml!", e);
         }
+    }
+
+    /**
+     * Attempt to find the data/roles.xml within a Bag. If it does not exist, return an empty {@link Optional}.
+     *
+     * @return an {@link Optional} containing the {@link Path} for the roles.xml, if it exists
+     */
+    public Optional<Path> findRoles() {
+        final Path roles = bag.resolve(dataDirectory).resolve(ROLES_XML);
+        return Files.exists(roles) ? Optional.of(roles) : Optional.<Path>absent();
     }
 
     /**
