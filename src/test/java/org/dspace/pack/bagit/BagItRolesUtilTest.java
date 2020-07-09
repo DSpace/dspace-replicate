@@ -10,6 +10,8 @@ package org.dspace.pack.bagit;
 import static java.lang.String.valueOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.dspace.eperson.Group.ADMIN;
+import static org.dspace.eperson.Group.ANONYMOUS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -85,7 +87,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         final Group group = initDSO(Group.class);
         final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);
-        name.set(group, Group.ADMIN);
+        name.set(group, ADMIN);
 
         final EPerson ePerson = initDSO(EPerson.class);
         ePerson.setEmail(EPERSON_EMAIL);
@@ -161,8 +163,8 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         // set the name for both groups
         final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);
-        name.set(adminGroup, Group.ADMIN);
-        name.set(groupMember, Group.ANONYMOUS);
+        name.set(adminGroup, ADMIN);
+        name.set(groupMember, ANONYMOUS);
 
         adminGroup.getMemberGroups().add(groupMember);
 
@@ -223,7 +225,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         // set the name for both groups
         final Field name = Group.class.getDeclaredField(NAME_FIELD);
         name.setAccessible(true);
-        name.set(administrators, Group.ADMIN);
+        name.set(administrators, ADMIN);
         ePerson.setEmail("bagitroles");
 
         administrators.getMembers().add(ePerson);
@@ -290,8 +292,8 @@ public class BagItRolesUtilTest extends BagItPackerTest {
 
         when(ePerson.getEmail()).thenReturn(EPERSON_EMAIL);
         when(ePerson.getNetid()).thenReturn(EPERSON_NETID);
-        when(groupService.findByName(any(Context.class), eq(Group.ADMIN))).thenReturn(group);
-        when(groupService.findByName(any(Context.class), eq(Group.ANONYMOUS))).thenReturn(group);
+        when(groupService.findByName(any(Context.class), eq(ADMIN))).thenReturn(group);
+        when(groupService.findByName(any(Context.class), eq(ANONYMOUS))).thenReturn(group);
 
         // attach the EPerson to the context and create the PackageParameters then we're set to run
         final Context context = Curator.curationContext();
@@ -302,8 +304,8 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         verify(ePerson, times(1)).getEmail();
         verify(ePerson, times(1)).getNetid();
         // the main group (admins) is retrieved twice by the RoleIngester
-        verify(groupService, times(2)).findByName(any(Context.class), eq(Group.ADMIN));
-        verify(groupService, times(1)).findByName(any(Context.class), eq(Group.ANONYMOUS));
+        verify(groupService, times(2)).findByName(any(Context.class), eq(ADMIN));
+        verify(groupService, times(1)).findByName(any(Context.class), eq(ANONYMOUS));
         verify(groupService, times(1)).addMember(any(Context.class), eq(group), eq(group));
         verify(groupService, times(1)).update(any(Context.class), eq(group));
         verifyZeroInteractions(ePersonService);
