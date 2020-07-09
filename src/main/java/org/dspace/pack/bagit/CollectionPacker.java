@@ -120,7 +120,7 @@ public class CollectionPacker implements Packer
         try {
             dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
         } catch (PackageException exception) {
-            exception.printStackTrace();
+            throw new IOException(exception);
         }
 
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)

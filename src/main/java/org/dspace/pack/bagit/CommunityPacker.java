@@ -113,7 +113,7 @@ public class CommunityPacker implements Packer
         try {
             dSpaceRoles = BagItRolesUtil.getDSpaceRoles(community);
         } catch (PackageException exception) {
-            exception.printStackTrace();
+            throw new IOException(exception);
         }
 
         return new BagItAipWriter(packDir, archFmt, properties)
