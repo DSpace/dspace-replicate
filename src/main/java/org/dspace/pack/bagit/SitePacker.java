@@ -1,14 +1,10 @@
 package org.dspace.pack.bagit;
 
 import static org.dspace.pack.PackerFactory.BAG_TYPE;
-import static org.dspace.pack.PackerFactory.CREATE_TS;
 import static org.dspace.pack.PackerFactory.OBJECT_ID;
 import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
 import static org.dspace.pack.PackerFactory.OBJFILE;
-import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
-import static org.dspace.pack.bagit.BagItAipWriter.BAG_MAN;
-import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_DELETION;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
@@ -23,12 +19,10 @@ import java.util.Map;
 import com.google.common.base.Optional;
 import org.dspace.app.util.Util;
 import org.dspace.authorize.AuthorizeException;
-import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Site;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
-import org.dspace.content.packager.PackageUtils;
 import org.dspace.content.service.CommunityService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
@@ -61,28 +55,26 @@ public class SitePacker implements Packer {
         objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + site.getHandle());
         properties.put(OBJFILE, objectProperties);
 
-        // collect the DSpaceRoles
+        // human readable metadata (dspace.properties)
+        final List<String> dspaceProperties = new ArrayList<>();
+        dspaceProperties.add("Site-Handle" + PROPERTIES_DELIMITER + site.getHandle());
+        dspaceProperties.add("DSpace-Version" + PROPERTIES_DELIMITER + Util.getSourceVersion());
+        properties.put("dspace.properties", dspaceProperties);
+
+        // add all top level communities; called members to keep consistency w/ the CatalogPacker
+        final List<String> members = new ArrayList<>();
+        final List<Community> allTopCommunities = communityService.findAllTop(Curator.curationContext());
+        for (Community community : allTopCommunities) {
+            members.add(community.getHandle());
+        }
+        properties.put("members", members);
+
         DSpaceRoles dSpaceRoles;
         try {
             dSpaceRoles = BagItRolesUtil.getDSpaceRoles(site);
         } catch (PackageException exception) {
             throw new IOException(exception);
         }
-
-        // human readable metadata
-        final List<String> dspaceProperties = new ArrayList<>();
-        dspaceProperties.add("Site-Handle" + PROPERTIES_DELIMITER + site.getHandle());
-        dspaceProperties.add("DSpace-Version" + PROPERTIES_DELIMITER + Util.getSourceVersion());
-        properties.put("dspace.properties", dspaceProperties);
-
-        // add all top level communities
-        final List<String> communities = new ArrayList<>();
-        final List<Community> allTopCommunities = communityService.findAllTop(Curator.curationContext());
-        for (Community community : allTopCommunities) {
-            final String packageName = PackageUtils.getPackageName(community, archFmt);
-            communities.add(community.getHandle() + PROPERTIES_DELIMITER + packageName);
-        }
-        properties.put("communities", communities);
 
         return new BagItAipWriter(packDir, archFmt, properties)
             .withDSpaceRoles(dSpaceRoles)
