@@ -19,6 +19,7 @@ import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.UUID;
 
+import org.dspace.AbstractUnitTest;
 import org.dspace.TestAuthorizeServiceFactory;
 import org.dspace.TestConfigurationService;
 import org.dspace.TestContentServiceFactory;
@@ -46,7 +47,7 @@ import org.junit.Before;
  *
  * @author mikejritter
  */
-public abstract class BagItPackerTest {
+public abstract class BagItPackerTest extends AbstractUnitTest {
 
     public static final String EVENT_SERVICE_FACTORY = "eventServiceFactory";
     public static final String EPERSON_SERVICE_FACTORY = "ePersonServiceFactory";
@@ -57,6 +58,22 @@ public abstract class BagItPackerTest {
     private final EventServiceFactory eventServiceFactory = mock(EventServiceFactory.class);
 
     protected final String archFmt = "zip";
+
+    public BagItPackerTest() {
+        super();
+    }
+
+    @Before
+    @Override
+    public void init() {
+        super.init();
+    }
+
+    @After
+    @Override
+    public void destroy() {
+        super.destroy();
+    }
 
     @Before
     public void setup() throws SQLException {
