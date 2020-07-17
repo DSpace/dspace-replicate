@@ -13,17 +13,23 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Optional;
 import org.dspace.app.util.Util;
 import org.dspace.authorize.AuthorizeException;
+import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.DSpaceObject;
+import org.dspace.content.Item;
 import org.dspace.content.Site;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CommunityService;
+import org.dspace.content.service.ItemService;
+import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
@@ -35,10 +41,13 @@ import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
  */
 public class SitePacker implements Packer {
 
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+
     private final Site site;
     private final String archFmt;
 
-    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private List<String> members;
 
     public SitePacker(Site site, String archFmt) {
         this.site = site;
@@ -61,13 +70,13 @@ public class SitePacker implements Packer {
         dspaceProperties.add("DSpace-Version" + PROPERTIES_DELIMITER + Util.getSourceVersion());
         properties.put("dspace.properties", dspaceProperties);
 
-        // add all top level communities; called members to keep consistency w/ the CatalogPacker
-        final List<String> members = new ArrayList<>();
+        // add handles of all DSpaceObjects found in the site
+        final List<String> handles = new ArrayList<>();
         final List<Community> allTopCommunities = communityService.findAllTop(Curator.curationContext());
         for (Community community : allTopCommunities) {
-            members.add(community.getHandle());
+            appendHandles(handles, community);
         }
-        properties.put("members", members);
+        properties.put("members", handles);
 
         DSpaceRoles dSpaceRoles;
         try {
@@ -79,6 +88,37 @@ public class SitePacker implements Packer {
         return new BagItAipWriter(packDir, archFmt, properties)
             .withDSpaceRoles(dSpaceRoles)
             .packageAip();
+    }
+
+    /**
+     * Appends all handles of the {@code dso} and any child DSpaceObjects to the given {@code handles} list.
+     *
+     * This allows the SitePacker to be similar to the CatalogPacker in that it can restore a Site and all DSOs using
+     * the relationships contained within the AIP.
+     *
+     * @param handles the List to append to
+     * @param dso the DSO whose handle to append
+     * @throws SQLException if there's an error retrieving any DSOs from the database
+     */
+    private void appendHandles(final List<String> handles, final DSpaceObject dso) throws SQLException {
+        handles.add(dso.getHandle());
+        if (dso.getType() == Constants.COMMUNITY) {
+            final Community community = (Community) dso;
+            for (Community subcommunity : community.getSubcommunities()) {
+                appendHandles(handles, subcommunity);
+            }
+            for (Collection collection : community.getCollections()) {
+                appendHandles(handles, collection);
+            }
+
+        } else if (dso.getType() == Constants.COLLECTION) {
+            final Collection collection = (Collection) dso;
+            final Iterator<Item> items = itemService.findAllByCollection(Curator.curationContext(), collection);
+            while (items.hasNext()) {
+                final Item item = items.next();
+                handles.add(item.getHandle());
+            }
+        }
     }
 
     @Override
@@ -101,6 +141,13 @@ public class SitePacker implements Packer {
             throw new IOException(e);
         }
 
+        // Read the members so we can try to restore all other DSOs in the Site
+        this.members = reader.readFile("members");
+        reader.clean();
+    }
+
+    public Optional<List<String>> getMembers() {
+        return Optional.fromNullable(members);
     }
 
     @Override
