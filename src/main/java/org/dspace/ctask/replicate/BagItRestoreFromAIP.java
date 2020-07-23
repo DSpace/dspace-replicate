@@ -108,9 +108,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
                     for (final String member : members) {
                         recover(context, repMan, member);
                     }
-
                 } catch (AuthorizeException | SQLException e) {
-                    e.printStackTrace();
+                    throw new IOException(e);
                 }
 
                 result = "Successfully restored Site and children from AIP(s)";
@@ -170,7 +169,9 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     }
 
     /**
-     * Recover an object from an ObjectStore based on its identifier
+     * Recover an object from an ObjectStore based on its identifier. If an object already exists, log a warning and
+     * skip it.
+     *
      * @param ctx current DSpace Context
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param id Identifier of object in ObjectStore
@@ -179,7 +180,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException {
         final String objId = repMan.storageId(id, archFmt);
         final File archive = repMan.fetchObject(storeGroupName, objId);
-        if (archive != null) {
+        final DSpaceObject dso = dereference(ctx, id);
+        if (archive != null && dso == null) {
             final BagItAipReader reader = new BagItAipReader(archive.toPath());
             final Properties props = reader.readProperties();
 
@@ -195,6 +197,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
 
             // discard bag when done
             reader.clean();
+        } else if (dso != null) {
+            log.warn("Unable to restore object for " + id + ". Object already exists!");
         }
     }
 
