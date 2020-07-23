@@ -137,8 +137,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @throws IOException if IO error
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException 
-    {
+    public int perform(Context ctx, String id) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         // first we locate the deletion catalog for this object
         String catId = repMan.deletionCatalogId(id, archFmt);
@@ -161,7 +160,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             result = "Successfully restored Object '" + id + "' (and any child objects) from AIP.";
             status = Curator.CURATE_SUCCESS;
         } else {
-            result = "Failed to restore Object '" + id + "'. Deletion record could not be found in Replica Store. Are you sure this object was previously deleted?";
+            result = "Failed to restore Object '" + id + "'. Deletion record could not be found in Replica Store. Are" +
+                     " you sure this object was previously deleted?";
         }
 
         report(result);
@@ -177,15 +177,14 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @throws IOException if IO error
      */
     private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException {
-        String objId = repMan.storageId(id, archFmt);
-        File archive = repMan.fetchObject(storeGroupName, objId);
+        final String objId = repMan.storageId(id, archFmt);
+        final File archive = repMan.fetchObject(storeGroupName, objId);
         if (archive != null) {
-            BagItAipReader reader = new BagItAipReader(archive.toPath());
-
+            final BagItAipReader reader = new BagItAipReader(archive.toPath());
             final Properties props = reader.readProperties();
 
-            String type = props.getProperty(OBJECT_TYPE);
-            String ownerId = props.getProperty(OWNER_ID);
+            final String type = props.getProperty(OBJECT_TYPE);
+            final String ownerId = props.getProperty(OWNER_ID);
             if ("item".equals(type)) {
                 recoverItem(ctx, archive, id, props);
             } else if ("collection".equals(type)) {
@@ -207,8 +206,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param props properties which control how item is restored
      * @throws IOException if IO error
      */
-    private void recoverItem(Context ctx, File archive, String objId, Properties props) throws IOException 
-    {
+    private void recoverItem(Context ctx, File archive, String objId, Properties props) throws IOException {
         try {
             String collId = props.getProperty(OWNER_ID);
             Collection coll = (Collection) handleService.resolveToObject(ctx, collId);
@@ -246,8 +244,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param commId identifier of parent community for this collection
      * @throws IOException if IO error
      */
-    private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException 
-    {
+    private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException {
         Collection coll = null;
         try {
             if (commId != null) {
@@ -274,8 +271,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param parentId identifier of parent community (if any) for community
      * @throws IOException if IO error
      */
-    private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException 
-    {
+    private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException {
         // if not top-level, have parent create it
         Community comm = null;
         try {
