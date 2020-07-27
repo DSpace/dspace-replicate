@@ -45,6 +45,7 @@ import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.metadata.Value;
 import org.dspace.pack.bagit.xml.policy.Policies;
+import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 
 /**
  * CollectionPacker packs and unpacks Collection AIPs in BagIt bags
@@ -114,9 +115,18 @@ public class CollectionPacker implements Packer
         // collect xml policy
         final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
 
+        // roles
+        DSpaceRoles dSpaceRoles = null;
+        try {
+            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
+        } catch (PackageException exception) {
+            throw new IOException(exception);
+        }
+
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
             .withPolicies(policy)
             .withMetadata(metadata)
+            .withDSpaceRoles(dSpaceRoles)
             .packageAip();
     }
 
@@ -131,6 +141,12 @@ public class CollectionPacker implements Packer
         reader.validateBag();
 
         try {
+            // Ingest roles first in case there are policies which depend on them
+            final Optional<Path> rolesPath = reader.findRoles();
+            if (rolesPath.isPresent()) {
+                BagItRolesUtil.ingest(context, collection, rolesPath.get());
+            }
+
             final Policies policies = reader.readPolicy();
             BagItPolicyUtil.registerPolicies(collection, policies);
         } catch (PackageException e) {

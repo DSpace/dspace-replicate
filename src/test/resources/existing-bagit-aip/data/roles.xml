@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DSpaceRoles>
+  <Groups>
+    <Group ID="1" Name="Administrator">
+      <MemberGroups>
+        <MemberGroup ID="0" Name="Anonymous"/>
+      </MemberGroups>
+      <Members>
+        <Member ID="2" Name="admin@localhost"/>
+      </Members>
+    </Group>
+  </Groups>
+  <People>
+    <Person ID="1">
+      <CanLogin/>
+      <Email>person@localhost</Email>
+      <FirstName>Person</FirstName>
+      <Language>en</Language>
+      <LastName>McPerson</LastName>
+      <Netid>person</Netid>
+      <SelfRegistered/>
+    </Person>
+  </People>
+</DSpaceRoles>
