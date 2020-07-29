@@ -1,3 +1,10 @@
+/**
+ * The contents of this file are subject to the license and copyright
+ * detailed in the LICENSE and NOTICE files at the root of the source
+ * tree and available online at
+ *
+ * http://www.dspace.org/license/
+ */
 package org.dspace.pack.bagit;
 
 import static org.dspace.pack.PackerFactory.BAG_TYPE;
@@ -36,6 +43,7 @@ import org.dspace.pack.Packer;
 import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 
 /**
+ * Packer for a DSpace {@link Site} object in to a BagIt bag
  *
  * @author mikejritter
  */
@@ -124,7 +132,7 @@ public class SitePacker implements Packer {
     @Override
     public void unpack(File archive) throws AuthorizeException, IOException, SQLException {
         if (archive == null || !archive.exists()) {
-            throw new IOException("Missing archive for community: " + site.getHandle());
+            throw new IOException("Missing archive for site: " + site.getHandle());
         }
 
         final Context context = Curator.curationContext();
@@ -146,22 +154,26 @@ public class SitePacker implements Packer {
         reader.clean();
     }
 
+    /**
+     * Get the {@code members} for this Site; only populated on unpack.
+     *
+     * @return the list of members for the site, each represented the objects handle
+     */
     public Optional<List<String>> getMembers() {
         return Optional.fromNullable(members);
     }
 
     @Override
     public long size(String method) throws SQLException {
+        // not supported
         return 0;
     }
 
     @Override
     public void setContentFilter(String filter) {
-
     }
 
     @Override
     public void setReferenceFilter(String filter) {
-
     }
 }
