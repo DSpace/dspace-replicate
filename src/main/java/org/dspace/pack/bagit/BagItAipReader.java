@@ -213,12 +213,15 @@ public class BagItAipReader {
      *
      * @return the {@link Metadata} with values read from data/template-metadata.xml if it exists
      */
-    public Optional<Metadata> findItemTemplate() {
+    public Optional<Metadata> findItemTemplate() throws IOException {
         final Path template = bag.resolve(dataDirectory).resolve("template-" + METADATA_XML);
         Metadata metadata = null;
-        try {
-            metadata = (Metadata) unmarshaller.unmarshal(template.toFile());
-        } catch (JAXBException ignored) {
+        if (Files.exists(template)) {
+            try {
+                metadata = (Metadata) unmarshaller.unmarshal(template.toFile());
+            } catch (JAXBException e) {
+                throw new IOException("Unable to read template-metadata.xml for Collection!", e);
+            }
         }
 
         return Optional.fromNullable(metadata);
