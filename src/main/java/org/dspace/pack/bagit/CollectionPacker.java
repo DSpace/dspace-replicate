@@ -172,6 +172,16 @@ public class CollectionPacker implements Packer
             collectionService.setMetadata(context, collection, value.getName(), value.getBody());
         }
 
+        final Optional<Metadata> templateMetadata = reader.findItemTemplate();
+        if (templateMetadata.isPresent()) {
+            final Item templateItem = itemService.createTemplateItem(context, collection);
+            for (Value value : templateMetadata.get().getValues()) {
+                itemService.addMetadata(context, templateItem, value.getSchema(), value.getElement(),
+                                        value.getQualifier(), value.getLanguage(), value.getBody());
+            }
+            itemService.update(context, templateItem);
+        }
+
         final Optional<Path> logo = reader.findLogo();
         if (logo.isPresent()) {
             try (InputStream logoStream = Files.newInputStream(logo.get())) {
