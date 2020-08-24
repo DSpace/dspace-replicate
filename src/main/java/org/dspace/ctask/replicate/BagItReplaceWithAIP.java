@@ -16,11 +16,13 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
+import org.dspace.content.Site;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageUtils;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.CommunityService;
 import org.dspace.content.service.ItemService;
+import org.dspace.content.service.SiteService;
 import org.dspace.core.Constants;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -46,6 +48,7 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
     private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private SiteService siteService = ContentServiceFactory.getInstance().getSiteService();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {
@@ -64,20 +67,17 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException 
-    {
-        ReplicaManager repMan = ReplicaManager.instance();
+    public int perform(DSpaceObject dso) throws IOException {
+        final ReplicaManager repMan = ReplicaManager.instance();
         
         // overwrite with AIP data
-        Packer packer = PackerFactory.instance(dso);
-        try 
-        {
+        final Packer packer = PackerFactory.instance(dso);
+        try {
             int status = Curator.CURATE_FAIL;
             String result = null;
             String objId = repMan.storageId(dso.getHandle(), archFmt);
             File archive = repMan.fetchObject(storeGroupName, objId);
-            if (archive != null) 
-            {
+            if (archive != null) {
                 // clear object where necessary
                 if (dso.getType() == Constants.ITEM) {
                     PackageUtils.removeAllBitstreams(Curator.curationContext(), dso);
@@ -92,24 +92,20 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
                     collectionService.update(Curator.curationContext(), (Collection) dso);
                 } else if (type == Constants.COMMUNITY) {
                     communityService.update(Curator.curationContext(), (Community) dso);
+                } else if (type == Constants.SITE) {
+                    siteService.update(Curator.curationContext(), (Site) dso);
                 }
                 status = Curator.CURATE_SUCCESS;
                 result = "Object: " + dso.getHandle() + " replaced from AIP";
-            }
-            else
-            {
+            } else {
                 result = "Failed to replace Object. AIP could not be found in Replica Store.";
             }
             report(result);
             setResult(result);
             return status;
-        } 
-        catch (AuthorizeException authE)
-        {
+        } catch (AuthorizeException authE) {
             throw new IOException(authE);
-        }
-        catch (SQLException sqlE)
-        {
+        } catch (SQLException sqlE) {
             throw new IOException(sqlE);
         }
     }

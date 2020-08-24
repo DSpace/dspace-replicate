@@ -11,10 +11,13 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
+import org.dspace.content.Site;
 import org.dspace.core.Constants;
+import org.dspace.pack.bagit.CatalogPacker;
 import org.dspace.pack.bagit.CollectionPacker;
 import org.dspace.pack.bagit.CommunityPacker;
 import org.dspace.pack.bagit.ItemPacker;
+import org.dspace.pack.bagit.SitePacker;
 import org.dspace.pack.mets.METSPacker;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagProfile;
@@ -53,44 +56,32 @@ public class PackerFactory
     // cached instance of METSPacker - because a little expensive to create
     private static METSPacker metsPacker = null;
 
-    public static Packer instance(DSpaceObject dso)
-    {
+    public static Packer instance(DSpaceObject dso) {
         Packer packer = null;
         int type = dso.getType();
-        if ("mets".equals(packType))
-        {
-            if (metsPacker == null)
-            {
+        if ("mets".equals(packType)) {
+            if (metsPacker == null) {
                 metsPacker = new METSPacker(dso, archFmt);
             }
-            else
-            {
+            else {
                 metsPacker.setDSO(dso);
             }
             packer = metsPacker;
-            if (cfgFilter != null)
-            {
+            if (cfgFilter != null) {
                 packer.setContentFilter(cfgFilter);
             }
-        }
-        else if (Constants.ITEM == type)
-        {
+        } else if (Constants.ITEM == type) {
             packer = new ItemPacker((Item)dso, archFmt);
-            if (cfgFilter != null)
-            {
+            if (cfgFilter != null) {
                 packer.setContentFilter(cfgFilter);
             }
-        }
-        else if (Constants.COLLECTION == type)
-        {
+        } else if (Constants.COLLECTION == type) {
             packer = new CollectionPacker((Collection)dso, archFmt);
-        }
-        else if (Constants.COMMUNITY == type)
-        {
+        } else if (Constants.COMMUNITY == type) {
             packer = new CommunityPacker((Community)dso, archFmt);
-        }
-        else 
-        {
+        } else if (Constants.SITE == type) {
+            packer = new SitePacker((Site)dso, archFmt);
+        } else {
             throw new RuntimeException("No packer for object type");
         }
         return packer;

@@ -15,6 +15,8 @@ import static org.dspace.pack.PackerFactory.WITHDRAWN;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -23,11 +25,13 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
+import org.dspace.content.Site;
 import org.dspace.content.WorkspaceItem;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.InstallItemService;
 import org.dspace.content.service.WorkspaceItemService;
+import org.dspace.core.Constants;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -39,6 +43,7 @@ import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.BagItAipReader;
 import org.dspace.pack.bagit.CatalogPacker;
+import org.dspace.pack.bagit.SitePacker;
 
 /**
  * BagItRestoreFromAIP task performs essentially an 'undelete' on an object that
@@ -75,16 +80,50 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     }
     
     /**
-     * Perform 'Recover From AIP' task on a particular object.
-     * As you cannot recover an object that already exists, this method
-     * always returns an exception. 
+     * Perform 'Recover From AIP' task on a particular object. If the {@code dso} is a {@link Site}, attempt to restore
+     * the Site and child objects. Otherwise this method returns an exception.
+     *
      * @param dso DSpace Object to recover
      * @return integer which represents Curator return status
      * @throws IOException if IO error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
-        throw new IllegalStateException("Cannot recover if object exists");
+    public int perform(final DSpaceObject dso) throws IOException {
+        // allow recovery of Site objects as they always exist in a new DSpace repository
+        if (dso != null && dso.getType() == Constants.SITE) {
+            String result;
+            int status = Curator.CURATE_SUCCESS;
+
+            final ReplicaManager repMan = ReplicaManager.instance();
+            final String storageId = repMan.storageId(dso.getHandle(), archFmt);
+            final File file = repMan.fetchObject(storeGroupName, storageId);
+            if (file != null) {
+                final SitePacker sitePacker = new SitePacker((Site) dso, archFmt);
+
+                try {
+                    final Context context = Curator.curationContext();
+
+                    sitePacker.unpack(file);
+                    final List<String> members = sitePacker.getMembers().or(new ArrayList<String>());
+                    for (final String member : members) {
+                        recover(context, repMan, member);
+                    }
+                } catch (AuthorizeException | SQLException e) {
+                    throw new IOException(e);
+                }
+
+                result = "Successfully restored Site and children from AIP(s)";
+            } else {
+                result = "Failed to restore Site. AIP could not be found in Replica Store.";
+                status = Curator.CURATE_FAIL;
+            }
+
+            report(result);
+            setResult(result);
+            return status;
+        } else {
+            throw new IllegalStateException("Cannot recover if object exists");
+        }
     }
 
     /**
@@ -97,8 +136,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @throws IOException if IO error
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException 
-    {
+    public int perform(Context ctx, String id) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         // first we locate the deletion catalog for this object
         String catId = repMan.deletionCatalogId(id, archFmt);
@@ -120,10 +158,9 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             repMan.removeObject(deleteGroupName, catId);
             result = "Successfully restored Object '" + id + "' (and any child objects) from AIP.";
             status = Curator.CURATE_SUCCESS;
-        }
-        else
-        {
-            result = "Failed to restore Object '" + id + "'. Deletion record could not be found in Replica Store. Are you sure this object was previously deleted?";
+        } else {
+            result = "Failed to restore Object '" + id + "'. Deletion record could not be found in Replica Store. Are" +
+                     " you sure this object was previously deleted?";
         }
 
         report(result);
@@ -132,22 +169,24 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     }
 
     /**
-     * Recover an object from an ObjectStore based on its identifier
+     * Recover an object from an ObjectStore based on its identifier. If an object already exists, log a warning and
+     * skip it.
+     *
      * @param ctx current DSpace Context
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param id Identifier of object in ObjectStore
      * @throws IOException if IO error
      */
     private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException {
-        String objId = repMan.storageId(id, archFmt);
-        File archive = repMan.fetchObject(storeGroupName, objId);
-        if (archive != null) {
-            BagItAipReader reader = new BagItAipReader(archive.toPath());
-
+        final String objId = repMan.storageId(id, archFmt);
+        final File archive = repMan.fetchObject(storeGroupName, objId);
+        final DSpaceObject dso = dereference(ctx, id);
+        if (archive != null && dso == null) {
+            final BagItAipReader reader = new BagItAipReader(archive.toPath());
             final Properties props = reader.readProperties();
 
-            String type = props.getProperty(OBJECT_TYPE);
-            String ownerId = props.getProperty(OWNER_ID);
+            final String type = props.getProperty(OBJECT_TYPE);
+            final String ownerId = props.getProperty(OWNER_ID);
             if ("item".equals(type)) {
                 recoverItem(ctx, archive, id, props);
             } else if ("collection".equals(type)) {
@@ -158,6 +197,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
 
             // discard bag when done
             reader.clean();
+        } else if (dso != null) {
+            log.warn("Unable to restore object for " + id + ". Object already exists!");
         }
     }
 
@@ -169,8 +210,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param props properties which control how item is restored
      * @throws IOException if IO error
      */
-    private void recoverItem(Context ctx, File archive, String objId, Properties props) throws IOException 
-    {
+    private void recoverItem(Context ctx, File archive, String objId, Properties props) throws IOException {
         try {
             String collId = props.getProperty(OWNER_ID);
             Collection coll = (Collection) handleService.resolveToObject(ctx, collId);
@@ -208,8 +248,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param commId identifier of parent community for this collection
      * @throws IOException if IO error
      */
-    private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException 
-    {
+    private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException {
         Collection coll = null;
         try {
             if (commId != null) {
@@ -236,8 +275,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @param parentId identifier of parent community (if any) for community
      * @throws IOException if IO error
      */
-    private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException 
-    {
+    private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException {
         // if not top-level, have parent create it
         Community comm = null;
         try {
