@@ -117,6 +117,11 @@ public class BagItAipWriter {
     private Metadata metadata;
 
     /**
+     * Pojo for xml item template metadata on a DSpaceObject
+     */
+    private Metadata itemTemplate;
+
+    /**
      * Pojo for xml roles
      */
     private DSpaceRoles dSpaceRoles;
@@ -168,6 +173,15 @@ public class BagItAipWriter {
      */
     public BagItAipWriter withMetadata(final Metadata metadata) {
         this.metadata = metadata;
+        return this;
+    }
+
+    /**
+     * @param itemTemplate the {@link Metadata} for an Item Template
+     * @return the {@link BagItAipWriter}
+     */
+    public BagItAipWriter withItemTemplate(Metadata itemTemplate) {
+        this.itemTemplate = itemTemplate;
         return this;
     }
 
@@ -260,6 +274,7 @@ public class BagItAipWriter {
 
         // then xml files: metadata, policies, roles
         writeXml(metadata, dataDir.resolve(METADATA_XML), marshaller, messageDigest);
+        writeXml(itemTemplate, dataDir.resolve("template-" + METADATA_XML), marshaller, messageDigest);
         writeXml(policies, dataDir.resolve(POLICY_XML), marshaller, messageDigest);
         writeXml(dSpaceRoles, dataDir.resolve(ROLES_XML), marshaller, messageDigest);
 

@@ -34,6 +34,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
+import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CollectionService;
@@ -112,6 +113,18 @@ public class CollectionPacker implements Packer
             metadata.addValue(new Value(body, field));
         }
 
+        // capture the item template if it exists
+        Metadata templateMd = null;
+        final Item templateItem = collection.getTemplateItem();
+        if (templateItem != null) {
+            templateMd = new Metadata();
+            final List<MetadataValue> templateMetadata = itemService
+                .getMetadata(templateItem, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+            for (MetadataValue metadataValue : templateMetadata) {
+                templateMd.addValue(new Value(metadataValue));
+            }
+        }
+
         // collect xml policy
         final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
 
@@ -126,6 +139,7 @@ public class CollectionPacker implements Packer
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
             .withPolicies(policy)
             .withMetadata(metadata)
+            .withItemTemplate(templateMd)
             .withDSpaceRoles(dSpaceRoles)
             .packageAip();
     }
