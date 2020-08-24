@@ -115,16 +115,24 @@ public class CollectionPackerTest extends BagItPackerTest {
         final Path archive = Paths.get(resources.toURI()).resolve("COLLECTION@123456789-2.zip");
         final Path openArchive = Paths.get(resources.toURI()).resolve("COLLECTION@123456789-2");
 
+        final Item template = initDSO(Item.class);
         final Collection collection = initDSO(Collection.class);
         assertNotNull(collection);
 
+        final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
         final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+        when(itemService.createTemplateItem(any(Context.class), eq(collection))).thenReturn(template);
+
         final CollectionPacker packer = new CollectionPacker(collection, archFmt);
         packer.unpack(archive.toFile());
 
         verify(collectionService, times(7)).setMetadata(any(Context.class), eq(collection), anyString(), anyString());
         verify(collectionService, times(1)).setLogo(any(Context.class), eq(collection), any(InputStream.class));
         verify(collectionService, times(1)).update(any(Context.class), eq(collection));
+        verify(itemService, times(1)).createTemplateItem(any(Context.class), eq(collection));
+        verify(itemService, times(1)).addMetadata(any(Context.class), any(Item.class), eq("dc"), eq("contributor"),
+                                                  eq("illustrator"), eq(""), eq("illustrator jones"));
+        verify(itemService, times(1)).update(any(Context.class), eq(template));
 
         // since our policy.xml is empty, verify that we never fetched anything and still used the authorize service
         // as expected
