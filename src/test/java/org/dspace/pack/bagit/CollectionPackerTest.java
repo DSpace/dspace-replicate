@@ -10,10 +10,11 @@ package org.dspace.pack.bagit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +25,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -32,8 +34,11 @@ import org.dspace.authorize.factory.AuthorizeServiceFactory;
 import org.dspace.authorize.service.AuthorizeService;
 import org.dspace.authorize.service.ResourcePolicyService;
 import org.dspace.content.Collection;
+import org.dspace.content.Item;
+import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CollectionService;
+import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
@@ -57,18 +62,27 @@ public class CollectionPackerTest extends BagItPackerTest {
         assertNotNull(resources);
         final Path output = Paths.get(resources.toURI().resolve("collection-packer-test"));
 
-        // init test Collection
-        final Collection collection = initDSO(Collection.class);
+        // init test DSOs
+        final Item template = initDSO(Item.class);
+        final MetadataValue templateMetadata = createMetadataValue();
+
+        // also spy the collection so we can get the Item during getTemplateItem
+        final Collection collection = spy(initDSO(Collection.class));
         assertNotNull(collection);
         assertNotNull(collection.getID());
         assertNotNull(collection.getCommunities());
         assertTrue(collection.getCommunities().isEmpty());
 
         // grab our mocks
+        final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
         final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
         for (String field : fields) {
             when(collectionService.getMetadata(eq(collection), eq(field))).thenReturn(field);
         }
+
+        when(collection.getTemplateItem()).thenReturn(template);
+        when(itemService.getMetadata(eq(template), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY)))
+            .thenReturn(Collections.singletonList(templateMetadata));
 
         final CollectionPacker collectionPacker = new CollectionPacker(collection, archFmt);
         final File packedOutput = collectionPacker.pack(output.toFile());
@@ -76,6 +90,9 @@ public class CollectionPackerTest extends BagItPackerTest {
         for (String field : fields) {
             verify(collectionService, times(1)).getMetadata(eq(collection), eq(field));
         }
+
+        verify(collection, times(1)).getTemplateItem();
+        verify(itemService, times(1)).getMetadata(eq(template), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY));
 
         assertThat(packedOutput).exists();
         assertThat(packedOutput).isFile();
