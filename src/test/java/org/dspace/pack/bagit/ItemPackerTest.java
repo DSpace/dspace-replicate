@@ -68,11 +68,6 @@ import org.junit.Test;
  */
 public class ItemPackerTest extends BagItPackerTest {
 
-    private static final String SCHEMA_NAME = "metadataSchema";
-    private static final String FIELD_ELEMENT = "metadataFieldElement";
-    private static final String FIELD_QUALIFIER = "metadataFieldQualifier";
-    private static final String METADATA_VALUE = "metadataValue";
-
     private static final String PRIMARY_NAME = "primary";
     private static final String LICENSE_NAME = "license";
     private static final String BUNDLE_NAME = "bundle";
@@ -88,8 +83,6 @@ public class ItemPackerTest extends BagItPackerTest {
     private Bitstream licenseBitstream;
     private BitstreamFormat bitstreamFormat;
     private MetadataValue metadataValue;
-    private MetadataField metadataField;
-    private MetadataSchema metadataSchema;
 
     @Before
     public void setup() throws SQLException {
@@ -97,17 +90,7 @@ public class ItemPackerTest extends BagItPackerTest {
 
         try {
             // Create some metadata for the item
-            metadataSchema = initReloadable(MetadataSchema.class);
-            metadataSchema.setName(SCHEMA_NAME);
-
-            metadataField = initReloadable(MetadataField.class);
-            metadataField.setMetadataSchema(metadataSchema);
-            metadataField.setElement(FIELD_ELEMENT);
-            metadataField.setQualifier(FIELD_QUALIFIER);
-
-            metadataValue = initReloadable(MetadataValue.class);
-            metadataValue.setMetadataField(metadataField);
-            metadataValue.setValue(METADATA_VALUE);
+            metadataValue = createMetadataValue();
 
             // create bitstreams and bundle
             primaryBitstream = initDSO(Bitstream.class);
