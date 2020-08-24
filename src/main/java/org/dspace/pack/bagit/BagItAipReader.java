@@ -209,6 +209,23 @@ public class BagItAipReader {
     }
 
     /**
+     * Search for {@link Metadata} for an Item Template in a Bag
+     *
+     * @return the {@link Metadata} with values read from data/template-metadata.xml if it exists
+     */
+    public Optional<Metadata> findItemTemplate() {
+        final Path template = bag.resolve(dataDirectory).resolve("template-" + METADATA_XML);
+        Metadata metadata = null;
+        try {
+            metadata = (Metadata) unmarshaller.unmarshal(template.toFile());
+        } catch (JAXBException ignored) {
+        }
+
+        return Optional.fromNullable(metadata);
+    }
+
+
+    /**
      * Read the policy.xml file located in a bags data directory
      *
      * @return the {@link Policy} with values read from data/policy.xml
