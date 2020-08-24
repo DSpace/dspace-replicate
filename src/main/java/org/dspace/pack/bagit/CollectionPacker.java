@@ -37,6 +37,7 @@ import org.dspace.content.Item;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
+import org.dspace.content.packager.PackageUtils;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
@@ -174,6 +175,8 @@ public class CollectionPacker implements Packer
 
         final Optional<Metadata> templateMetadata = reader.findItemTemplate();
         if (templateMetadata.isPresent()) {
+            // overwrite the template item if it exists
+            collectionService.removeTemplateItem(context, collection);
             final Item templateItem = itemService.createTemplateItem(context, collection);
             for (Value value : templateMetadata.get().getValues()) {
                 itemService.addMetadata(context, templateItem, value.getSchema(), value.getElement(),
