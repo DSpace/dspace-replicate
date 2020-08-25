@@ -119,8 +119,8 @@ public class CollectionPacker implements Packer
         final Item templateItem = collection.getTemplateItem();
         if (templateItem != null) {
             templateMd = new Metadata();
-            final List<MetadataValue> templateMetadata = itemService
-                .getMetadata(templateItem, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+            final List<MetadataValue> templateMetadata =
+                itemService.getMetadata(templateItem, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
             for (MetadataValue metadataValue : templateMetadata) {
                 templateMd.addValue(new Value(metadataValue));
             }
