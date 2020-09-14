@@ -10,10 +10,18 @@ package org.dspace.ctask.replicate;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.Item;
+import org.dspace.content.RelationshipType;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.RelationshipService;
+import org.dspace.content.service.RelationshipTypeService;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
@@ -47,12 +55,21 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
     // Name of module configuration file specific to METS based AIPs
     private final String metsModuleConfig = "replicate-mets";
 
+    private String scope = null;
+
+    private List<String> processedPackages;
+
+    private final RelationshipService relationshipService = ContentServiceFactory.getInstance().getRelationshipService();
+    private final RelationshipTypeService relationshipTypeService = ContentServiceFactory.getInstance().getRelationshipTypeService();
+
     @Override
     public void init(Curator curator, String taskId) throws IOException {
         super.init(curator, taskId);
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
         deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
+        scope = curator.getRunParameter("scope");
+        processedPackages = new ArrayList<>();
     }
     
     
@@ -82,6 +99,10 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         {
             //Load packaging options from replicate-mets.cfg configuration file
             PackageParameters pkgParams = this.loadPackagerParameters(metsModuleConfig);
+            if (scope == null) {
+                scope = "*";
+            }
+            pkgParams.setProperty("scope", scope);
             
             //log that this task is starting (as this may be a large task)
             log.info(getStartMsg(id, pkgParams));
@@ -152,10 +173,14 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
        
         try
         {
+            String archiveName = archive.getName();
+            processedPackages.add(archiveName);
             //unpack archival package & actually run the restore/replace,
             // based on the current PackageParameters
             // This only restores/replaces a single object.
             packer.unpack(archive, pkgParams);
+
+            DSpaceObject archiveObj = handleService.resolveToObject(Curator.curationContext(), resolveHandle(archiveName));
 
             // Remove the locally cached archive file - it is no longer needed.
             if(archive.exists())
@@ -184,6 +209,33 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
                         }
                     }    
                 }
+
+                //See if this package referred to related packages
+                //if so, we want to als o replcae those in scope
+                Map<String, List<String>> relPkgRefs = packer.getRelPackageRefs();
+                if(relPkgRefs!=null && !relPkgRefs.isEmpty())
+                {
+                    for(String relType : relPkgRefs.keySet())
+                    {
+                        RelationshipType type = relationshipTypeService.findByLeftwardOrRightwardTypeName(Curator.curationContext(), relType).get(0);
+                        for (String relRef : relPkgRefs.get(relType)) {
+                            if (processedPackages.contains(relRef)) continue;
+
+                            File relArchive = repMan.fetchObject(storeGroupName, relRef);
+
+                            if (relArchive != null) {
+                                //recurse to restore/replace this child object (and all its children)
+                                restoreObject(repMan, relArchive, pkgParams);
+                                DSpaceObject relObj = handleService.resolveToObject(Curator.curationContext(), resolveHandle(relRef));
+                                int leftPlace = relationshipService.findNextLeftPlaceByLeftItem(Curator.curationContext(), (Item) archiveObj);
+                                int rightPlace = relationshipService.findNextRightPlaceByRightItem(Curator.curationContext(), (Item) relObj);
+                                relationshipService.create(Curator.curationContext(), (Item) archiveObj, (Item) relObj, type, leftPlace, rightPlace);
+                            } else {
+                                throw new IOException("Archive " + relRef + " was not found in Replica Store");
+                            }
+                        }
+                    }
+                }
             }
         }
         catch(AuthorizeException authe)
@@ -194,7 +246,15 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         {
             throw new IOException(sqle);
         }
-    }        
+    }
+
+    private String resolveHandle(String archiveName) {
+        String handle = archiveName.replace("ITEM@", "").replace(".zip", "");
+        char[] charArray = handle.toCharArray();
+        charArray[handle.lastIndexOf("-")] = '/';
+        handle = String.valueOf(charArray);
+        return handle;
+    }
     
     
     /**

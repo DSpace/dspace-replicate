@@ -10,10 +10,7 @@ package org.dspace.pack.mets;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
@@ -67,6 +64,9 @@ public class METSPacker implements Packer
     
     /** List of all referenced child packages **/
     private List<String> childPackageRefs = new ArrayList<String>();
+
+    /** List of all referenced related packages **/
+    private Map<String, List<String>> relPackageRefs = new HashMap<>();
     
     /** DSpace PackageDisseminator & PackageIngester to utilize for AIP pack() & unpack() **/
     private PackageDisseminator dip = null;
@@ -280,7 +280,9 @@ public class METSPacker implements Packer
             {
                 //Check if we found child package references when unpacking this latest package into a DSpaceObject
                 this.childPackageRefs = ((AbstractPackageIngester) sip).getPackageReferences(updatedDso);
-            }//end if not an Item
+            } else if (updatedDso != null && updatedDso.getType() == Constants.ITEM) {
+                this.relPackageRefs = ((AbstractPackageIngester) sip).getRelPackageReferences(updatedDso);
+            }
         } 
         
         //NOTE: Context is handled by Curator -- it will commit or close when needed.
@@ -460,5 +462,19 @@ public class METSPacker implements Packer
     public List<String> getChildPackageRefs()
     {
         return childPackageRefs;
+    }
+
+    /**
+     * Return list of referenced related packages (AIPs) which were
+     * located during the unpacking of an AIP (see unpack()).
+     * <P>
+     * This may be used by tasks so that they can recursively unpack()
+     * additional referenced child packages as needed.
+     *
+     * @return List of references to child AIPs
+     */
+    public Map<String, List<String>> getRelPackageRefs()
+    {
+        return relPackageRefs;
     }
 }
