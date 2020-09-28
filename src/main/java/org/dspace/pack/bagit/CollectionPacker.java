@@ -34,8 +34,10 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
+import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
+import org.dspace.content.packager.PackageUtils;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
@@ -112,6 +114,18 @@ public class CollectionPacker implements Packer
             metadata.addValue(new Value(body, field));
         }
 
+        // capture the item template if it exists
+        Metadata templateMd = null;
+        final Item templateItem = collection.getTemplateItem();
+        if (templateItem != null) {
+            templateMd = new Metadata();
+            final List<MetadataValue> templateMetadata =
+                itemService.getMetadata(templateItem, Item.ANY, Item.ANY, Item.ANY, Item.ANY);
+            for (MetadataValue metadataValue : templateMetadata) {
+                templateMd.addValue(new Value(metadataValue));
+            }
+        }
+
         // collect xml policy
         final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
 
@@ -126,6 +140,7 @@ public class CollectionPacker implements Packer
         return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
             .withPolicies(policy)
             .withMetadata(metadata)
+            .withItemTemplate(templateMd)
             .withDSpaceRoles(dSpaceRoles)
             .packageAip();
     }
@@ -156,6 +171,18 @@ public class CollectionPacker implements Packer
         final Metadata metadata = reader.readMetadata();
         for (Value value : metadata.getValues()) {
             collectionService.setMetadata(context, collection, value.getName(), value.getBody());
+        }
+
+        final Optional<Metadata> templateMetadata = reader.findItemTemplate();
+        if (templateMetadata.isPresent()) {
+            // overwrite the template item if it exists
+            collectionService.removeTemplateItem(context, collection);
+            final Item templateItem = itemService.createTemplateItem(context, collection);
+            for (Value value : templateMetadata.get().getValues()) {
+                itemService.addMetadata(context, templateItem, value.getSchema(), value.getElement(),
+                                        value.getQualifier(), value.getLanguage(), value.getBody());
+            }
+            itemService.update(context, templateItem);
         }
 
         final Optional<Path> logo = reader.findLogo();

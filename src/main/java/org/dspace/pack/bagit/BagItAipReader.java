@@ -9,6 +9,10 @@ package org.dspace.pack.bagit;
 
 import static org.dspace.pack.PackerFactory.BAG_PROFILE_KEY;
 import static org.dspace.pack.PackerFactory.DEFAULT_PROFILE;
+import static org.dspace.pack.bagit.BagItAipWriter.METADATA_XML;
+import static org.dspace.pack.bagit.BagItAipWriter.POLICY_XML;
+import static org.dspace.pack.bagit.BagItAipWriter.ROLES_XML;
+import static org.dspace.pack.bagit.BagItAipWriter.TEMPLATE_XML;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,10 +60,6 @@ import org.slf4j.LoggerFactory;
 public class BagItAipReader {
 
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
-
-    private static final String ROLES_XML = "roles.xml";
-    private static final String POLICY_XML = "policy.xml";
-    private static final String METADATA_XML = "metadata.xml";
 
     private final String dataDirectory = "data";
 
@@ -207,6 +207,26 @@ public class BagItAipReader {
             throw new IOException("Unable to read metadata.xml!", e);
         }
     }
+
+    /**
+     * Search for {@link Metadata} for an Item Template in a Bag
+     *
+     * @return the {@link Metadata} with values read from data/template-metadata.xml if it exists
+     */
+    public Optional<Metadata> findItemTemplate() throws IOException {
+        final Path template = bag.resolve(dataDirectory).resolve(TEMPLATE_XML);
+        Metadata metadata = null;
+        if (Files.exists(template)) {
+            try {
+                metadata = (Metadata) unmarshaller.unmarshal(template.toFile());
+            } catch (JAXBException e) {
+                throw new IOException("Unable to read template-metadata.xml for Collection!", e);
+            }
+        }
+
+        return Optional.fromNullable(metadata);
+    }
+
 
     /**
      * Read the policy.xml file located in a bags data directory

@@ -28,6 +28,9 @@ import org.dspace.TestEPersonServiceFactory;
 import org.dspace.TestHandleServiceFactory;
 import org.dspace.TestServiceManager;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.MetadataField;
+import org.dspace.content.MetadataSchema;
+import org.dspace.content.MetadataValue;
 import org.dspace.core.DBConnection;
 import org.dspace.core.ReloadableEntity;
 import org.dspace.event.factory.EventServiceFactory;
@@ -49,6 +52,12 @@ import org.junit.Before;
  */
 public abstract class BagItPackerTest {
 
+    // metadata info
+    public static final String SCHEMA_NAME = "metadataSchema";
+    public static final String FIELD_ELEMENT = "metadataFieldElement";
+    public static final String FIELD_QUALIFIER = "metadataFieldQualifier";
+    public static final String METADATA_VALUE = "metadataValue";
+    // factory identifiers
     public static final String EVENT_SERVICE_FACTORY = "eventServiceFactory";
     public static final String HANDLE_SERVICE_FACTORY = "handleServiceFactory";
     public static final String EPERSON_SERVICE_FACTORY = "ePersonServiceFactory";
@@ -124,6 +133,24 @@ public abstract class BagItPackerTest {
         id.setAccessible(true);
         id.set(t, 1);
         return t;
+    }
+
+    protected MetadataValue createMetadataValue() throws ReflectiveOperationException {
+        final MetadataValue metadataValue;
+        final MetadataField metadataField;
+        final MetadataSchema metadataSchema;
+        metadataSchema = initReloadable(MetadataSchema.class);
+        metadataSchema.setName(SCHEMA_NAME);
+
+        metadataField = initReloadable(MetadataField.class);
+        metadataField.setMetadataSchema(metadataSchema);
+        metadataField.setElement(FIELD_ELEMENT);
+        metadataField.setQualifier(FIELD_QUALIFIER);
+
+        metadataValue = initReloadable(MetadataValue.class);
+        metadataValue.setMetadataField(metadataField);
+        metadataValue.setValue(METADATA_VALUE);
+        return metadataValue;
     }
 
 }

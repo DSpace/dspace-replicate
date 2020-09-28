@@ -74,9 +74,10 @@ public class BagItAipWriter {
     public static final String PROPERTIES_DELIMITER = "  ";
 
     private static final String DATA_DIR = "data";
-    private static final String ROLES_XML = "roles.xml";
-    private static final String POLICY_XML = "policy.xml";
-    private static final String METADATA_XML = "metadata.xml";
+    public static final String ROLES_XML = "roles.xml";
+    public static final String POLICY_XML = "policy.xml";
+    public static final String METADATA_XML = "metadata.xml";
+    public static final String TEMPLATE_XML = "template-metadata.xml";
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
@@ -115,6 +116,11 @@ public class BagItAipWriter {
      * Pojo for xml metadata on a DSpaceObject
      */
     private Metadata metadata;
+
+    /**
+     * Pojo for xml item template metadata on a DSpaceObject
+     */
+    private Metadata itemTemplate;
 
     /**
      * Pojo for xml roles
@@ -168,6 +174,15 @@ public class BagItAipWriter {
      */
     public BagItAipWriter withMetadata(final Metadata metadata) {
         this.metadata = metadata;
+        return this;
+    }
+
+    /**
+     * @param itemTemplate the {@link Metadata} for an Item Template
+     * @return the {@link BagItAipWriter}
+     */
+    public BagItAipWriter withItemTemplate(Metadata itemTemplate) {
+        this.itemTemplate = itemTemplate;
         return this;
     }
 
@@ -260,6 +275,7 @@ public class BagItAipWriter {
 
         // then xml files: metadata, policies, roles
         writeXml(metadata, dataDir.resolve(METADATA_XML), marshaller, messageDigest);
+        writeXml(itemTemplate, dataDir.resolve(TEMPLATE_XML), marshaller, messageDigest);
         writeXml(policies, dataDir.resolve(POLICY_XML), marshaller, messageDigest);
         writeXml(dSpaceRoles, dataDir.resolve(ROLES_XML), marshaller, messageDigest);
 
