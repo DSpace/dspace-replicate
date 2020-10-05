@@ -69,40 +69,32 @@ public class DuraCloudObjectStore implements ObjectStore
     }
 
     @Override
-    public long fetchObject(String group, String id, File file) throws IOException
-    {
+    public long fetchObject(String group, String id, File file) throws IOException {
         long size = 0L;
-        try
-        {
+        try {
             Content content = dcStore.getContent(getSpaceID(group), getContentPrefix(group) + id);
 
             // Attempt to get size from request header
             String contentSizeHeader = content.getProperties().get(ContentStore.CONTENT_SIZE);
             try {
-                size = Long.valueOf(contentSizeHeader);
-            }
-            catch(NumberFormatException nfe) {
+                size = Long.parseLong(contentSizeHeader);
+            } catch(NumberFormatException nfe) {
                 // ignore - header was missing or not a valid Long. We will determine size below
             }
 
             // Open local file and download content into it
-            FileOutputStream out = new FileOutputStream(file);
-            InputStream in = content.getStream();
-            Utils.copy(in, out);
-            in.close();
-            out.close();
+            try (FileOutputStream out = new FileOutputStream(file);
+                 InputStream in = content.getStream()) {
+                Utils.copy(in, out);
+            }
 
             // If size could not be previously determined from request header, determine it from the downloaded file
             if (size == 0L) {
                 size = file.length();
             }
-        }
-        catch (NotFoundException nfE)
-        {
+        } catch (NotFoundException nfE) {
             // no object - no-op
-        }
-        catch (ContentStoreException csE)
-        {
+        } catch (ContentStoreException csE) {
             throw new IOException(csE);
         }
         return size;
@@ -211,7 +203,7 @@ public class DuraCloudObjectStore implements ObjectStore
         try
         {
             Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id);
-            size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
+            size = Long.parseLong(attrs.get(ContentStore.CONTENT_SIZE));
             dcStore.moveContent(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id,
                                 getSpaceID(destGroup), getContentPrefix(destGroup) + id);
         }
@@ -264,7 +256,7 @@ public class DuraCloudObjectStore implements ObjectStore
      * If the group contains a forward slash ('/'), then the substring
      * before the first slash is assumed to be the Space ID.
      * Otherwise, the entire group name is assumed to be the Space ID.
-     * @param String group name
+     * @param group name
      * @return DuraCloud Space ID
      */
     private String getSpaceID(String group)
@@ -284,7 +276,7 @@ public class DuraCloudObjectStore implements ObjectStore
      * If the group contains a forward slash ('/'), then the substring
      * after the first slash is assumed to be the content naming prefix.
      * Otherwise, there is no content naming prefix.
-     * @param String group name
+     * @param group name
      * @return content prefix (ending with a forward slash)
      */
     private String getContentPrefix(String group)
