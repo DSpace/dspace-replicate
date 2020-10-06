@@ -21,6 +21,8 @@ import org.duracloud.client.ContentStore;
 import org.duracloud.client.ContentStoreManager;
 import org.duracloud.client.ContentStoreManagerImpl;
 import org.duracloud.common.model.Credential;
+import org.duracloud.common.retry.Retriable;
+import org.duracloud.common.retry.Retrier;
 import org.duracloud.domain.Content;
 import org.duracloud.error.ContentStoreException;
 import org.duracloud.error.NotFoundException;
@@ -168,30 +170,34 @@ public class DuraCloudObjectStore implements ObjectStore
         return size;
     }
 
-    private long uploadReplica(String group, File file, String chkSum) throws IOException
-    {
-        try
-        {
+    private long uploadReplica(final String group, final File file, final String chkSum) throws IOException {
+        try {
             //@TODO: We shouldn't need to pass a hardcoded MIME Type. Unfortunately, DuraCloud,
             // as of 1.3, doesn't properly determine a file's MIME Type. In future it should.
-            String mimeType = "application/octet-stream";
-            if(file.getName().endsWith(".zip"))
+            final String mimeType;
+            if (file.getName().endsWith(".zip")) {
                 mimeType = "application/zip";
-            else if (file.getName().endsWith(".tgz"))
+            } else if (file.getName().endsWith(".tgz")) {
                 mimeType = "application/x-gzip";
-            else if(file.getName().endsWith(".txt"))
+            } else if (file.getName().endsWith(".txt")) {
                 mimeType = "text/plain";
+            } else {
+                mimeType = "application/octet-stream";
+            }
 
-            dcStore.addContent(getSpaceID(group), getContentPrefix(group) + file.getName(),
-                               new FileInputStream(file), file.length(),
-                               mimeType, chkSum,
-                               new HashMap<String, String>());
+            new Retrier().execute(new Retriable() {
+                @Override
+                public String retry() throws Exception {
+                    return dcStore.addContent(getSpaceID(group), getContentPrefix(group) + file.getName(),
+                                       new FileInputStream(file), file.length(),
+                                       mimeType, chkSum,
+                                       new HashMap<String, String>());
+                }
+            });
 
             return file.length();
-        }
-        catch (ContentStoreException csE)
-        {
-            throw new IOException(csE);
+        } catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
