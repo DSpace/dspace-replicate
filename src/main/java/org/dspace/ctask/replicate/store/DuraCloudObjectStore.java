@@ -36,20 +36,17 @@ import org.dspace.curate.Utils;
  *
  * @author richardrodgers
  */
-public class DuraCloudObjectStore implements ObjectStore
-{
+public class DuraCloudObjectStore implements ObjectStore {
     private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
     // DuraCloud store
     private ContentStore dcStore = null;
 
-    public DuraCloudObjectStore()
-    {
+    public DuraCloudObjectStore() {
     }
 
     @Override
-    public void init() throws IOException
-    {
+    public void init() throws IOException {
         // locate & login to Duracloud store
         ContentStoreManager storeManager =
             new ContentStoreManagerImpl(configurationService.getProperty("duracloud.host"),
@@ -59,19 +56,17 @@ public class DuraCloudObjectStore implements ObjectStore
             new Credential(configurationService.getProperty("duracloud.username"),
                            configurationService.getProperty("duracloud.password"));
         storeManager.login(credential);
-        try
-        {
+        try {
             //Get the primary content store (e.g. Amazon)
             dcStore = storeManager.getPrimaryContentStore();
-        }
-        catch (ContentStoreException csE)
-        {
-            throw new IOException("Unable to connect to the DuraCloud Primary Content Store. Please check the DuraCloud connection/authentication settings in your 'duracloud.cfg' file.", csE);
+        } catch (ContentStoreException csE) {
+            throw new IOException("Unable to connect to the DuraCloud Primary Content Store. Please check the " +
+                                  "DuraCloud connection/authentication settings in your 'duracloud.cfg' file.", csE);
         }
     }
 
     @Override
-    public long fetchObject(String group, String id, File file) throws IOException {
+    public long fetchObject(final String group, final String id, final File file) throws IOException {
         long size = 0L;
         try {
             Content content = dcStore.getContent(getSpaceID(group), getContentPrefix(group) + id);
@@ -103,66 +98,48 @@ public class DuraCloudObjectStore implements ObjectStore
     }
 
     @Override
-    public boolean objectExists(String group, String id) throws IOException
-    {
-        try
-        {
+    public boolean objectExists(String group, String id) throws IOException {
+        try {
             return dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id) != null;
-        }
-        catch (NotFoundException nfE)
-        {
+        } catch (NotFoundException nfE) {
             return false;
-        }
-        catch (ContentStoreException csE)
-        {
+        } catch (ContentStoreException csE) {
             throw new IOException(csE);
         }
     }
 
     @Override
-    public long removeObject(String group, String id) throws IOException
-    {
+    public long removeObject(String group, String id) throws IOException {
         // get metadata before blowing away
         long size = 0L;
-        try
-        {
+        try {
             Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id);
-            size = Long.valueOf(attrs.get(ContentStore.CONTENT_SIZE));
+            size = Long.parseLong(attrs.get(ContentStore.CONTENT_SIZE));
             dcStore.deleteContent(getSpaceID(group), getContentPrefix(group) + id);
-        }
-        catch (NotFoundException nfE)
-        {
+        } catch (NotFoundException nfE) {
             // no replica - no-op
-        }
-        catch (ContentStoreException csE)
-        {
+        } catch (ContentStoreException csE) {
             throw new IOException(csE);
         }
         return size;
     }
 
     @Override
-    public long transferObject(String group, File file) throws IOException
-    {
+    public long transferObject(String group, File file) throws IOException {
         long size = 0L;
         String chkSum = Utils.checksum(file, "MD5");
         // make sure this is a different file from what replica store has
         // to avoid network I/O tax
-        try
-        {
-            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + file.getName());
-            if (! chkSum.equals(attrs.get(ContentStore.CONTENT_CHECKSUM)))
-            {
+        try {
+            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group),
+                                                                     getContentPrefix(group) + file.getName());
+            if (! chkSum.equals(attrs.get(ContentStore.CONTENT_CHECKSUM))) {
                 size = uploadReplica(group, file, chkSum);
             }
-        }
-        catch (NotFoundException nfE)
-        {
+        } catch (NotFoundException nfE) {
             // no extant replica - proceed
             size = uploadReplica(group, file, chkSum);
-        }
-        catch (ContentStoreException csE)
-        {
+        } catch (ContentStoreException csE) {
             throw new IOException(csE);
         }
         // delete staging file
@@ -202,55 +179,39 @@ public class DuraCloudObjectStore implements ObjectStore
     }
 
     @Override
-    public long moveObject(String srcGroup, String destGroup, String id) throws IOException
-    {
+    public long moveObject(String srcGroup, String destGroup, String id) throws IOException {
         // get file-size metadata before moving the content
         long size = 0L;
-        try
-        {
-            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id);
+        try {
+            Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(srcGroup),
+                                                                     getContentPrefix(srcGroup) + id);
             size = Long.parseLong(attrs.get(ContentStore.CONTENT_SIZE));
             dcStore.moveContent(getSpaceID(srcGroup), getContentPrefix(srcGroup) + id,
                                 getSpaceID(destGroup), getContentPrefix(destGroup) + id);
-        }
-        catch (NotFoundException nfE)
-        {
+        } catch (NotFoundException nfE) {
             // no replica - no-op
-        }
-        catch (ContentStoreException csE)
-        {
+        } catch (ContentStoreException csE) {
             throw new IOException(csE);
         }
         return size;
     }
 
     @Override
-    public String objectAttribute(String group, String id, String attrName) throws IOException
-    {
-        try
-        {
+    public String objectAttribute(String group, String id, String attrName) throws IOException {
+        try {
             Map<String, String> attrs = dcStore.getContentProperties(getSpaceID(group), getContentPrefix(group) + id);
 
-            if ("checksum".equals(attrName))
-            {
+            if ("checksum".equals(attrName)) {
                 return attrs.get(ContentStore.CONTENT_CHECKSUM);
-            }
-            else if ("sizebytes".equals(attrName))
-            {
+            } else if ("sizebytes".equals(attrName)) {
                 return attrs.get(ContentStore.CONTENT_SIZE);
-            }
-            else if ("modified".equals(attrName))
-            {
+            } else if ("modified".equals(attrName)) {
                 return attrs.get(ContentStore.CONTENT_MODIFIED);
             }
             return null;
-        }
-        catch (NotFoundException nfE)
-        {
+        } catch (NotFoundException nfE) {
             return null;
-        }
-        catch (ContentStoreException csE)
-        {
+        } catch (ContentStoreException csE) {
             throw new IOException(csE);
         }
     }
@@ -265,14 +226,14 @@ public class DuraCloudObjectStore implements ObjectStore
      * @param group name
      * @return DuraCloud Space ID
      */
-    private String getSpaceID(String group)
-    {
+    private String getSpaceID(String group) {
         //If group contains a forward or backslash, then the
         //Space ID is whatever is before that slash
-        if(group!=null && group.contains("/"))
+        if (group!=null && group.contains("/")) {
             return group.substring(0, group.indexOf("/"));
-        else // otherwise, the passed in group is the Space ID
+        } else { // otherwise, the passed in group is the Space ID
             return group;
+        }
     }
 
     /**
@@ -285,13 +246,13 @@ public class DuraCloudObjectStore implements ObjectStore
      * @param group name
      * @return content prefix (ending with a forward slash)
      */
-    private String getContentPrefix(String group)
-    {
+    private String getContentPrefix(String group) {
         //If group contains a forward or backslash, then the
         // content prefix is whatever is after that slash
-        if(group!=null && group.contains("/"))
-            return group.substring(group.indexOf("/")+1) + "/";
-        else // otherwise, no content prefix is specified
+        if (group!=null && group.contains("/")) {
+            return group.substring(group.indexOf("/") + 1) + "/";
+        } else { // otherwise, no content prefix is specified
             return "";
+        }
     }
 }
