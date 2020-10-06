@@ -7,6 +7,10 @@
  */
 package org.dspace.ctask.replicate.store;
 
+import static org.duracloud.common.retry.Retrier.DEFAULT_MAX_RETRIES;
+import static org.duracloud.common.retry.Retrier.DEFAULT_WAIT_BETWEEN_RETRIES;
+import static org.duracloud.common.retry.Retrier.DEFAULT_WAIT_MULTIPLIER;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -162,7 +166,11 @@ public class DuraCloudObjectStore implements ObjectStore {
                 mimeType = "application/octet-stream";
             }
 
-            new Retrier().execute(new Retriable() {
+            int maxRetries = configurationService.getIntProperty("duracloud.retry.max", DEFAULT_MAX_RETRIES);
+            int wait = configurationService.getIntProperty("duracloud.retry.wait", DEFAULT_WAIT_BETWEEN_RETRIES);
+            int multiplier = configurationService.getIntProperty("duracloud.retry.multiplier", DEFAULT_WAIT_MULTIPLIER);
+
+            new Retrier(maxRetries, wait, multiplier).execute(new Retriable() {
                 @Override
                 public String retry() throws Exception {
                     return dcStore.addContent(getSpaceID(group), getContentPrefix(group) + file.getName(),
