@@ -152,7 +152,7 @@ public class DuraCloudObjectStore implements ObjectStore {
     }
 
     private long uploadReplica(final String group, final File file, final String chkSum) throws IOException {
-        try {
+        try (final FileInputStream fileInputStream = new FileInputStream(file)) {
             //@TODO: We shouldn't need to pass a hardcoded MIME Type. Unfortunately, DuraCloud,
             // as of 1.3, doesn't properly determine a file's MIME Type. In future it should.
             final String mimeType;
@@ -174,7 +174,7 @@ public class DuraCloudObjectStore implements ObjectStore {
                 @Override
                 public String retry() throws Exception {
                     return dcStore.addContent(getSpaceID(group), getContentPrefix(group) + file.getName(),
-                                       new FileInputStream(file), file.length(),
+                                       fileInputStream, file.length(),
                                        mimeType, chkSum,
                                        new HashMap<String, String>());
                 }
