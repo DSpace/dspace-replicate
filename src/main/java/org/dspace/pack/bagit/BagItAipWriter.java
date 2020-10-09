@@ -46,11 +46,11 @@ import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duraspace.bagit.BagConfig;
 import org.duraspace.bagit.BagItDigest;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.BagProfileConstants;
-import org.duraspace.bagit.BagSerializer;
 import org.duraspace.bagit.BagWriter;
-import org.duraspace.bagit.SerializationSupport;
+import org.duraspace.bagit.profile.BagProfile;
+import org.duraspace.bagit.profile.BagProfileConstants;
+import org.duraspace.bagit.serialize.BagSerializer;
+import org.duraspace.bagit.serialize.SerializationSupport;
 import org.joda.time.LocalDate;
 import org.joda.time.format.ISODateTimeFormat;
 

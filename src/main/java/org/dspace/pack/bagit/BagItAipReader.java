@@ -45,9 +45,9 @@ import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
-import org.duraspace.bagit.BagDeserializer;
-import org.duraspace.bagit.BagProfile;
-import org.duraspace.bagit.SerializationSupport;
+import org.duraspace.bagit.profile.BagProfile;
+import org.duraspace.bagit.serialize.BagDeserializer;
+import org.duraspace.bagit.serialize.SerializationSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

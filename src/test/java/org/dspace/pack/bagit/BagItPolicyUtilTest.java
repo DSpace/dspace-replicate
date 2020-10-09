@@ -9,8 +9,8 @@ package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.dspace.authorize.ResourcePolicy.TYPE_CUSTOM;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.matches;
+import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
