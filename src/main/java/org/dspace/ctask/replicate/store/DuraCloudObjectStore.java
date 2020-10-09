@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duracloud.client.ContentStore;
@@ -41,16 +42,27 @@ import org.dspace.curate.Utils;
  * @author richardrodgers
  */
 public class DuraCloudObjectStore implements ObjectStore {
-    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
     // DuraCloud store
     private ContentStore dcStore = null;
 
+    // properties for retrying uploads
+    private int maxRetries = DEFAULT_MAX_RETRIES;
+    private int defaultWait = DEFAULT_WAIT_BETWEEN_RETRIES;
+    private int waitMultiplier = DEFAULT_WAIT_MULTIPLIER;
+
     public DuraCloudObjectStore() {
+    }
+
+    @VisibleForTesting
+    protected void setContentStore(final ContentStore contentStore) {
+        this.dcStore = contentStore;
     }
 
     @Override
     public void init() throws IOException {
+        final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+
         // locate & login to Duracloud store
         ContentStoreManager storeManager =
             new ContentStoreManagerImpl(configurationService.getProperty("duracloud.host"),
@@ -60,6 +72,11 @@ public class DuraCloudObjectStore implements ObjectStore {
             new Credential(configurationService.getProperty("duracloud.username"),
                            configurationService.getProperty("duracloud.password"));
         storeManager.login(credential);
+
+        maxRetries = configurationService.getIntProperty("duracloud.retry.max", DEFAULT_MAX_RETRIES);
+        defaultWait = configurationService.getIntProperty("duracloud.retry.wait", DEFAULT_WAIT_BETWEEN_RETRIES);
+        waitMultiplier = configurationService.getIntProperty("duracloud.retry.multiplier", DEFAULT_WAIT_MULTIPLIER);
+
         try {
             //Get the primary content store (e.g. Amazon)
             dcStore = storeManager.getPrimaryContentStore();
@@ -168,11 +185,7 @@ public class DuraCloudObjectStore implements ObjectStore {
                 mimeType = "application/octet-stream";
             }
 
-            int maxRetries = configurationService.getIntProperty("duracloud.retry.max", DEFAULT_MAX_RETRIES);
-            int wait = configurationService.getIntProperty("duracloud.retry.wait", DEFAULT_WAIT_BETWEEN_RETRIES);
-            int multiplier = configurationService.getIntProperty("duracloud.retry.multiplier", DEFAULT_WAIT_MULTIPLIER);
-
-            new Retrier(maxRetries, wait, multiplier).execute(new Retriable() {
+            new Retrier(maxRetries, defaultWait, waitMultiplier).execute(new Retriable() {
                 @Override
                 public String retry() throws Exception {
                     return dcStore.addContent(getSpaceID(group), getContentPrefix(group) + filename,
