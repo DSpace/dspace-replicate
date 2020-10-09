@@ -153,15 +153,17 @@ public class DuraCloudObjectStore implements ObjectStore {
 
     private long uploadReplica(final String group, final File file, final String chkSum) throws IOException {
         try (final FileInputStream fileInputStream = new FileInputStream(file)) {
-            //@TODO: We shouldn't need to pass a hardcoded MIME Type. Unfortunately, DuraCloud,
-            // as of 1.3, doesn't properly determine a file's MIME Type. In future it should.
+            // get the mime type for DuraCloud
             final String mimeType;
-            if (file.getName().endsWith(".zip")) {
+            final String filename = file.getName();
+            if (filename.endsWith(".zip")) {
                 mimeType = "application/zip";
-            } else if (file.getName().endsWith(".tgz")) {
+            } else if (filename.endsWith(".tgz") || filename.endsWith(".gzip")) {
                 mimeType = "application/x-gzip";
-            } else if (file.getName().endsWith(".txt")) {
+            } else if (filename.endsWith(".txt")) {
                 mimeType = "text/plain";
+            } else if (filename.endsWith(".tar")) {
+                mimeType = "application/tar";
             } else {
                 mimeType = "application/octet-stream";
             }
@@ -173,7 +175,7 @@ public class DuraCloudObjectStore implements ObjectStore {
             new Retrier(maxRetries, wait, multiplier).execute(new Retriable() {
                 @Override
                 public String retry() throws Exception {
-                    return dcStore.addContent(getSpaceID(group), getContentPrefix(group) + file.getName(),
+                    return dcStore.addContent(getSpaceID(group), getContentPrefix(group) + filename,
                                        fileInputStream, file.length(),
                                        mimeType, chkSum,
                                        new HashMap<String, String>());
