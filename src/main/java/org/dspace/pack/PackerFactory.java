@@ -13,14 +13,13 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.content.Site;
 import org.dspace.core.Constants;
-import org.dspace.pack.bagit.CatalogPacker;
 import org.dspace.pack.bagit.CollectionPacker;
 import org.dspace.pack.bagit.CommunityPacker;
 import org.dspace.pack.bagit.ItemPacker;
 import org.dspace.pack.bagit.SitePacker;
 import org.dspace.pack.mets.METSPacker;
 import org.dspace.services.factory.DSpaceServicesFactory;
-import org.duraspace.bagit.BagProfile;
+import org.duraspace.bagit.profile.BagProfile;
 
 /**
  * PackerFactory mints packers for specified object types. Packer implementation
