@@ -100,7 +100,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
             //Load packaging options from replicate-mets.cfg configuration file
             PackageParameters pkgParams = this.loadPackagerParameters(metsModuleConfig);
             if (scope == null) {
-                scope = "*";
+                scope = "";
             }
             pkgParams.setProperty("scope", scope);
             
