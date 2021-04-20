@@ -18,7 +18,7 @@ Backup Format
 DSpace content is replicated / backed up as a set of AIPs (Archival Information Packages).
 The Replication Task Suite supports two different AIP formats:
   1. The DSpace AIP Format based on METS (Default)
-     https://wiki.duraspace.org/display/DSDOC3x/DSpace+AIP+Format
+     https://wiki.lyrasis.org/display/DSDOC3x/DSpace+AIP+Format
   2. A BagIt based AIP Format (Beta)
 
 Sample Supported Actions
@@ -34,4 +34,4 @@ content (from a backup), or audit your existing backup. Some sample actions incl
 More Information
 ----------------
 Installation documentation, configuration documentation and usage examples are all available at:
-https://wiki.duraspace.org/display/DSPACE/ReplicationTaskSuite
+https://wiki.lyrasis.org/display/DSPACE/ReplicationTaskSuite
