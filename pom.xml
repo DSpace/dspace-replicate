@@ -22,8 +22,8 @@
         <!-- DuraSpace BagIt Support Library -->
         <bagit-support.version>1.1.0</bagit-support.version>
         <jaxb.version>2.3.1</jaxb.version>
-        <!-- Replication Task Suite requires Java 1.7 or higher, as DuraCloud APIs require Java 1.7 or above. -->
-        <java.version>1.7</java.version>
+        <!-- Replication Task Suite requires Java 11 because DSpace 7 requires it -->
+        <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
     </properties>
@@ -74,8 +74,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.1</version>
                     <configuration>
-                        <source>${java.version}</source>
-                        <target>${java.version}</target>
+                        <release>${java.version}</release>
                     </configuration>
                 </plugin>
                 <!-- Used to package all JARs -->
