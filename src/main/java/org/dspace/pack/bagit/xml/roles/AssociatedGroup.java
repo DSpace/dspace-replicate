@@ -82,7 +82,7 @@ public class AssociatedGroup {
      * @param group the group associated to the DSpaceObject
      * @return the group type string or null
      */
-    private String findGroupType(final DSpaceObject dso, final Group group) {
+    private String findGroupType(final DSpaceObject dso, final Group group) throws SQLException {
         if (dso == null || group == null) {
             return null;
         }
@@ -100,11 +100,11 @@ public class AssociatedGroup {
                 return RoleDisseminator.GROUP_TYPE_ADMIN;
             } else if (group.equals(collection.getSubmitters())) {
                 return RoleDisseminator.GROUP_TYPE_SUBMIT;
-            } else if (group.equals(collection.getWorkflowStep1())) {
+            } else if (group.equals(collection.getWorkflowStep1(Curator.curationContext()))) {
                 return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_1;
-            } else if (group.equals(collection.getWorkflowStep2())) {
+            } else if (group.equals(collection.getWorkflowStep2(Curator.curationContext()))) {
                 return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_2;
-            } else if (group.equals(collection.getWorkflowStep3())) {
+            } else if (group.equals(collection.getWorkflowStep3(Curator.curationContext()))) {
                 return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_3;
             }
         }

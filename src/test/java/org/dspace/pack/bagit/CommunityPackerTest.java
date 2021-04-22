@@ -103,7 +103,8 @@ public class CommunityPackerTest extends BagItPackerTest {
         final CommunityPacker packer = new CommunityPacker(community, archFmt);
         packer.unpack(archive.toFile());
 
-        verify(communityService, times(5)).setMetadata(any(Context.class), eq(community), anyString(), anyString());
+        verify(communityService, times(5)).setMetadataSingleValue(any(Context.class), eq(community), anyString(),
+                anyString(), anyString(), anyString(), anyString());
         verify(communityService, never()).setLogo(any(Context.class), eq(community), any(InputStream.class));
         verify(communityService, times(1)).update(any(Context.class), eq(community));
 

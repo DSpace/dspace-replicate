@@ -242,7 +242,7 @@ public class ItemPacker implements Packer {
             {
                 for (Bitstream bs : bundle.getBitstreams())
                 {
-                    size += bs.getSize();
+                    size += bs.getSizeBytes();
                 }
             }
         }
@@ -286,7 +286,7 @@ public class ItemPacker implements Packer {
         for (RefFilter filter : refFilters)
         {
             if (filter.bundle.equals(bundle.getName()) &&
-                filter.size == bs.getSize())
+                filter.size == bs.getSizeBytes())
             {
                 return filter.url;
             }
