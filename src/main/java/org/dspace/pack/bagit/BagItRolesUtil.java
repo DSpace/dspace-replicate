@@ -14,10 +14,6 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -36,7 +32,6 @@ import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.roles.AssociatedGroup;
 import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 import org.dspace.pack.bagit.xml.roles.Person;
-import org.w3c.dom.Document;
 
 /**
  * Create a {@link org.dspace.pack.bagit.xml.roles.DSpaceRoles} for a BagIt bag
