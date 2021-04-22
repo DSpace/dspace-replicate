@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.dspace.kernel.ServiceManager;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * Service manager which stores registered services in memory and returns them for use
@@ -22,6 +23,11 @@ import org.dspace.kernel.ServiceManager;
 public class TestServiceManager implements ServiceManager {
 
     private Map<String, Object> serviceNameMap = new HashMap<>();
+
+    @Override
+    public ConfigurableApplicationContext getApplicationContext() {
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     public <T> List<T> getServicesByType(Class<T> type) {

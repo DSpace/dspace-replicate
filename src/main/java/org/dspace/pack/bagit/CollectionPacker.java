@@ -169,7 +169,8 @@ public class CollectionPacker implements Packer
 
         final Metadata metadata = reader.readMetadata();
         for (Value value : metadata.getValues()) {
-            collectionService.setMetadata(context, collection, value.getName(), value.getBody());
+            collectionService.setMetadataSingleValue(context, collection, value.getSchema(), value.getElement(),
+                    value.getQualifier(), value.getLanguage(), value.getBody());
         }
 
         final Optional<Metadata> templateMetadata = reader.findItemTemplate();
@@ -204,7 +205,7 @@ public class CollectionPacker implements Packer
         Bitstream logo = collection.getLogo();
         if (logo != null)
         {
-            size += logo.getSize();
+            size += logo.getSizeBytes();
         }
         // proceed to items, unless 'norecurse' set
         if (! "norecurse".equals(method))

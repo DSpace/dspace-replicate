@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 import java.util.List;
 
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.RelationshipMetadataService;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamFormatService;
 import org.dspace.content.service.BitstreamService;
@@ -20,15 +21,18 @@ import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.CommunityService;
 import org.dspace.content.service.DSpaceObjectLegacySupportService;
 import org.dspace.content.service.DSpaceObjectService;
+import org.dspace.content.service.EntityService;
+import org.dspace.content.service.EntityTypeService;
 import org.dspace.content.service.InstallItemService;
 import org.dspace.content.service.ItemService;
 import org.dspace.content.service.MetadataFieldService;
 import org.dspace.content.service.MetadataSchemaService;
 import org.dspace.content.service.MetadataValueService;
+import org.dspace.content.service.RelationshipService;
+import org.dspace.content.service.RelationshipTypeService;
 import org.dspace.content.service.SiteService;
 import org.dspace.content.service.SupervisedItemService;
 import org.dspace.content.service.WorkspaceItemService;
-import org.dspace.handle.service.HandleService;
 
 /**
  * A {@link ContentServiceFactory} which returns mock services
@@ -122,5 +126,30 @@ public class TestContentServiceFactory extends ContentServiceFactory {
     @Override
     public SiteService getSiteService() {
         return siteService;
+    }
+
+    @Override
+    public RelationshipTypeService getRelationshipTypeService() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public RelationshipService getRelationshipService() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public EntityTypeService getEntityTypeService() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public EntityService getEntityService() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public RelationshipMetadataService getRelationshipMetadataService() {
+        throw new UnsupportedOperationException();
     }
 }

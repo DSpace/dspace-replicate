@@ -126,17 +126,17 @@ public class BagItRolesUtil {
             dSpaceRoles.addGroup(new AssociatedGroup(collection, submitters));
         }
 
-        final Group workflowStep1 = collection.getWorkflowStep1();
+        final Group workflowStep1 = collection.getWorkflowStep1(Curator.curationContext());
         if (workflowStep1 != null) {
             dSpaceRoles.addGroup(new AssociatedGroup(collection, workflowStep1));
         }
 
-        final Group workflowStep2 = collection.getWorkflowStep2();
+        final Group workflowStep2 = collection.getWorkflowStep2(Curator.curationContext());
         if (workflowStep2 != null) {
             dSpaceRoles.addGroup(new AssociatedGroup(collection, workflowStep2));
         }
 
-        final Group workflowStep3 = collection.getWorkflowStep3();
+        final Group workflowStep3 = collection.getWorkflowStep3(Curator.curationContext());
         if (workflowStep3 != null) {
             dSpaceRoles.addGroup(new AssociatedGroup(collection, workflowStep3));
         }

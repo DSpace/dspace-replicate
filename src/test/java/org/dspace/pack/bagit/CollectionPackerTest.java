@@ -126,7 +126,8 @@ public class CollectionPackerTest extends BagItPackerTest {
         final CollectionPacker packer = new CollectionPacker(collection, archFmt);
         packer.unpack(archive.toFile());
 
-        verify(collectionService, times(7)).setMetadata(any(Context.class), eq(collection), anyString(), anyString());
+        verify(collectionService, times(7)).setMetadataSingleValue(any(Context.class), eq(collection), anyString(),
+                anyString(), anyString(), anyString(), anyString());
         verify(collectionService, times(1)).setLogo(any(Context.class), eq(collection), any(InputStream.class));
         verify(collectionService, times(1)).update(any(Context.class), eq(collection));
         verify(itemService, times(1)).createTemplateItem(any(Context.class), eq(collection));

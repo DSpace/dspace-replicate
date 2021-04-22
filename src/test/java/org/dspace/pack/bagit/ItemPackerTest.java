@@ -8,7 +8,6 @@
 package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.dspace.content.MetadataSchema.DC_SCHEMA;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -36,6 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.dspace.content.MetadataSchemaEnum.DC;
+
 import org.assertj.core.util.Files;
 import org.dspace.authorize.ResourcePolicy;
 import org.dspace.authorize.factory.AuthorizeServiceFactory;
@@ -46,8 +47,6 @@ import org.dspace.content.BitstreamFormat;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
 import org.dspace.content.Item;
-import org.dspace.content.MetadataField;
-import org.dspace.content.MetadataSchema;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
@@ -151,11 +150,11 @@ public class ItemPackerTest extends BagItPackerTest {
         when(itemService.getMetadata(eq(item), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY)))
             .thenReturn(Collections.singletonList(metadataValue));
 
-        when(bitstreamService.getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
+        when(bitstreamService.getMetadataFirstValue(eq(primaryBitstream), eq(DC.getName()),
                                                     matches(bitstreamRegex), isNull(String.class),
                                                     eq(Item.ANY))).thenReturn(PRIMARY_NAME);
 
-        when(bitstreamService.getMetadataFirstValue(eq(licenseBitstream), eq(DC_SCHEMA),
+        when(bitstreamService.getMetadataFirstValue(eq(licenseBitstream), eq(DC.getName()),
                                                     matches(bitstreamRegex), isNull(String.class),
                                                     eq(Item.ANY))).thenReturn(LICENSE_NAME);
 
@@ -166,7 +165,7 @@ public class ItemPackerTest extends BagItPackerTest {
 
         when(bitstreamService.getFormat(any(Context.class), any(Bitstream.class))).thenReturn(bitstreamFormat);
 
-        when(bundleService.getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle), isNull(String.class),
+        when(bundleService.getMetadataFirstValue(eq(bundle), eq(DC.getName()), eq(bitstreamTitle), isNull(String.class),
                                                  eq(Item.ANY))).thenReturn(BUNDLE_NAME);
 
         // and perform the packaging
@@ -176,12 +175,12 @@ public class ItemPackerTest extends BagItPackerTest {
         // verify all the interactions we outlined above
         verify(itemService, times(1)).isOwningCollection(eq(item), eq(owning));
         verify(itemService, times(1)).isOwningCollection(eq(item), eq(linked));
-        verify(bundleService, times(1)).getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle),
+        verify(bundleService, times(1)).getMetadataFirstValue(eq(bundle), eq(DC.getName()), eq(bitstreamTitle),
                                                               isNull(String.class), eq(Item.ANY));
-        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
+        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(primaryBitstream), eq(DC.getName()),
                                                                  matches(bitstreamRegex),
                                                                  isNull(String.class), eq(Item.ANY));
-        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(licenseBitstream), eq(DC_SCHEMA),
+        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(licenseBitstream), eq(DC.getName()),
                                                                  matches(bitstreamRegex),
                                                                   isNull(String.class), eq(Item.ANY));
         verify(bitstreamService, times(2)).getFormat(any(Context.class), any(Bitstream.class));
@@ -213,11 +212,11 @@ public class ItemPackerTest extends BagItPackerTest {
         when(itemService.getMetadata(eq(item), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY)))
             .thenReturn(Collections.singletonList(metadataValue));
 
-        when(bitstreamService.getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
+        when(bitstreamService.getMetadataFirstValue(eq(primaryBitstream), eq(DC.getName()),
                                                     matches(bitstreamRegex), isNull(String.class),
                                                     eq(Item.ANY))).thenReturn(PRIMARY_NAME);
 
-        when(bitstreamService.getMetadataFirstValue(eq(licenseBitstream), eq(DC_SCHEMA),
+        when(bitstreamService.getMetadataFirstValue(eq(licenseBitstream), eq(DC.getName()),
                                                     matches(bitstreamRegex), isNull(String.class),
                                                     eq(Item.ANY))).thenReturn(LICENSE_NAME);
 
@@ -226,7 +225,7 @@ public class ItemPackerTest extends BagItPackerTest {
         when(bitstreamService.retrieve(any(Context.class), eq(licenseBitstream)))
             .thenReturn(new ByteArrayInputStream(LICENSE_NAME.getBytes()));
 
-        when(bundleService.getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle), isNull(String.class),
+        when(bundleService.getMetadataFirstValue(eq(bundle), eq(DC.getName()), eq(bitstreamTitle), isNull(String.class),
                                                  eq(Item.ANY))).thenReturn(BUNDLE_NAME);
 
         // and perform the packaging
@@ -242,12 +241,12 @@ public class ItemPackerTest extends BagItPackerTest {
 
         // verify all the interactions we outlined above
         // 1 bundle.getName when looping the bundle, 2 from the ReferenceFilter
-        verify(bundleService, times(3)).getMetadataFirstValue(eq(bundle), eq(DC_SCHEMA), eq(bitstreamTitle),
+        verify(bundleService, times(3)).getMetadataFirstValue(eq(bundle), eq(DC.getName()), eq(bitstreamTitle),
                                                               isNull(String.class), eq(Item.ANY));
-        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(primaryBitstream), eq(DC_SCHEMA),
+        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(primaryBitstream), eq(DC.getName()),
                                                                  matches(bitstreamRegex),
                                                                  isNull(String.class), eq(Item.ANY));
-        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(licenseBitstream), eq(DC_SCHEMA),
+        verify(bitstreamService, times(3)).getMetadataFirstValue(eq(licenseBitstream), eq(DC.getName()),
                                                                  matches(bitstreamRegex),
                                                                  isNull(String.class), eq(Item.ANY));
         verify(itemService, times(1)).getMetadata(eq(item), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY));
@@ -316,12 +315,12 @@ public class ItemPackerTest extends BagItPackerTest {
         verify(bitstreamService, times(1)).create(any(Context.class), eq(originalBundle), any(InputStream.class));
 
         verify(bitstreamService, times(2)).setMetadataSingleValue(any(Context.class), eq(licenseBitstream),
-                                                                  eq(DC_SCHEMA), matches(metadataRegex),
+                                                                  eq(DC.getName()), matches(metadataRegex),
                                                                   isNull(String.class), isNull(String.class),
                                                                   anyString());
 
         verify(bitstreamService, times(3)).setMetadataSingleValue(any(Context.class), eq(originalBitstream),
-                                                                  eq(DC_SCHEMA), matches(metadataRegex),
+                                                                  eq(DC.getName()), matches(metadataRegex),
                                                                   isNull(String.class), isNull(String.class),
                                                                   anyString());
 

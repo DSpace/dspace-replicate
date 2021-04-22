@@ -13,7 +13,6 @@ import org.dspace.services.ConfigurationService;
 import org.dspace.services.EmailService;
 import org.dspace.services.EventService;
 import org.dspace.services.RequestService;
-import org.dspace.services.SessionService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.dspace.utils.DSpace;
 
@@ -49,11 +48,6 @@ public class TestDSpaceServicesFactory extends DSpaceServicesFactory {
 
     @Override
     public RequestService getRequestService() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public SessionService getSessionService() {
         throw new UnsupportedOperationException();
     }
 

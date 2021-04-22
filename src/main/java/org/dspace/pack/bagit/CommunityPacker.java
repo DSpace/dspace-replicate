@@ -149,9 +149,8 @@ public class CommunityPacker implements Packer
 
         final Metadata metadata= reader.readMetadata();
         for (Value value : metadata.getValues()) {
-            final String name = value.getName();
-            final String body = value.getBody();
-            communityService.setMetadata(context, community, name, body);
+            communityService.setMetadataSingleValue(context, community, value.getSchema(), value.getElement(),
+                    value.getQualifier(), value.getLanguage(), value.getBody());
         }
 
         final Optional<Path> logo = reader.findLogo();
@@ -174,7 +173,7 @@ public class CommunityPacker implements Packer
         Bitstream logo = community.getLogo();
         if (logo != null)
         {
-            size += logo.getSize();
+            size += logo.getSizeBytes();
         }
         // proceed to children, unless 'norecurse' set
         if (! "norecurse".equals(method))
