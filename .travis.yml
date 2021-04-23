@@ -1,5 +1,0 @@
-language: java
-jdk: oraclejdk11
-sudo: false
-dist: trusty
-script: mvn clean verify
