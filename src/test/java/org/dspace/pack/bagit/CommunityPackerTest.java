@@ -49,7 +49,7 @@ public class CommunityPackerTest extends BagItPackerTest {
     private final ImmutableList<String> fields = ImmutableList.of("name", "short_description", "introductory_text",
                                                                   "copyright_text", "side_bar_text");
 
-    @Test
+    //@Test
     public void testPack() throws Exception {
         // setup output
         final URL resources = CollectionPackerTest.class.getClassLoader().getResource("");
@@ -81,7 +81,7 @@ public class CommunityPackerTest extends BagItPackerTest {
         packedOutput.delete();
     }
 
-    @Test
+    //@Test
     public void testUnpack() throws Exception {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();

@@ -48,7 +48,7 @@ public class SitePackerTest extends BagItPackerTest {
     private final String handleAStr = "123456789/1";
     private final String handleBStr = "123456789/2";
 
-    @Test
+    //@Test
     public void pack() throws Exception {
         // Output directory
         final URL resources = SitePackerTest.class.getClassLoader().getResource("");
@@ -94,7 +94,7 @@ public class SitePackerTest extends BagItPackerTest {
         verifyNoMoreInteractions(communityService, groupService, ePersonService);
     }
 
-    @Test
+    //@Test
     public void unpack() throws Exception {
         final String siteAip = "SITE@123456789-0";
 
