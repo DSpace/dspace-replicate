@@ -24,7 +24,7 @@
         <!-- DSpace Version Information (supported version of DSpace) -->
         <dspace.version>7.0-beta5</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
-        <duracloud.version>6.1.1</duracloud.version>
+        <duracloud.version>7.0.0</duracloud.version>
         <!-- DuraSpace BagIt Support Library -->
         <bagit-support.version>1.1.0</bagit-support.version>
         <jaxb.version>2.3.1</jaxb.version>
