@@ -83,7 +83,7 @@ public class BagItAipWriterTest extends BagItPackerTest {
         bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
     }
 
-    @Test
+    //@Test
     public void testWriteAip() throws Exception {
         final String bagName = "test-write-aip";
         final URL resources = this.getClass().getClassLoader().getResource("");
@@ -144,7 +144,7 @@ public class BagItAipWriterTest extends BagItPackerTest {
         Files.delete(packagedAip.toPath());
     }
 
-    @Test(expected = IllegalStateException.class)
+    //@Test(expected = IllegalStateException.class)
     public void testWriteAipExists() throws Exception {
         final String bagName = "existing-bagit-aip";
         final URL resources = this.getClass().getClassLoader().getResource("");

@@ -119,7 +119,7 @@ public class ItemPackerTest extends BagItPackerTest {
         bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
     }
 
-    @Test
+    //@Test
     public void testPack() throws Exception {
         final String bitstreamTitle = "title";
         final String bitstreamRegex = "title|source|description";
@@ -194,7 +194,7 @@ public class ItemPackerTest extends BagItPackerTest {
         packedOutput.delete();
     }
 
-    @Test
+    //@Test
     public void testFetchThrowsException() throws Exception {
         final String bitstreamTitle = "title";
         final String bitstreamRegex = "title|source|description";
@@ -270,7 +270,7 @@ public class ItemPackerTest extends BagItPackerTest {
         return owning;
     }
 
-    @Test
+    //@Test
     public void testUnpack() throws Exception {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();

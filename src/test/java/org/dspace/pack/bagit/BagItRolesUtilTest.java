@@ -81,7 +81,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
     }
 
-    @Test
+    //@Test
     public void testGetDSpaceRolesForSite() throws Exception {
         final Site site = initDSO(Site.class);
         final Group group = initDSO(Group.class);
@@ -151,7 +151,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testGetDSpaceRolesForCommunity() throws Exception {
         // mock the community so that we can easily use community.getAdministrators to return our group
         final UUID uuid = UUID.randomUUID();
@@ -213,7 +213,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         }
     }
 
-    @Test
+    //@Test
     public void testGetDSpaceRolesForCollection() throws Exception {
         // mock the collection so that we can easily get groups from the collection getters
         final UUID uuid = UUID.randomUUID();
@@ -275,7 +275,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         }
     }
 
-    @Test
+    //@Test
     public void ingest() throws Exception {
         // get the roles.xml file
         final String location = "existing-bagit-aip/data/roles.xml";
