@@ -38,7 +38,6 @@ import org.dspace.content.service.CommunityService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
 
@@ -52,12 +51,14 @@ public class SitePacker implements Packer {
     private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
     private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
 
+    private final Context context;
     private final Site site;
     private final String archFmt;
 
     private List<String> members;
 
-    public SitePacker(Site site, String archFmt) {
+    public SitePacker(Context context, Site site, String archFmt) {
+        this.context = context;
         this.site = site;
         this.archFmt = archFmt;
     }
@@ -80,7 +81,7 @@ public class SitePacker implements Packer {
 
         // add handles of all DSpaceObjects found in the site
         final List<String> handles = new ArrayList<>();
-        final List<Community> allTopCommunities = communityService.findAllTop(Curator.curationContext());
+        final List<Community> allTopCommunities = communityService.findAllTop(context);
         for (Community community : allTopCommunities) {
             appendHandles(handles, community);
         }
@@ -88,12 +89,12 @@ public class SitePacker implements Packer {
 
         DSpaceRoles dSpaceRoles;
         try {
-            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(site);
+            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(context, site);
         } catch (PackageException exception) {
             throw new IOException(exception);
         }
 
-        return new BagItAipWriter(packDir, archFmt, properties)
+        return new BagItAipWriter(context, packDir, archFmt, properties)
             .withDSpaceRoles(dSpaceRoles)
             .packageAip();
     }
@@ -121,7 +122,7 @@ public class SitePacker implements Packer {
 
         } else if (dso.getType() == Constants.COLLECTION) {
             final Collection collection = (Collection) dso;
-            final Iterator<Item> items = itemService.findAllByCollection(Curator.curationContext(), collection);
+            final Iterator<Item> items = itemService.findAllByCollection(context, collection);
             while (items.hasNext()) {
                 final Item item = items.next();
                 handles.add(item.getHandle());
@@ -135,7 +136,6 @@ public class SitePacker implements Packer {
             throw new IOException("Missing archive for site: " + site.getHandle());
         }
 
-        final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 

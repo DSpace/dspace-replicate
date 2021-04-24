@@ -63,14 +63,16 @@ public class ItemPacker implements Packer {
     private static final String SEQUENCE_ID = "sequence_id";
     private static final String BUNDLE_PRIMARY = "bundle_primary";
 
+    private final Context context;
     private Item item = null;
     private String archFmt = null;
     private List<String> filterBundles = new ArrayList<>();
     private boolean exclude = true;
     private List<RefFilter> refFilters = new ArrayList<>();
 
-    public ItemPacker(Item item, String archFmt)
+    public ItemPacker(Context context, Item item, String archFmt)
     {
+        this.context = context;
         this.item = item;
         this.archFmt = archFmt;
     }
@@ -117,7 +119,7 @@ public class ItemPacker implements Packer {
         }
 
         // policy.xml
-        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), item);
+        final Policies policy = BagItPolicyUtil.getPolicy(context, item);
 
         // proceed to bundles, in sub-directories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
@@ -141,7 +143,7 @@ public class ItemPacker implements Packer {
                     }
 
                     // bitstream policy
-                    final Policies bitstreamPolicy = BagItPolicyUtil.getPolicy(Curator.curationContext(), bs);
+                    final Policies bitstreamPolicy = BagItPolicyUtil.getPolicy(context, bs);
 
                     // write the bitstream itself, unless reference filter applies
                     final String fetchUrl = byReference(bundle, bs);
@@ -154,7 +156,7 @@ public class ItemPacker implements Packer {
             }
         }
 
-        return new BagItAipWriter(packDir, archFmt, properties)
+        return new BagItAipWriter(context, packDir, archFmt, properties)
             .withPolicies(policy)
             .withMetadata(metadata)
             .withBitstreams(bitstreams)
@@ -167,14 +169,13 @@ public class ItemPacker implements Packer {
             throw new IOException("Missing archive for item: " + item.getHandle());
         }
 
-        final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
         // set the policies for the item
         try {
             final Policies policies = reader.readPolicy();
-            BagItPolicyUtil.registerPolicies(item, policies);
+            BagItPolicyUtil.registerPolicies(context, item, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }
@@ -220,7 +221,7 @@ public class ItemPacker implements Packer {
             // and the bitstream policies
             try {
                 final Policies bitstreamPolicies = packaged.getPolicies();
-                BagItPolicyUtil.registerPolicies(bitstream, bitstreamPolicies);
+                BagItPolicyUtil.registerPolicies(context, bitstream, bitstreamPolicies);
             } catch (PackageException e) {
                 throw new IOException(e.getMessage(), e);
             }

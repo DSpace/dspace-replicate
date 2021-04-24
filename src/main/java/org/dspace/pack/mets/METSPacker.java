@@ -35,7 +35,6 @@ import org.dspace.core.Context;
 import org.dspace.core.Constants;
 import org.dspace.core.factory.CoreServiceFactory;
 import org.dspace.core.service.PluginService;
-import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 
 import org.apache.log4j.Logger;
@@ -53,7 +52,9 @@ public class METSPacker implements Packer
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     private Logger log = Logger.getLogger(METSPacker.class);
-    
+
+    /** The context to use */
+    private Context context;
     /** Related DSpace Object **/
     private DSpaceObject dso = null;
     /** Exported archive format (e.g. zip) **/
@@ -72,14 +73,16 @@ public class METSPacker implements Packer
     private PackageDisseminator dip = null;
     private PackageIngester sip = null;
 
-    public METSPacker(String archFmt)
+    public METSPacker(Context context, String archFmt)
     {
+        this.context = context;
         this.dso = null;
         this.archFmt = archFmt;
     }
     
-    public METSPacker(DSpaceObject dso, String archFmt)
+    public METSPacker(Context context, DSpaceObject dso, String archFmt)
     {
+        this.context = context;
         this.dso = dso;
         this.archFmt = archFmt;
     }
@@ -124,9 +127,6 @@ public class METSPacker implements Packer
         {
             throw new IOException("Cannot obtain AIP disseminator. No dissemination plugin named 'AIP' is configured.");
         }
-        
-        //Retrieve curation thread's context object
-        Context context = Curator.curationContext();
         
         //Initialize packaging params
         PackageParameters pkgParams = new PackageParameters();
@@ -204,9 +204,6 @@ public class METSPacker implements Packer
             throw new IOException("Cannot obtain AIP ingester. No ingestion plugin named 'AIP' is configured.");
         }
 
-        //Retrieve a Context object, authenticated as the current Task performer.
-        Context context = Curator.curationContext();
-        
         if(pkgParams==null || pkgParams.isEmpty())
         {
             pkgParams = new PackageParameters();
@@ -321,14 +318,11 @@ public class METSPacker implements Packer
     {
         long size = 0L;
         
-        //Retrieve curation thread's Context object
-        Context ctx = Curator.curationContext();
-        
         //This Site AIP itself is very small, so as a "guess" we'll just total
         // up the size of all Community, Collection & Item AIPs
         //Then, perform this task for all Top-Level Communities in the Site
         // (this will recursively perform task for all objects in DSpace)
-        for (Community subcomm : communityService.findAllTop(ctx))
+        for (Community subcomm : communityService.findAllTop(context))
         {
             size += communitySize(subcomm);
         }
@@ -385,7 +379,7 @@ public class METSPacker implements Packer
         {
             size += logo.getSizeBytes();
         }
-        Iterator<Item> itemIter = itemService.findByCollection(Curator.curationContext(), collection);
+        Iterator<Item> itemIter = itemService.findByCollection(context, collection);
         while (itemIter.hasNext())
         {
             size += itemSize(itemIter.next());

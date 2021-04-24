@@ -63,9 +63,9 @@ public class CompareWithManifest extends AbstractCurationTask
         
         try
         {
-            String filename = repMan.storageId(dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
-            
-            int status = checkManifest(repMan, filename, Curator.curationContext());
+            Context context = Curator.curationContext();
+            String filename = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
+            int status = checkManifest(repMan, filename, context);
 
             //report the final result
             report(result);
@@ -96,11 +96,11 @@ public class CompareWithManifest extends AbstractCurationTask
      */
     private int checkManifest(ReplicaManager repMan, String filename, Context context) throws IOException, SQLException
     {
-        File manFile = repMan.fetchObject(manifestGroupName, filename);
+        File manFile = repMan.fetchObject(context, manifestGroupName, filename);
         if (manFile != null)
         {
             Item item = null;
-            Map<String, Bitstream> bsMap = new HashMap<String, Bitstream>();
+            Map<String, Bitstream> bsMap = new HashMap<>();
             BufferedReader reader = new BufferedReader(new FileReader(manFile));
             String line = null;
             while ((line = reader.readLine()) != null)

@@ -10,6 +10,7 @@ package org.dspace.ctask.replicate;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -69,7 +70,7 @@ public class FetchAIP extends AbstractCurationTask
     
     /**
      * Perform the 'Fetch AIP' task
-     * @param ctx DSpace Context (this param is ignored for this task)
+     * @param ctx DSpace Context
      * @param id ID of object whose AIP should be fetched
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
@@ -78,8 +79,8 @@ public class FetchAIP extends AbstractCurationTask
     public int perform(Context ctx, String id) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        String objId = repMan.storageId(id, archFmt);
-        File archive = repMan.fetchObject(storeGroupName, objId);
+        String objId = repMan.storageId(ctx, id, archFmt);
+        File archive = repMan.fetchObject(ctx, storeGroupName, objId);
         boolean found = archive != null;
         String result = "AIP for object: " + id + " located : " + found + ".";
         if(found)

@@ -31,6 +31,7 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.MetadataField;
 import org.dspace.content.MetadataSchema;
 import org.dspace.content.MetadataValue;
+import org.dspace.core.Context;
 import org.dspace.core.DBConnection;
 import org.dspace.core.ReloadableEntity;
 import org.dspace.event.factory.EventServiceFactory;
@@ -67,6 +68,8 @@ public abstract class BagItPackerTest {
     private final EventService eventService = mock(EventService.class);
     private final EventServiceFactory eventServiceFactory = mock(EventServiceFactory.class);
 
+    protected final Context mockContext = mock(Context.class);
+
     protected final String archFmt = "zip";
 
     @Before
@@ -91,11 +94,6 @@ public abstract class BagItPackerTest {
 
         // expected mock interactions
         when(eventServiceFactory.getEventService()).thenReturn(eventService);
-    }
-
-    @After
-    public void verifyMocks() {
-        verify(eventServiceFactory, atLeastOnce()).getEventService();
     }
 
     /**

@@ -68,7 +68,11 @@ public class RemoveAIP extends AbstractCurationTask {
     public int perform(DSpaceObject dso) throws IOException 
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        remove(repMan, dso);
+        try {
+            remove(Curator.curationContext(), repMan, dso);
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
         setResult("AIP for '" + dso.getHandle() + "' has been removed");
         return Curator.CURATE_SUCCESS;
     }
@@ -76,47 +80,42 @@ public class RemoveAIP extends AbstractCurationTask {
     /**
      * Remove replica(s) of the passed in DSpace object from a particular
      * replica ObjectStore.
+     *
+     * @param context the context to use
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param dso the DSpace object whose replicas we will remove
      * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
-    private void remove(ReplicaManager repMan, DSpaceObject dso) throws IOException 
+    private void remove(Context context, ReplicaManager repMan, DSpaceObject dso) throws IOException, SQLException
     {
         //Remove object from AIP storage
-        String objId = repMan.storageId(dso.getHandle(), archFmt);
+        String objId = repMan.storageId(context, dso.getHandle(), archFmt);
         repMan.removeObject(storeGroupName, objId);
         report("Removing AIP for: " + objId);
-        
+
         //If it is a Collection, also remove all Items from AIP storage
         if (dso instanceof Collection) {
-            Collection coll = (Collection)dso;
-            try {
-                Iterator<Item> iter = itemService.findByCollection(Curator.curationContext(), coll);
-                while (iter.hasNext()) {
-                    remove(repMan, iter.next());
-                }
-            } catch (SQLException sqlE) {
-                throw new IOException(sqlE);
+            Collection coll = (Collection) dso;
+            Iterator<Item> iter = itemService.findByCollection(context, coll);
+            while (iter.hasNext()) {
+                remove(context, repMan, iter.next());
             }
-        } // else if it a Community, also remove all sub-communities, collections (and items) from AIP storage 
+        } // else if it a Community, also remove all sub-communities, collections (and items) from AIP storage
         else if (dso instanceof Community) {
-            Community comm = (Community)dso;
+            Community comm = (Community) dso;
             for (Community subcomm : comm.getSubcommunities()) {
-                remove(repMan, subcomm);
+                remove(context, repMan, subcomm);
             }
             for (Collection coll : comm.getCollections()) {
-                remove(repMan, coll);
+                remove(context, repMan, coll);
             }
         } //else if it is a Site object, remove all top-level communities (and everything else) from AIP storage
         else if (dso instanceof Site) {
-            try {
-                List<Community> topCommunities = communityService.findAllTop(Curator.curationContext());
-                
-                for (Community subcomm : topCommunities) {
-                    remove(repMan, subcomm);
-                }
-            } catch (SQLException sqlE) {
-                throw new IOException(sqlE);
+            List<Community> topCommunities = communityService.findAllTop(context);
+
+            for (Community subcomm : topCommunities) {
+                remove(context, repMan, subcomm);
             }
         }
     }
@@ -152,17 +151,17 @@ public class RemoveAIP extends AbstractCurationTask {
         String catId = repMan.deletionCatalogId(id, archFmt);
         int status = Curator.CURATE_FAIL;
         String result;
-        File catFile = repMan.fetchObject(deleteGroupName, catId);
+        File catFile = repMan.fetchObject(ctx, deleteGroupName, catId);
         if (catFile != null) {
-            CatalogPacker cpack = new CatalogPacker(id);
+            CatalogPacker cpack = new CatalogPacker(ctx, id);
             cpack.unpack(catFile);
             // remove the object AIP itself
-            String objId = repMan.storageId(id, archFmt);
+            String objId = repMan.storageId(ctx, id, archFmt);
             repMan.removeObject(storeGroupName, objId);
             report("Removing AIP for: " + objId);
             // remove all member/child object's AIPs
             for (String mem : cpack.getMembers()) {
-                String memId = repMan.storageId(mem, archFmt);
+                String memId = repMan.storageId(ctx, mem, archFmt);
                 repMan.removeObject(storeGroupName, memId);
                 report("Removing AIP for: " + memId);
             }

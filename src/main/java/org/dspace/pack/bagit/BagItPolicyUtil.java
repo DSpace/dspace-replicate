@@ -118,10 +118,11 @@ public class BagItPolicyUtil {
      * This operation will replace all existing ResourcePolicies for a given {@link DSpaceObject} unless there is an
      * error during the mapping from a {@link Policy} to a {@link ResourcePolicy}.
      *
+     * @param context the context to use
      * @param dSpaceObject the {@link DSpaceObject} to register policies for
      * @param policies the {@link Policies} pojo to create each {@link ResourcePolicy}
      */
-    public static void registerPolicies(final DSpaceObject dSpaceObject, final Policies policies)
+    public static void registerPolicies(final Context context, final DSpaceObject dSpaceObject, final Policies policies)
         throws SQLException, AuthorizeException, PackageException {
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
@@ -129,8 +130,6 @@ public class BagItPolicyUtil {
         final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
         final ResourcePolicyService resourcePolicyService =
             AuthorizeServiceFactory.getInstance().getResourcePolicyService();
-
-        final Context context = Curator.curationContext();
 
         // Need to map policy children from List<Element> to List<ResourcePolicy>
         // then use the authorizationService to add all policies to the dso

@@ -36,7 +36,6 @@ import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
 import org.dspace.content.Site;
-import org.dspace.content.packager.PackageParameters;
 import org.dspace.content.packager.RoleDisseminator;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -81,7 +80,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
     }
 
-    //@Test
+    @Test
     public void testGetDSpaceRolesForSite() throws Exception {
         final Site site = initDSO(Site.class);
         final Group group = initDSO(Group.class);
@@ -111,7 +110,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         when(ePersonService.getMetadataFirstValue(eq(ePerson), eq(schema), eq(language), isNull(String.class),
                                                   eq(Item.ANY))).thenReturn(EPERSON_LANGUAGE);
 
-        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(site);
+        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(mockContext, site);
 
         // verifications
         verify(groupService, times(1)).findAll(any(Context.class), isNull(List.class));
@@ -151,7 +150,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         }
     }
 
-    //@Test
+    @Test
     public void testGetDSpaceRolesForCommunity() throws Exception {
         // mock the community so that we can easily use community.getAdministrators to return our group
         final UUID uuid = UUID.randomUUID();
@@ -173,7 +172,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         when(community.getAdministrators()).thenReturn(adminGroup);
 
         // run the function and validate the result
-        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(community);
+        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(mockContext, community);
 
         // verify mocks
         final String query = "COMMUNITY\\_" + uuid + "\\_";
@@ -213,7 +212,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         }
     }
 
-    //@Test
+    @Test
     public void testGetDSpaceRolesForCollection() throws Exception {
         // mock the collection so that we can easily get groups from the collection getters
         final UUID uuid = UUID.randomUUID();
@@ -235,7 +234,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         when(collection.getAdministrators()).thenReturn(administrators);
 
         // run the function and validate the result
-        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
+        final DSpaceRoles dSpaceRoles = BagItRolesUtil.getDSpaceRoles(mockContext, collection);
 
         // verify mocks
         final String query = "COLLECTION\\_" + uuid + "\\_";
@@ -275,7 +274,7 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         }
     }
 
-    //@Test
+    @Test
     public void ingest() throws Exception {
         // get the roles.xml file
         final String location = "existing-bagit-aip/data/roles.xml";
@@ -294,12 +293,9 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         when(ePerson.getNetid()).thenReturn(EPERSON_NETID);
         when(groupService.findByName(any(Context.class), eq(ADMIN))).thenReturn(group);
         when(groupService.findByName(any(Context.class), eq(ANONYMOUS))).thenReturn(group);
+        when(mockContext.getCurrentUser()).thenReturn(ePerson);
 
-        // attach the EPerson to the context and create the PackageParameters then we're set to run
-        final Context context = Curator.curationContext();
-        context.setCurrentUser(ePerson);
-
-        BagItRolesUtil.ingest(context, site, xml);
+        BagItRolesUtil.ingest(mockContext, site, xml);
 
         verify(ePerson, times(1)).getEmail();
         verify(ePerson, times(1)).getNetid();

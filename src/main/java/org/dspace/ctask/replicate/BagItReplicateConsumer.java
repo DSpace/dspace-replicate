@@ -249,7 +249,7 @@ public class BagItReplicateConsumer implements Consumer {
             {
                 entrySet.add(new TaskQueueEntry(name, stamp, delTasks, delObjId));
             }
-            processDelete();
+            processDelete(ctx);
         }
         if (entrySet.size() > 0)
         {
@@ -345,7 +345,7 @@ public class BagItReplicateConsumer implements Consumer {
                     Community comm = communityService.find(ctx, event.getSubjectID());
                     delOwnerId = comm.getHandle();
                 }
-                processDelete();
+                processDelete(ctx);
              }
         }
     }
@@ -353,39 +353,29 @@ public class BagItReplicateConsumer implements Consumer {
     /*
      * Process a deletion event by recording a deletion catalog if configured
      */
-    private void processDelete() throws IOException
-    {
+    private void processDelete(Context context) throws IOException {
         // write out deletion catalog if defined
-        if (catalogDeletes)
-        {
+        if (catalogDeletes) {
             //First, check if this object has an AIP in storage
-            final String storageId = repMan.storageId(delObjId, archFmt);
-            boolean found = repMan.objectExists(storeGroupName, storageId);
+            try {
+                final String storageId = repMan.storageId(context, delObjId, archFmt);
+                boolean found = repMan.objectExists(storeGroupName, storageId);
 
-            // If the object has an AIP, then create a deletion catalog
-            // If there's no AIP, then there's no need for a deletion
-            // catalog as the object isn't backed up & cannot be restored!
-            if(found)
-            {
-                Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
-                try
-                {
+                // If the object has an AIP, then create a deletion catalog
+                // If there's no AIP, then there's no need for a deletion
+                // catalog as the object isn't backed up & cannot be restored!
+                if (found) {
+                    Packer packer = new CatalogPacker(context, delObjId, delOwnerId, delMemIds);
                     // Create a new deletion catalog (with default file extension / format)
                     // and store it in the deletion group store
                     String catID = repMan.deletionCatalogId(delObjId, null);
-                    File packDir = repMan.stage(deleteGroupName, catID);
+                    File packDir = repMan.stage(context, deleteGroupName, catID);
                     File archive = packer.pack(packDir);
                     //System.out.println("delcat about to transfer");
                     repMan.transferObject(deleteGroupName, archive);
                 }
-                catch (AuthorizeException authE)
-                {
-                    throw new IOException(authE);
-                }
-                catch (SQLException sqlE)
-                {
-                    throw new IOException(sqlE);
-                }
+            } catch (AuthorizeException | SQLException e) {
+                throw new IOException(e);
             }
         }
         // reset for next events

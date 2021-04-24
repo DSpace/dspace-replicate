@@ -36,7 +36,6 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CommunityService;
 import org.dspace.core.Context;
-import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
@@ -63,11 +62,13 @@ public class CommunityPacker implements Packer
         "side_bar_text"
     };
 
+    private final Context context;
     private Community community = null;
     private String archFmt = null;
 
-    public CommunityPacker(Community community, String archFmt)
+    public CommunityPacker(Context context, Community community, String archFmt)
     {
+        this.context = context;
         this.community = community;
         this.archFmt = archFmt;
     }
@@ -106,17 +107,17 @@ public class CommunityPacker implements Packer
         }
 
         // collect the policy
-        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policy = BagItPolicyUtil.getPolicy(context, community);
 
         // and finally get he roles
         DSpaceRoles dSpaceRoles = null;
         try {
-            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(community);
+            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(context, community);
         } catch (PackageException exception) {
             throw new IOException(exception);
         }
 
-        return new BagItAipWriter(packDir, archFmt, properties)
+        return new BagItAipWriter(context, packDir, archFmt, properties)
             .withLogo(logo)
             .withPolicies(policy)
             .withMetadata(metadata)
@@ -130,7 +131,6 @@ public class CommunityPacker implements Packer
             throw new IOException("Missing archive for community: " + community.getHandle());
         }
 
-        final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
@@ -142,7 +142,7 @@ public class CommunityPacker implements Packer
             }
 
             final Policies policies = reader.readPolicy();
-            BagItPolicyUtil.registerPolicies(community, policies);
+            BagItPolicyUtil.registerPolicies(context, community, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }
@@ -180,11 +180,11 @@ public class CommunityPacker implements Packer
         {
             for (Community comm : community.getSubcommunities())
             {
-                size += PackerFactory.instance(comm).size(method);
+                size += PackerFactory.instance(context, comm).size(method);
             }
             for (Collection coll : community.getCollections())
             {
-                size += PackerFactory.instance(coll).size(method);
+                size += PackerFactory.instance(context, coll).size(method);
             }
         }
         return size;

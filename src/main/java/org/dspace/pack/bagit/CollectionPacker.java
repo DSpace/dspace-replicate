@@ -40,7 +40,6 @@ import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Context;
-import org.dspace.curate.Curator;
 import org.dspace.pack.Packer;
 import org.dspace.pack.PackerFactory;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
@@ -71,11 +70,13 @@ public class CollectionPacker implements Packer
         "side_bar_text"
     };
 
+    private final Context context;
     private Collection collection = null;
     private String archFmt = null;
 
-    public CollectionPacker(Collection collection, String archFmt)
+    public CollectionPacker(Context context, Collection collection, String archFmt)
     {
+        this.context = context;
         this.collection = collection;
         this.archFmt = archFmt;
     }
@@ -126,17 +127,17 @@ public class CollectionPacker implements Packer
         }
 
         // collect xml policy
-        final Policies policy = BagItPolicyUtil.getPolicy(Curator.curationContext(), collection);
+        final Policies policy = BagItPolicyUtil.getPolicy(context, collection);
 
         // roles
         DSpaceRoles dSpaceRoles = null;
         try {
-            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(collection);
+            dSpaceRoles = BagItRolesUtil.getDSpaceRoles(context, collection);
         } catch (PackageException exception) {
             throw new IOException(exception);
         }
 
-        return new BagItAipWriter(packDir, archFmt, properties).withLogo(logo)
+        return new BagItAipWriter(context, packDir, archFmt, properties).withLogo(logo)
             .withPolicies(policy)
             .withMetadata(metadata)
             .withItemTemplate(templateMd)
@@ -150,7 +151,6 @@ public class CollectionPacker implements Packer
             throw new IOException("Missing archive for collection: " + collection.getHandle());
         }
 
-        final Context context = Curator.curationContext();
         final BagItAipReader reader = new BagItAipReader(archive.toPath());
         reader.validateBag();
 
@@ -162,7 +162,7 @@ public class CollectionPacker implements Packer
             }
 
             final Policies policies = reader.readPolicy();
-            BagItPolicyUtil.registerPolicies(collection, policies);
+            BagItPolicyUtil.registerPolicies(context, collection, policies);
         } catch (PackageException e) {
             throw new IOException(e.getMessage(), e);
         }
@@ -210,13 +210,13 @@ public class CollectionPacker implements Packer
         // proceed to items, unless 'norecurse' set
         if (! "norecurse".equals(method))
         {
-            Iterator<Item> itemIter = itemService.findByCollection(Curator.curationContext(), collection);
+            Iterator<Item> itemIter = itemService.findByCollection(context, collection);
             ItemPacker iPup = null;
             while (itemIter.hasNext())
             {
                 if (iPup == null)
                 {
-                    iPup = (ItemPacker)PackerFactory.instance(itemIter.next());
+                    iPup = (ItemPacker)PackerFactory.instance(context, itemIter.next());
                 }
                 else
                 {

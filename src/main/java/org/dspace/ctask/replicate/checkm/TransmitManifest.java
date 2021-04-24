@@ -24,6 +24,7 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
 import org.dspace.content.service.ItemService;
 import org.dspace.core.Constants;
+import org.dspace.core.Context;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -81,26 +82,27 @@ public class TransmitManifest extends AbstractCurationTask {
         ReplicaManager repMan = ReplicaManager.instance();
         try
         {
+            Context context = Curator.curationContext();
             File manFile = null;
             int type = dso.getType();
             if (Constants.ITEM == type)
             {
-                manFile = itemManifest(repMan, (Item)dso);
+                manFile = itemManifest(context, repMan, (Item)dso);
             }
             else if (Constants.COLLECTION == type)
             {
                 // create manifests for each item - link in collection manifest
-                manFile = collectionManifest(repMan, (Collection)dso);
+                manFile = collectionManifest(context, repMan, (Collection)dso);
             }
             else if (Constants.COMMUNITY == type)
             {
                 // create manifests for Community on down
-                manFile = communityManifest(repMan, (Community)dso);
+                manFile = communityManifest(context, repMan, (Community)dso);
             }
             else if (Constants.SITE == type)
             {
                 // create manifests for all objects in DSpace
-                manFile = siteManifest(repMan, (Site)dso);
+                manFile = siteManifest(context, repMan, (Site)dso);
             }
             
             repMan.transferObject(manifestGroupName, manFile);
@@ -118,29 +120,31 @@ public class TransmitManifest extends AbstractCurationTask {
      * Generate a manifest for the DSpace Site. Also
      * generate & transfer to replica ObjectStore the manifests for all
      * objects in DSpace, starting with the top-level Communities.
+     *
+     * Param context the context to use
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param site the DSpace Site object
      * @return reference to manifest file generated for Community
      * @throws IOException if I/O error
      * @throws SQLException if database error
      */
-    private File siteManifest(ReplicaManager repMan, Site site) throws IOException, SQLException
+    private File siteManifest(Context context, ReplicaManager repMan, Site site) throws IOException, SQLException
     {
         //Manifests stored as text files
-        String filename = repMan.storageId(site.getHandle(), MANIFEST_EXTENSION);
+        String filename = repMan.storageId(context, site.getHandle(), MANIFEST_EXTENSION);
         
         log.debug("Creating manifest for: " + site.getHandle());
         
         //Create site manifest
-        File manFile = repMan.stage(manifestGroupName, filename);
+        File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
         
-        List<Community> topCommunities = communityService.findAllTop(Curator.curationContext());
+        List<Community> topCommunities = communityService.findAllTop(context);
         //Create top-level community manifests & transfer each
         for (Community comm : topCommunities)
         {
-            File scFile = communityManifest(repMan, comm);
+            File scFile = communityManifest(context, repMan, comm);
             writer.write(tokenized(scFile) + "\n");
             count++;
             repMan.transferObject(manifestGroupName, scFile);
@@ -159,27 +163,30 @@ public class TransmitManifest extends AbstractCurationTask {
      * Generate a manifest for the specified DSpace Community. Also
      * generate & transfer to replica ObjectStore the manifests for any child 
      * objects (sub-communities, collections).
+     *
+     * @param context the context to use
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param comm the DSpace Community
      * @return reference to manifest file generated for Community
      * @throws IOException if I/O error
      * @throws SQLException if database error
      */
-    private File communityManifest(ReplicaManager repMan, Community comm) throws IOException, SQLException
+    private File communityManifest(Context context, ReplicaManager repMan, Community comm) throws IOException,
+            SQLException
     {
         //Manifests stored as text files
-        String filename = repMan.storageId(comm.getHandle(), MANIFEST_EXTENSION);
+        String filename = repMan.storageId(context, comm.getHandle(), MANIFEST_EXTENSION);
         
         log.debug("Creating manifest for: " + comm.getHandle());
         
         //Create community manifest
-        File manFile = repMan.stage(manifestGroupName, filename);
+        File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
         //Create sub-community manifests & transfer each
         for (Community subComm : comm.getSubcommunities())
         {
-            File scFile = communityManifest(repMan, subComm);
+            File scFile = communityManifest(context, repMan, subComm);
             writer.write(tokenized(scFile) + "\n");
             count++;
             repMan.transferObject(manifestGroupName, scFile); 
@@ -187,7 +194,7 @@ public class TransmitManifest extends AbstractCurationTask {
         //Create collection manifests & transfer each
         for (Collection coll: comm.getCollections())
         {
-            File colFile = collectionManifest(repMan, coll);
+            File colFile = collectionManifest(context, repMan, coll);
             writer.write(tokenized(colFile) + "\n");
             count++;
             repMan.transferObject(manifestGroupName, colFile);
@@ -206,29 +213,32 @@ public class TransmitManifest extends AbstractCurationTask {
      * Generate a manifest for the specified DSpace Collection. Also
      * generate & transfer to replica ObjectStore the manifests for any child 
      * objects (items).
+     *
+     * @param context the context to use
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param coll the DSpace Collection
      * @return reference to manifest file generated for Collection
      * @throws IOException if I/O error
      * @throws SQLException if database error
      */
-    private File collectionManifest(ReplicaManager repMan, Collection coll) throws IOException, SQLException
+    private File collectionManifest(Context context, ReplicaManager repMan, Collection coll) throws IOException,
+            SQLException
     {
          //Manifests stored as text files
-        String filename = repMan.storageId(coll.getHandle(), MANIFEST_EXTENSION);
+        String filename = repMan.storageId(context, coll.getHandle(), MANIFEST_EXTENSION);
        
         log.debug("Creating manifest for: " + coll.getHandle());
         
         //Create Collection manifest
-        File manFile = repMan.stage(manifestGroupName, filename);
+        File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
         
         //Create all Item manifests & transfer each
-        Iterator<Item> ii = itemService.findByCollection(Curator.curationContext(), coll);
+        Iterator<Item> ii = itemService.findByCollection(context, coll);
         while (ii.hasNext())
         {
-            File itemMan = itemManifest(repMan, ii.next());
+            File itemMan = itemManifest(context, repMan, ii.next());
             count++;
             writer.write(tokenized(itemMan) + "\n");
             repMan.transferObject(manifestGroupName, itemMan);
@@ -244,21 +254,23 @@ public class TransmitManifest extends AbstractCurationTask {
     }
 
     /**
-     * Generate a manifest for the specified DSpace Item. 
+     * Generate a manifest for the specified DSpace Item.
+     *
+     * @param context the context to use
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param item the DSpace Item
      * @return reference to manifest file generated for Item
      * @throws IOException if I/O error
      * @throws SQLException if database error
      */
-    private File itemManifest(ReplicaManager repMan, Item item) throws IOException, SQLException
+    private File itemManifest(Context context, ReplicaManager repMan, Item item) throws IOException, SQLException
     {
-        String filename = repMan.storageId(item.getHandle(), MANIFEST_EXTENSION);
+        String filename = repMan.storageId(context, item.getHandle(), MANIFEST_EXTENSION);
         
         log.debug("Creating manifest for: " + item.getHandle());
         
         //Create Item manifest
-        File manFile = repMan.stage(manifestGroupName, filename);
+        File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
        
         // look through all ORIGINAL bitstreams, and add

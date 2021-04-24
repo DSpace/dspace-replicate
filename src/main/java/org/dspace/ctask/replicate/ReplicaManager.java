@@ -96,7 +96,7 @@ public class ReplicaManager {
         return instance;
     }
     
-    public File stage(String group, String id)
+    public File stage(Context context, String group, String id)
     {
         // ensure path exists
         File stageDir = new File(repDir + File.separator + group);
@@ -104,7 +104,7 @@ public class ReplicaManager {
         {
             stageDir.mkdirs();
         }
-        return new File(stageDir, storageId(id, null));
+        return new File(stageDir, storageId(context, id, null));
     }
     
     
@@ -114,12 +114,13 @@ public class ReplicaManager {
      * escaped. It also ensures all objects are named in a similar
      * manner once they are in a given store (so that they can similarly
      * be retrieved from storage using this same 'storageId').
-     * 
+     *
+     * @param context the context to use
      * @param objId - original object id (canonical ID)
      * @param fileExtension - file extension, if any (may be null)
      * @return reformatted storage ID for this object (including file extension)
      */
-    public String storageId(String objId, String fileExtension)
+    public String storageId(Context context, String objId, String fileExtension)
     {
         // canonical handle notation bedevils file system semantics
         String storageId = objId.replaceAll("/", "-");
@@ -138,7 +139,7 @@ public class ReplicaManager {
             try
             {    
                 //Get object associated with this handle
-                DSpaceObject dso = handleService.resolveToObject(Curator.curationContext(), objId);
+                DSpaceObject dso = handleService.resolveToObject(context, objId);
 
                 //typePrefix format = 'TYPE@'
                 if(dso!=null)
@@ -241,10 +242,10 @@ public class ReplicaManager {
 
     // Replica store-backed methods
 
-    public File fetchObject(String group, String objId) throws IOException
+    public File fetchObject(Context context, String group, String objId) throws IOException
     {
         //String repId = safeId(id) + "." + arFmt;
-        File file = stage(group, objId);
+        File file = stage(context, group, objId);
         long size = objStore.fetchObject(group, objId, file);
         if (size > 0L)
         {

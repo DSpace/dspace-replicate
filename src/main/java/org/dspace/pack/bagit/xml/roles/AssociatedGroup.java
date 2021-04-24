@@ -22,6 +22,7 @@ import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageUtils;
 import org.dspace.content.packager.RoleDisseminator;
 import org.dspace.core.Constants;
+import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
@@ -50,27 +51,29 @@ public class AssociatedGroup {
     /**
      * Constructor to create an {@link AssociatedGroup} from a {@link Group}
      *
+     * @param context the context to use
      * @param dso the related DSpaceObject
      * @param group the group to use
      * @throws SQLException if there is an error translating a Group's name
      * @throws PackageException if there is an error translating a Group's name
      */
-    public AssociatedGroup(final DSpaceObject dso, final Group group) throws SQLException, PackageException {
+    public AssociatedGroup(final Context context, final DSpaceObject dso, final Group group) throws SQLException,
+            PackageException {
         this.id = group.getID().toString();
 
         if (Group.ADMIN.equalsIgnoreCase(group.getName()) || Group.ANONYMOUS.equalsIgnoreCase(group.getName())) {
             this.name = group.getName();
         } else {
-            this.name = PackageUtils.translateGroupNameForExport(Curator.curationContext(), group.getName());
+            this.name = PackageUtils.translateGroupNameForExport(context, group.getName());
         }
 
-        this.type = findGroupType(dso, group);
+        this.type = findGroupType(context, dso, group);
 
         for (EPerson member : group.getMembers()) {
             addMember(new Member(member));
         }
         for (Group memberGroup : group.getMemberGroups()) {
-            addMemberGroup(new Member(memberGroup));
+            addMemberGroup(new Member(context, memberGroup));
         }
     }
 
@@ -78,11 +81,12 @@ public class AssociatedGroup {
      * Get the group type to use for a given DSpaceObject and group
      * based on org.dspace.content.packager.RoleDisseminator#getGroupType(DSpaceObject, Group)
      *
+     * @param context the context to use
      * @param dso the related DSpaceObject
      * @param group the group associated to the DSpaceObject
      * @return the group type string or null
      */
-    private String findGroupType(final DSpaceObject dso, final Group group) throws SQLException {
+    private String findGroupType(final Context context, final DSpaceObject dso, final Group group) throws SQLException {
         if (dso == null || group == null) {
             return null;
         }
@@ -100,11 +104,11 @@ public class AssociatedGroup {
                 return RoleDisseminator.GROUP_TYPE_ADMIN;
             } else if (group.equals(collection.getSubmitters())) {
                 return RoleDisseminator.GROUP_TYPE_SUBMIT;
-            } else if (group.equals(collection.getWorkflowStep1(Curator.curationContext()))) {
+            } else if (group.equals(collection.getWorkflowStep1(context))) {
                 return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_1;
-            } else if (group.equals(collection.getWorkflowStep2(Curator.curationContext()))) {
+            } else if (group.equals(collection.getWorkflowStep2(context))) {
                 return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_2;
-            } else if (group.equals(collection.getWorkflowStep3(Curator.curationContext()))) {
+            } else if (group.equals(collection.getWorkflowStep3(context))) {
                 return RoleDisseminator.GROUP_TYPE_WORKFLOW_STEP_3;
             }
         }
@@ -129,7 +133,7 @@ public class AssociatedGroup {
     }
 
     /**
-     * @see #findGroupType(DSpaceObject, Group)
+     * @see #findGroupType(Context, DSpaceObject, Group)
      * @return the group type
      */
     @XmlAttribute(name = "Type")

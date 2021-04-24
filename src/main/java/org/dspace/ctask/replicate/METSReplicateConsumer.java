@@ -337,7 +337,7 @@ public class METSReplicateConsumer implements Consumer {
             {
                 entrySet.add(new TaskQueueEntry(name, stamp, delTasks, delObjId));
             }
-            processDelete();
+            processDelete(ctx);
         }
         if (entrySet.size() > 0)
         {
@@ -448,7 +448,7 @@ public class METSReplicateConsumer implements Consumer {
                 }
 
                 //Record the deletion catalog for the deleted object (as needed)
-                processDelete();
+                processDelete(ctx);
              }
         }
     }
@@ -456,7 +456,7 @@ public class METSReplicateConsumer implements Consumer {
     /*
      * Process a deletion event by recording a deletion catalog if configured
      */
-    private void processDelete() throws IOException
+    private void processDelete(Context ctx) throws IOException
     {
         // write out deletion catalog if defined
         if (catalogDeletes)
@@ -470,13 +470,13 @@ public class METSReplicateConsumer implements Consumer {
             if(found)
             {
                 //Create a deletion catalog (in BagIt format) of all deleted objects
-                Packer packer = new CatalogPacker(delObjId, delOwnerId, delMemIds);
+                Packer packer = new CatalogPacker(ctx, delObjId, delOwnerId, delMemIds);
                 try
                 {
                     // Create a new deletion catalog (with default file extension / format)
                     // and store it in the deletion group store
                     String catID = repMan.deletionCatalogId(delObjId, null);
-                    File packDir = repMan.stage(deleteGroupName, catID);
+                    File packDir = repMan.stage(ctx, deleteGroupName, catID);
                     File archive = packer.pack(packDir);
                     // Create a deletion catalog in deletion archive location.
                     repMan.transferObject(deleteGroupName, archive);

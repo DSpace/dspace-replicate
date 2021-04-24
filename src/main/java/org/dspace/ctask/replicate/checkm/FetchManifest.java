@@ -10,8 +10,10 @@ package org.dspace.ctask.replicate.checkm;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.Context;
 import org.dspace.ctask.replicate.ReplicaManager;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
@@ -50,11 +52,16 @@ public class FetchManifest extends AbstractCurationTask
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
-        ReplicaManager repMan = ReplicaManager.instance();
-        String objId = repMan.storageId(dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
-        File archive = repMan.fetchObject(manifestGroupName, objId);
-        boolean found = archive != null;
-        setResult("Manifest for object: " + dso.getHandle() + " found: " + found);
-        return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;
+        try {
+            Context context = Curator.curationContext();
+            ReplicaManager repMan = ReplicaManager.instance();
+            String objId = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
+            File archive = repMan.fetchObject(context, manifestGroupName, objId);
+            boolean found = archive != null;
+            setResult("Manifest for object: " + dso.getHandle() + " found: " + found);
+            return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
     }
 }

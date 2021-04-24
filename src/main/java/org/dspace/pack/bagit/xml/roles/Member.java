@@ -12,6 +12,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageUtils;
+import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
@@ -45,16 +46,16 @@ public class Member {
     /**
      * Create a Member for a {@link Group}
      *
+     * @param context the context to use
      * @param group the {@link Group} to use for setting the id and name
-     * @throws SQLException if an error occurs translating the {@link Group#getName()} for export
      * @throws PackageException if an error occurs translating the {@link Group#getName()} for export
      */
-    public Member(final Group group) throws SQLException, PackageException {
+    public Member(final Context context, final Group group) throws PackageException {
         this.id = group.getID().toString();
         if (Group.ADMIN.equalsIgnoreCase(group.getName()) || Group.ANONYMOUS.equalsIgnoreCase(group.getName())) {
             this.name = group.getName();
         } else {
-            this.name = PackageUtils.translateGroupNameForExport(Curator.curationContext(), group.getName());
+            this.name = PackageUtils.translateGroupNameForExport(context, group.getName());
         }
     }
 

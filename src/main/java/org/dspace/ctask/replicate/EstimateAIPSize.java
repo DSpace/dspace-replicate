@@ -35,9 +35,9 @@ public class EstimateAIPSize extends AbstractCurationTask
 {
     @Override
     public int perform(DSpaceObject dso) throws IOException {
-        Packer packer = PackerFactory.instance(dso);
         try
         {
+            Packer packer = PackerFactory.instance(Curator.curationContext(), dso);
             // just report the size
             long size = packer.size("");
             String msg = "ID: " + dso.getHandle() + " (" + dso.getName() +

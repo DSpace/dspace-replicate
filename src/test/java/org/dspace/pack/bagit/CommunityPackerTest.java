@@ -12,6 +12,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -49,7 +50,7 @@ public class CommunityPackerTest extends BagItPackerTest {
     private final ImmutableList<String> fields = ImmutableList.of("name", "short_description", "introductory_text",
                                                                   "copyright_text", "side_bar_text");
 
-    //@Test
+    @Test
     public void testPack() throws Exception {
         // setup output
         final URL resources = CollectionPackerTest.class.getClassLoader().getResource("");
@@ -68,7 +69,7 @@ public class CommunityPackerTest extends BagItPackerTest {
         }
 
         // and pack
-        final CommunityPacker packer = new CommunityPacker(community, archFmt);
+        final CommunityPacker packer = new CommunityPacker(mockContext, community, archFmt);
         final File packedOutput = packer.pack(output.toFile());
 
         for (String field : fields) {
@@ -81,7 +82,7 @@ public class CommunityPackerTest extends BagItPackerTest {
         packedOutput.delete();
     }
 
-    //@Test
+    @Test
     public void testUnpack() throws Exception {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
@@ -100,7 +101,7 @@ public class CommunityPackerTest extends BagItPackerTest {
         assertNotNull(community);
 
         final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-        final CommunityPacker packer = new CommunityPacker(community, archFmt);
+        final CommunityPacker packer = new CommunityPacker(mockContext, community, archFmt);
         packer.unpack(archive.toFile());
 
         verify(communityService, times(5)).setMetadataSingleValue(any(Context.class), eq(community), anyString(),

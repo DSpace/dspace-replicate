@@ -20,6 +20,7 @@ import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.core.Constants;
+import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Suspendable;
@@ -75,18 +76,19 @@ public class CompareWithAIP extends AbstractCurationTask
     public int perform(DSpaceObject dso) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        Packer packer = PackerFactory.instance(dso);
         String id = dso.getHandle();
         status = Curator.CURATE_SUCCESS;
         result = "Checksums of local and remote agree";
-        String objId = repMan.storageId(id, archFmt);
         try
         {
+            Context context = Curator.curationContext();
+            String objId = repMan.storageId(context, id, archFmt);
+            Packer packer = PackerFactory.instance(context, dso);
             //First, make sure this object has an AIP in remote storage
-            if(checkReplica(repMan, dso))
+            if(checkReplica(context, repMan, dso))
             {    
                 // generate an archive and calculate it's checksum
-                File packDir = repMan.stage(storeGroupName, id);
+                File packDir = repMan.stage(context, storeGroupName, id);
                 File archive = packer.pack(packDir);
                 String chkSum = Utils.checksum(archive, "MD5");
                 // remove local archive file -- it's no longer needed
@@ -109,7 +111,7 @@ public class CompareWithAIP extends AbstractCurationTask
                 // does replica store have replicas for each object in container?
                 if (Curator.isContainer(dso) || dso.getType() == Constants.SITE)
                 {
-                    auditExtent(repMan, dso);
+                    auditExtent(context, repMan, dso);
                 }
             }
             setResult(result);
@@ -130,11 +132,14 @@ public class CompareWithAIP extends AbstractCurationTask
      * This method only audits immediate child objects (because child objects of
      * any sub-containers will be audited when 'CompareWithAIP' is called on that
      * container itself).
+     *
+     * @param context the context to use
      * @param repMan ReplicaManager (used to access ObjectStore)
      * @param dso DSpace Object
      * @throws IOException if I/O error
+     * @throws SQLException if database error
      */
-    private void auditExtent(ReplicaManager repMan, DSpaceObject dso) throws IOException
+    private void auditExtent(Context context, ReplicaManager repMan, DSpaceObject dso) throws IOException, SQLException
     {
         int type = dso.getType();
         
@@ -142,18 +147,10 @@ public class CompareWithAIP extends AbstractCurationTask
         if (Constants.COLLECTION == type)
         {
             Collection coll = (Collection)dso;
-            Iterator<Item> iter = null;
-            try
+            Iterator<Item> iter = itemService.findByCollection(context, coll);
+            while (iter.hasNext())
             {
-                iter = itemService.findByCollection(Curator.curationContext(), coll);
-                while (iter.hasNext())
-                {
-                    checkReplica(repMan, iter.next());
-                }
-            }
-            catch (SQLException sqlE)
-            {
-                throw new IOException(sqlE);
+                checkReplica(context, repMan, iter.next());
             }
         } //If Community, make sure all Sub-Communities/Collections have AIPs in remote storage
         else if (Constants.COMMUNITY == type)
@@ -161,41 +158,36 @@ public class CompareWithAIP extends AbstractCurationTask
             Community comm = (Community)dso;
             for (Community subcomm : comm.getSubcommunities())
             {
-                checkReplica(repMan, subcomm);
+                checkReplica(context, repMan, subcomm);
             }
             for (Collection coll : comm.getCollections())
             {
-                checkReplica(repMan, coll);
+                checkReplica(context, repMan, coll);
             }
         } //if Site, check to see all Top-Level Communities have an AIP in remote storage
         else if (Constants.SITE == type)
         {
-            try
+            List<Community> topComm = communityService.findAllTop(context);
+            for (Community comm : topComm)
             {
-                List<Community> topComm = communityService.findAllTop(Curator.curationContext());
-                for (Community comm : topComm)
-                {
-                    checkReplica(repMan, comm);
-                }
-            }
-            catch (SQLException sqlE)
-            {
-                throw new IOException(sqlE);
+                checkReplica(context, repMan, comm);
             }
         }
     }
 
     /**
      * Check if the DSpace Object already exists in the Replica ObjectStore
+     *
+     * @param context the context to use
      * @param repMan ReplicaManager  (used to access ObjectStore)
      * @param dso DSpaceObject
      * @return true if replica exists, false otherwise
      * @throws IOException if I/O error
      */
-    private boolean checkReplica(ReplicaManager repMan, DSpaceObject dso) throws IOException
+    private boolean checkReplica(Context context, ReplicaManager repMan, DSpaceObject dso) throws IOException
     {
-       String objId = repMan.storageId(dso.getHandle(), archFmt); 
-        
+       String objId = repMan.storageId(context, dso.getHandle(), archFmt);
+
        if (! repMan.objectExists(storeGroupName, objId))
        {
            String msg = "Missing replica for: " + dso.getHandle();
