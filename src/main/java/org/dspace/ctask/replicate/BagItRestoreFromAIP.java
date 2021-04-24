@@ -94,28 +94,25 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             String result;
             int status = Curator.CURATE_SUCCESS;
 
-            final ReplicaManager repMan = ReplicaManager.instance();
-            final String storageId = repMan.storageId(dso.getHandle(), archFmt);
-            final File file = repMan.fetchObject(storeGroupName, storageId);
-            if (file != null) {
-                final SitePacker sitePacker = new SitePacker((Site) dso, archFmt);
-
-                try {
-                    final Context context = Curator.curationContext();
-
+            try {
+                Context context = Curator.curationContext();
+                final ReplicaManager repMan = ReplicaManager.instance();
+                final String storageId = repMan.storageId(context, dso.getHandle(), archFmt);
+                final File file = repMan.fetchObject(context, storeGroupName, storageId);
+                if (file != null) {
+                    final SitePacker sitePacker = new SitePacker(context, (Site) dso, archFmt);
                     sitePacker.unpack(file);
-                    final List<String> members = sitePacker.getMembers().or(new ArrayList<String>());
+                    final List<String> members = sitePacker.getMembers().or(new ArrayList<>());
                     for (final String member : members) {
                         recover(context, repMan, member);
                     }
-                } catch (AuthorizeException | SQLException e) {
-                    throw new IOException(e);
+                    result = "Successfully restored Site and children from AIP(s)";
+                } else {
+                    result = "Failed to restore Site. AIP could not be found in Replica Store.";
+                    status = Curator.CURATE_FAIL;
                 }
-
-                result = "Successfully restored Site and children from AIP(s)";
-            } else {
-                result = "Failed to restore Site. AIP could not be found in Replica Store.";
-                status = Curator.CURATE_FAIL;
+            } catch (AuthorizeException | SQLException e) {
+                throw new IOException(e);
             }
 
             report(result);
@@ -140,12 +137,12 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
         ReplicaManager repMan = ReplicaManager.instance();
         // first we locate the deletion catalog for this object
         String catId = repMan.deletionCatalogId(id, archFmt);
-        File catArchive = repMan.fetchObject(deleteGroupName, catId);
+        File catArchive = repMan.fetchObject(ctx, deleteGroupName, catId);
         int status = Curator.CURATE_FAIL;
         String result;
         // CANNOT continue if the deletion catalog cannot be located
         if (catArchive != null) {
-            CatalogPacker cpack = new CatalogPacker(id);
+            CatalogPacker cpack = new CatalogPacker(ctx, id);
             cpack.unpack(catArchive);
             // RLR TODO - remove filename collision next delete requires
             catArchive.delete();
@@ -178,8 +175,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @throws IOException if IO error
      */
     private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException {
-        final String objId = repMan.storageId(id, archFmt);
-        final File archive = repMan.fetchObject(storeGroupName, objId);
+        final String objId = repMan.storageId(ctx, id, archFmt);
+        final File archive = repMan.fetchObject(ctx, storeGroupName, objId);
         final DSpaceObject dso = dereference(ctx, id);
         if (archive != null && dso == null) {
             final BagItAipReader reader = new BagItAipReader(archive.toPath());
@@ -215,7 +212,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             String collId = props.getProperty(OWNER_ID);
             Collection coll = (Collection) handleService.resolveToObject(ctx, collId);
             WorkspaceItem wi = workspaceItemService.create(ctx, coll, false);
-            Packer packer = PackerFactory.instance(wi.getItem());
+            Packer packer = PackerFactory.instance(ctx, wi.getItem());
             // stuff bag contents into item
             packer.unpack(archive);
             // Install item
@@ -258,7 +255,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
                 log.error("Collection '" + collId + "' lacks parent community");
             }
             // update with AIP data
-            Packer packer = PackerFactory.instance(coll);
+            Packer packer = PackerFactory.instance(ctx, coll);
             packer.unpack(archive);
         } catch (AuthorizeException authE) {
             throw new IOException(authE);
@@ -286,7 +283,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
                 comm = communityService.create(null, ctx, commId);
             }
             // update with AIP data
-            Packer packer = PackerFactory.instance(comm);
+            Packer packer = PackerFactory.instance(ctx, comm);
             packer.unpack(archive);
         } catch (AuthorizeException authE) {
             throw new IOException(authE);

@@ -70,7 +70,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         }
     }
 
-    //@Test
+    @Test
     public void getPolicyForAdmin() throws Exception {
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -87,7 +87,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         community.getResourcePolicies().add(adminGroupPolicy);
 
         // now test that the Policy pojo we get back is correct
-        final Policies policies = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = BagItPolicyUtil.getPolicy(mockContext, community);
 
         assertThat(policies).isNotNull();
         final List<Policy> policyList = policies.getPolicies();
@@ -111,7 +111,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         verify(adminGroup, times(1)).getName();
     }
 
-    //@Test
+    @Test
     public void getPolicyForAnonymous() throws Exception {
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -129,7 +129,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         community.getResourcePolicies().add(anonGroupPolicy);
 
         // now test that the Policy pojo we get back is correct
-        final Policies policies = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = BagItPolicyUtil.getPolicy(mockContext, community);
 
         assertThat(policies).isNotNull();
         final List<Policy> children = policies.getPolicies();
@@ -151,7 +151,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         verify(anonGroup, times(1)).getName();
     }
 
-    //@Test
+    @Test
     public void getPolicyForEPerson() throws Exception {
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -170,7 +170,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         community.getResourcePolicies().add(ePersonPolicy);
 
         // now test that the Policy pojo we get back is correct
-        final Policies policies = BagItPolicyUtil.getPolicy(Curator.curationContext(), community);
+        final Policies policies = BagItPolicyUtil.getPolicy(mockContext, community);
 
         assertThat(policies).isNotNull();
         final List<Policy> children = policies.getPolicies();
@@ -192,7 +192,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         verify(ePerson, times(1)).getEmail();
     }
 
-    //@Test
+    @Test
     public void registerPolicies() throws Exception {
         // Read an aip in order to load a policy.xml
         final URL resources = BagItPolicyUtilTest.class.getClassLoader().getResource("");
@@ -220,7 +220,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         when(ePersonService.findByEmail(any(Context.class), eq(personEmail))).thenReturn(ePerson);
 
         // Register the policy on a DSpaceObject
-        BagItPolicyUtil.registerPolicies(community, policy);
+        BagItPolicyUtil.registerPolicies(mockContext, community, policy);
 
         // verify service interactions
         verify(resourcePolicyService, times(8)).create(any(Context.class));

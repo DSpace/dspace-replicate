@@ -14,6 +14,7 @@ import java.sql.SQLException;
 
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Suspendable;
@@ -65,23 +66,19 @@ public class TransmitAIP extends AbstractCurationTask
     {
         ReplicaManager repMan = ReplicaManager.instance();
             
-        Packer packer = PackerFactory.instance(dso);
         try
         {
-            File archive = packer.pack(repMan.stage(storeGroupName, dso.getHandle()));
+            Context context = Curator.curationContext();
+            Packer packer = PackerFactory.instance(context, dso);
+            File archive = packer.pack(repMan.stage(context, storeGroupName, dso.getHandle()));
             String msg = "Created AIP: '" + archive.getName() + 
                          "' size: " + archive.length();
             repMan.transferObject(storeGroupName, archive);
             setResult(msg);
             return Curator.CURATE_SUCCESS;
         }
-        catch (AuthorizeException authE)
-        {
-            throw new IOException(authE);
-        }
-        catch (SQLException sqlE)
-        {
-            throw new IOException(sqlE);
+        catch (AuthorizeException | SQLException e) {
+            throw new IOException(e);
         }
     }
 }

@@ -75,7 +75,7 @@ public class VerifyAIP extends AbstractCurationTask
      * Performs the "Verify AIP" task.
      * <p>
      * Simply tests for presence of AIP in replica ObjectStore.
-     * @param ctx DSpace Context (this param is ignored for this task)
+     * @param ctx DSpace Context
      * @param id ID of object to verify
      * @return integer which represents Curator return status
      * @throws IOException if I/O error 
@@ -85,7 +85,7 @@ public class VerifyAIP extends AbstractCurationTask
     {
         ReplicaManager repMan = ReplicaManager.instance();
         
-        String objId = repMan.storageId(id, archFmt);
+        String objId = repMan.storageId(ctx, id, archFmt);
         boolean found = repMan.objectExists(storeGroupName, objId);
         String result = "AIP for object: " + id + " found: " + found;
         report(result);

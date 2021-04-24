@@ -83,7 +83,7 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
      * Perform 'Move AIP' task 
      * <p>
      * Moves an existing AIP from the 'group.aip.name' store to the 'group.delete.name' store
-     * @param ctx DSpace Context (this param is ignored for this task)
+     * @param ctx DSpace Context
      * @param id ID of object whose AIP should be moved
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
@@ -92,7 +92,7 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
     public int perform(Context ctx, String id) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        String objId = repMan.storageId(id, archFmt);
+        String objId = repMan.storageId(ctx, id, archFmt);
         
         boolean success = repMan.moveObject(srcGroupName, destGroupName, objId);
         

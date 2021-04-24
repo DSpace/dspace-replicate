@@ -75,8 +75,8 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         ReplicaManager repMan = ReplicaManager.instance();
         
         //Look for object in Replica Store
-        String objId = repMan.storageId(id, archFmt);
-        File archive = repMan.fetchObject(storeGroupName, objId);
+        String objId = repMan.storageId(ctx, id, archFmt);
+        File archive = repMan.fetchObject(ctx, storeGroupName, objId);
           
         if (archive != null) 
         {
@@ -88,11 +88,11 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
             
             //restore/replace object represented by this archive file
             //(based on packaging params, this may also restore/replace all child objects too)
-            restoreObject(repMan, archive, pkgParams);
+            restoreObject(ctx, repMan, archive, pkgParams);
 
             //Check if a deletion catalog exists for this object
             String catId = repMan.deletionCatalogId(id, archFmt);
-            File catArchive = repMan.fetchObject(deleteGroupName, catId);
+            File catArchive = repMan.fetchObject(ctx, deleteGroupName, catId);
             if (catArchive != null) {
                 // remove the deletion catalog (as the object is now restored)
                 repMan.removeObject(deleteGroupName, catId);
@@ -138,17 +138,18 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
      * Restores/Replaces a DSpace Object (along with possibly its child objects),
      * based on an archive file in the Replica Filestore and the given 
      * PackageParameters.
-     * 
+     *
+     * @param context the context to use
      * @param repMan ReplicaManager
      * @param archive File in replica archive
      * @param pkgParams PackageParameters (may specify restore/replace mode, recursion, etc.)
      * @throws IOException if I/O error
      */
-    private void restoreObject(ReplicaManager repMan, File archive, PackageParameters pkgParams)
+    private void restoreObject(Context context, ReplicaManager repMan, File archive, PackageParameters pkgParams)
              throws IOException
     {
         //Initialize a new METS-based packer, without an associated object
-        METSPacker packer = new METSPacker(archFmt);
+        METSPacker packer = new METSPacker(context, archFmt);
        
         try
         {
@@ -171,12 +172,12 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
                 {
                     for(String childRef : childPkgRefs)
                     {
-                        File childArchive = repMan.fetchObject(storeGroupName, childRef);
+                        File childArchive = repMan.fetchObject(context, storeGroupName, childRef);
 
                         if(childArchive!=null)
                         {
                             //recurse to restore/replace this child object (and all its children)
-                            restoreObject(repMan, childArchive, pkgParams);
+                            restoreObject(context, repMan, childArchive, pkgParams);
                         }
                         else
                         {

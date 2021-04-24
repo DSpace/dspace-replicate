@@ -119,7 +119,7 @@ public class ItemPackerTest extends BagItPackerTest {
         bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
     }
 
-    //@Test
+    @Test
     public void testPack() throws Exception {
         final String bitstreamTitle = "title";
         final String bitstreamRegex = "title|source|description";
@@ -169,7 +169,7 @@ public class ItemPackerTest extends BagItPackerTest {
                                                  eq(Item.ANY))).thenReturn(BUNDLE_NAME);
 
         // and perform the packaging
-        final ItemPacker packer = new ItemPacker(item, archFmt);
+        final ItemPacker packer = new ItemPacker(mockContext, item, archFmt);
         final File packedOutput = packer.pack(output.toFile());
 
         // verify all the interactions we outlined above
@@ -194,7 +194,7 @@ public class ItemPackerTest extends BagItPackerTest {
         packedOutput.delete();
     }
 
-    //@Test
+    @Test
     public void testFetchThrowsException() throws Exception {
         final String bitstreamTitle = "title";
         final String bitstreamRegex = "title|source|description";
@@ -231,7 +231,7 @@ public class ItemPackerTest extends BagItPackerTest {
         // and perform the packaging
         licenseBitstream.setSizeBytes(1L);
         primaryBitstream.setSizeBytes(1L);
-        final ItemPacker packer = new ItemPacker(item, archFmt);
+        final ItemPacker packer = new ItemPacker(mockContext, item, archFmt);
         packer.setReferenceFilter(BUNDLE_NAME + " 1 https://localhost/fetch");
         try {
             packer.pack(output.toFile());
@@ -270,7 +270,7 @@ public class ItemPackerTest extends BagItPackerTest {
         return owning;
     }
 
-    //@Test
+    @Test
     public void testUnpack() throws Exception {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
@@ -303,7 +303,7 @@ public class ItemPackerTest extends BagItPackerTest {
         when(bitstreamService.create(any(Context.class), eq(originalBundle), any(InputStream.class)))
             .thenReturn(originalBitstream);
 
-        final ItemPacker packer = new ItemPacker(item, archFmt);
+        final ItemPacker packer = new ItemPacker(mockContext, item, archFmt);
         packer.unpack(archive.toFile());
 
         verify(itemService, times(8)).addMetadata(any(Context.class), eq(item), nullable(String.class),

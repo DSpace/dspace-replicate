@@ -16,8 +16,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.After;
+import org.dspace.core.Context;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * Test the {@link CatalogPacker}
@@ -26,7 +27,7 @@ import org.junit.Test;
  */
 public class CatalogPackerTest extends BagItPackerTest {
 
-    //@Test
+    @Test
     public void testPack() throws Exception {
         // get the output location
         final URL resources = CollectionPackerTest.class.getClassLoader().getResource("");
@@ -34,7 +35,7 @@ public class CatalogPackerTest extends BagItPackerTest {
         final Path output = Paths.get(resources.toURI().resolve("catalog-packer-test"));
 
         // setup the packer
-        final CatalogPacker packer = new CatalogPacker("object-id", "owner-id", ImmutableList.of("member"));
+        final CatalogPacker packer = new CatalogPacker(mockContext, "object-id", "owner-id", ImmutableList.of("member"));
         final File packedOutput = packer.pack(output.toFile());
 
         assertThat(packedOutput).exists();
@@ -43,29 +44,21 @@ public class CatalogPackerTest extends BagItPackerTest {
         packedOutput.delete();
     }
 
-    /**
-     * This is not ideal but the unpack test doesn't call any services or use any static initializers, so it overrides
-     * the {@link BagItPackerTest#verifyMocks()} in order to ignore any verifications
-     */
-    public static class Unpack {
-        @After
-        public void verifyMocks() {
-        }
+    @Test
+    public void testUnpack() throws Exception {
+        final URL resources = CollectionPackerTest.class.getClassLoader().getResource("");
+        assertNotNull(resources);
+        final Path archive = Paths.get(resources.toURI().resolve("unpack/catalog.zip"));
+        final Path openArchive = Paths.get(resources.toURI().resolve("unpack/catalog"));
 
-        @Test
-        public void testUnpack() throws Exception {
-            final URL resources = CollectionPackerTest.class.getClassLoader().getResource("");
-            assertNotNull(resources);
-            final Path archive = Paths.get(resources.toURI().resolve("unpack/catalog.zip"));
-            final Path openArchive = Paths.get(resources.toURI().resolve("unpack/catalog"));
+        final Context mockContext = Mockito.mock(Context.class);
+        final CatalogPacker packer = new CatalogPacker(mockContext, "object-id", "owner-id",
+                ImmutableList.of("member"));
+        packer.unpack(archive.toFile());
 
-            final CatalogPacker packer = new CatalogPacker("object-id", "owner-id", ImmutableList.of("member"));
-            packer.unpack(archive.toFile());
-
-            assertThat(openArchive).doesNotExist();
-            assertThat(packer.getMembers()).hasSize(2);
-            assertThat(packer.getMembers()).contains("admin", "test-user");
-            assertThat(packer.getOwnerId()).isEqualTo("123456789/1");
-        }
+        assertThat(openArchive).doesNotExist();
+        assertThat(packer.getMembers()).hasSize(2);
+        assertThat(packer.getMembers()).contains("admin", "test-user");
+        assertThat(packer.getOwnerId()).isEqualTo("123456789/1");
     }
 }

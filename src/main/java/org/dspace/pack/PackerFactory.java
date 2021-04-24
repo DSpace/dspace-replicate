@@ -13,6 +13,7 @@ import org.dspace.content.DSpaceObject;
 import org.dspace.content.Item;
 import org.dspace.content.Site;
 import org.dspace.core.Constants;
+import org.dspace.core.Context;
 import org.dspace.pack.bagit.CollectionPacker;
 import org.dspace.pack.bagit.CommunityPacker;
 import org.dspace.pack.bagit.ItemPacker;
@@ -55,12 +56,12 @@ public class PackerFactory
     // cached instance of METSPacker - because a little expensive to create
     private static METSPacker metsPacker = null;
 
-    public static Packer instance(DSpaceObject dso) {
+    public static Packer instance(Context context, DSpaceObject dso) {
         Packer packer = null;
         int type = dso.getType();
         if ("mets".equals(packType)) {
             if (metsPacker == null) {
-                metsPacker = new METSPacker(dso, archFmt);
+                metsPacker = new METSPacker(context, dso, archFmt);
             }
             else {
                 metsPacker.setDSO(dso);
@@ -70,16 +71,16 @@ public class PackerFactory
                 packer.setContentFilter(cfgFilter);
             }
         } else if (Constants.ITEM == type) {
-            packer = new ItemPacker((Item)dso, archFmt);
+            packer = new ItemPacker(context, (Item)dso, archFmt);
             if (cfgFilter != null) {
                 packer.setContentFilter(cfgFilter);
             }
         } else if (Constants.COLLECTION == type) {
-            packer = new CollectionPacker((Collection)dso, archFmt);
+            packer = new CollectionPacker(context, (Collection)dso, archFmt);
         } else if (Constants.COMMUNITY == type) {
-            packer = new CommunityPacker((Community)dso, archFmt);
+            packer = new CommunityPacker(context, (Community)dso, archFmt);
         } else if (Constants.SITE == type) {
-            packer = new SitePacker((Site)dso, archFmt);
+            packer = new SitePacker(context, (Site)dso, archFmt);
         } else {
             throw new RuntimeException("No packer for object type");
         }

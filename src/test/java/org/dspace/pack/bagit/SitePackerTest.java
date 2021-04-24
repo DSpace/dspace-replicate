@@ -48,7 +48,7 @@ public class SitePackerTest extends BagItPackerTest {
     private final String handleAStr = "123456789/1";
     private final String handleBStr = "123456789/2";
 
-    //@Test
+    @Test
     public void pack() throws Exception {
         // Output directory
         final URL resources = SitePackerTest.class.getClassLoader().getResource("");
@@ -77,7 +77,7 @@ public class SitePackerTest extends BagItPackerTest {
         when(ePersonService.findAll(any(Context.class), eq(EPerson.EMAIL))).thenReturn(ImmutableList.<EPerson>of());
 
         // pack + verify
-        final SitePacker packer = new SitePacker(site, archFmt);
+        final SitePacker packer = new SitePacker(mockContext, site, archFmt);
         final File packedSite = packer.pack(output.toFile());
 
         assertThat(packedSite).exists();
@@ -94,7 +94,7 @@ public class SitePackerTest extends BagItPackerTest {
         verifyNoMoreInteractions(communityService, groupService, ePersonService);
     }
 
-    //@Test
+    @Test
     public void unpack() throws Exception {
         final String siteAip = "SITE@123456789-0";
 
@@ -107,7 +107,7 @@ public class SitePackerTest extends BagItPackerTest {
         final Site site = initDSO(Site.class);
         assertThat(site).isNotNull();
 
-        final SitePacker sitePacker = new SitePacker(site, archFmt);
+        final SitePacker sitePacker = new SitePacker(mockContext, site, archFmt);
         sitePacker.unpack(archive.toFile());
 
         final List<String> members = sitePacker.getMembers().or(new ArrayList<String>());

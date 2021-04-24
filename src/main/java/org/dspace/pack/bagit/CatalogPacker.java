@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.dspace.authorize.AuthorizeException;
+import org.dspace.core.Context;
 import org.dspace.pack.Packer;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
@@ -42,19 +43,22 @@ public class CatalogPacker implements Packer
 {
     private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
-    private String objectId = null;
+    private final Context context;
+    private final String objectId;
     private String ownerId = null;
     private List<String> members = null;
     // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
     private String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
-    public CatalogPacker(String objectId)
+    public CatalogPacker(Context context, String objectId)
     {
+        this.context = context;
         this.objectId = objectId;
     }
     
-    public CatalogPacker(String objectId, String ownerId, List<String> members)
+    public CatalogPacker(Context context, String objectId, String ownerId, List<String> members)
     {
+        this.context = context;
         this.objectId = objectId;
         this.ownerId = ownerId;
         this.members = members;
@@ -89,7 +93,7 @@ public class CatalogPacker implements Packer
             properties.put("members", members);
         }
 
-        return new BagItAipWriter(packDir, archFmt, properties).packageAip();
+        return new BagItAipWriter(context, packDir, archFmt, properties).packageAip();
     }
 
     @Override

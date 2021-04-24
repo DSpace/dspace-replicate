@@ -38,7 +38,6 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.core.Utils;
-import org.dspace.curate.Curator;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
@@ -86,6 +85,11 @@ public class BagItAipWriter {
     private final AtomicLong successBytes = new AtomicLong();
     private final AtomicLong successFiles = new AtomicLong();
     private final Map<File, String> checksums = new HashMap<>();
+
+    /**
+     * The context to use
+     */
+    private final Context context;
 
     /**
      * The directory to which the BagIt bag will be written
@@ -136,11 +140,14 @@ public class BagItAipWriter {
      * Constructor for a {@link BagItAipWriter}. Takes a minimal set of information needed in order to write an AIP as a
      * BagIt bag for dspace consumption.
      *
+     * @param context    the context to use
      * @param directory  the root {@link File} which the bag will be written to
      * @param archFmt    the serialization format when archiving the bag to a single file
      * @param properties a {@link Map} which maps a filename with a list of lines to write to the file
      */
-    public BagItAipWriter(final File directory, final String archFmt, final Map<String, List<String>> properties) {
+    public BagItAipWriter(final Context context, final File directory, final String archFmt, final Map<String,
+            List<String>> properties) {
+        this.context = context;
         this.logo = null;
         this.policies = null;
         this.metadata = null;
@@ -213,7 +220,6 @@ public class BagItAipWriter {
      * @throws AuthorizeException if there is a problem querying {@link BitstreamService#retrieve(Context, Bitstream)}
      */
     public File packageAip() throws IOException, SQLException, AuthorizeException {
-        final Context curationContext = Curator.curationContext();
         final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
         final String profileName = configurationService.getProperty(BAG_PROFILE_KEY, DEFAULT_PROFILE);
 
@@ -304,9 +310,9 @@ public class BagItAipWriter {
             } else {
                 // copy the bitstream
                 messageDigest.reset();
-                final String filename = createBitstreamFilename(bitstream, curationContext);
+                final String filename = createBitstreamFilename(bitstream, context);
                 final Path dataFile = bitstreamDirectory.resolve(filename);
-                final InputStream is = bitstreamService.retrieve(curationContext, bitstream);
+                final InputStream is = bitstreamService.retrieve(context, bitstream);
 
                 try (OutputStream output = Files.newOutputStream(dataFile);
                      CountingOutputStream countingOS = new CountingOutputStream(output);
@@ -325,8 +331,8 @@ public class BagItAipWriter {
         // also add logo if it exists
         if (logo != null) {
             messageDigest.reset();
-            final String filename = createBitstreamFilename(logo, curationContext);
-            final InputStream logoIS = bitstreamService.retrieve(curationContext, logo);
+            final String filename = createBitstreamFilename(logo, context);
+            final InputStream logoIS = bitstreamService.retrieve(context, logo);
             final Path logoPath = dataDir.resolve(filename);
 
             try (OutputStream output = Files.newOutputStream(logoPath);

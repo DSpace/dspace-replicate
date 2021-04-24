@@ -80,10 +80,4 @@ public class BagItAipReaderTest extends BagItPackerTest {
         }
         reader.clean();
     }
-
-    @After
-    public void verifyMocks() {
-        // no mocks to verify for these tests
-    }
-
 }

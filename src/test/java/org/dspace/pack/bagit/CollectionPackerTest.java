@@ -55,7 +55,7 @@ public class CollectionPackerTest extends BagItPackerTest {
                                                                   "provenance_description", "license", "copyright_text",
                                                                   "side_bar_text");
 
-    //@Test
+    @Test
     public void testPack() throws Exception {
         // get the output location
         final URL resources = CollectionPackerTest.class.getClassLoader().getResource("");
@@ -84,7 +84,7 @@ public class CollectionPackerTest extends BagItPackerTest {
         when(itemService.getMetadata(eq(template), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY), eq(Item.ANY)))
             .thenReturn(Collections.singletonList(templateMetadata));
 
-        final CollectionPacker collectionPacker = new CollectionPacker(collection, archFmt);
+        final CollectionPacker collectionPacker = new CollectionPacker(mockContext, collection, archFmt);
         final File packedOutput = collectionPacker.pack(output.toFile());
 
         for (String field : fields) {
@@ -100,7 +100,7 @@ public class CollectionPackerTest extends BagItPackerTest {
         packedOutput.delete();
     }
 
-    //@Test
+    @Test
     public void testUnpack() throws Exception {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
@@ -123,7 +123,7 @@ public class CollectionPackerTest extends BagItPackerTest {
         final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
         when(itemService.createTemplateItem(any(Context.class), eq(collection))).thenReturn(template);
 
-        final CollectionPacker packer = new CollectionPacker(collection, archFmt);
+        final CollectionPacker packer = new CollectionPacker(mockContext, collection, archFmt);
         packer.unpack(archive.toFile());
 
         verify(collectionService, times(7)).setMetadataSingleValue(any(Context.class), eq(collection), anyString(),
