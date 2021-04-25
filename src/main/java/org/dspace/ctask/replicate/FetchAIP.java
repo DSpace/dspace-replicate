@@ -10,7 +10,6 @@ package org.dspace.ctask.replicate;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;

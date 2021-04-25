@@ -12,16 +12,15 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
+import org.dspace.content.packager.PackageParameters;
 import org.dspace.core.Context;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
 import org.dspace.curate.Mutative;
 import org.dspace.pack.mets.METSPacker;
-
-import org.apache.log4j.Logger;
-import org.dspace.content.packager.PackageParameters;
 
 /**
  * METSRestoreFromAIP task will instate the METS AIP replica representation of the object in

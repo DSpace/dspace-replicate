@@ -7,19 +7,26 @@
  */
 package org.dspace.ctask.replicate;
 
-import java.sql.SQLException;
-import java.io.FileReader;
+import static org.dspace.event.Event.CREATE;
+import static org.dspace.event.Event.DELETE;
+import static org.dspace.event.Event.INSTALL;
+import static org.dspace.event.Event.MODIFY;
+import static org.dspace.event.Event.MODIFY_METADATA;
+import static org.dspace.event.Event.REMOVE;
+
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.log4j.Logger;
 
+import org.apache.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -28,8 +35,8 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CollectionService;
 import org.dspace.content.service.CommunityService;
 import org.dspace.content.service.ItemService;
-import org.dspace.core.Context;
 import org.dspace.core.Constants;
+import org.dspace.core.Context;
 import org.dspace.core.factory.CoreServiceFactory;
 import org.dspace.core.service.PluginService;
 import org.dspace.curate.Curator;
@@ -42,9 +49,6 @@ import org.dspace.pack.Packer;
 import org.dspace.pack.bagit.CatalogPacker;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
-
-// for readability
-import static org.dspace.event.Event.*;
 
 /**
  * BagItReplicateConsumer is an event consumer that tracks events relevant to

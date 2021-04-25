@@ -21,14 +21,11 @@ import static org.dspace.eperson.service.EPersonService.MD_LANGUAGE;
 import static org.dspace.eperson.service.EPersonService.MD_LASTNAME;
 import static org.dspace.eperson.service.EPersonService.MD_PHONE;
 
-import javax.annotation.Nullable;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlValue;
 
 import org.dspace.content.MetadataFieldName;
-import org.dspace.content.MetadataSchemaEnum;
 import org.dspace.content.MetadataValue;
-import org.dspace.eperson.service.EPersonService;
 
 /**
  * Pojo to contain information from {@link org.dspace.content.MetadataValue}. Should be populated by each

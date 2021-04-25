@@ -39,7 +39,6 @@ import org.dspace.content.Site;
 import org.dspace.content.packager.RoleDisseminator;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;

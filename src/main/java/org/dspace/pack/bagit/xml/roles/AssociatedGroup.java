@@ -23,7 +23,6 @@ import org.dspace.content.packager.PackageUtils;
 import org.dspace.content.packager.RoleDisseminator;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
-import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 
