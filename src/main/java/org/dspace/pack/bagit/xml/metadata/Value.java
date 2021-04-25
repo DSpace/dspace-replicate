@@ -7,10 +7,28 @@
  */
 package org.dspace.pack.bagit.xml.metadata;
 
+import static org.dspace.content.service.DSpaceObjectService.MD_COPYRIGHT_TEXT;
+import static org.dspace.content.service.DSpaceObjectService.MD_INTRODUCTORY_TEXT;
+import static org.dspace.content.service.DSpaceObjectService.MD_LICENSE;
+import static org.dspace.content.service.DSpaceObjectService.MD_NAME;
+import static org.dspace.content.service.DSpaceObjectService.MD_PROVENANCE_DESCRIPTION;
+import static org.dspace.content.service.DSpaceObjectService.MD_SHORT_DESCRIPTION;
+import static org.dspace.content.service.DSpaceObjectService.MD_SIDEBAR_TEXT;
+import static org.dspace.content.service.DSpaceObjectService.MD_SOURCE;
+import static org.dspace.content.service.DSpaceObjectService.MD_USER_FORMAT_DESCRIPTION;
+import static org.dspace.eperson.service.EPersonService.MD_FIRSTNAME;
+import static org.dspace.eperson.service.EPersonService.MD_LANGUAGE;
+import static org.dspace.eperson.service.EPersonService.MD_LASTNAME;
+import static org.dspace.eperson.service.EPersonService.MD_PHONE;
+
+import javax.annotation.Nullable;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlValue;
 
+import org.dspace.content.MetadataFieldName;
+import org.dspace.content.MetadataSchemaEnum;
 import org.dspace.content.MetadataValue;
+import org.dspace.eperson.service.EPersonService;
 
 /**
  * Pojo to contain information from {@link org.dspace.content.MetadataValue}. Should be populated by each
@@ -46,6 +64,48 @@ public class Value {
     public Value(final String body, final String name) {
         this.body = body;
         this.name = name;
+    }
+
+    /**
+     * Gets the {@code MetadataFieldName} for this value.
+     *
+     * @return the appropriate MetadataFieldName for the given field.
+     * @throws IllegalStateException if this value does not have a valid MetadataFieldName.
+     */
+    public MetadataFieldName getMetadataField() {
+        if (schema != null) {
+            return new MetadataFieldName(schema, element, qualifier);
+        }
+        switch (name) {
+            case "introductory_text":
+                return MD_INTRODUCTORY_TEXT;
+            case "short_description":
+                return MD_SHORT_DESCRIPTION;
+            case "side_bar_text":
+                return MD_SIDEBAR_TEXT;
+            case "copyright_text":
+                return MD_COPYRIGHT_TEXT;
+            case "name":
+                return MD_NAME;
+            case "provenance_description":
+                return MD_PROVENANCE_DESCRIPTION;
+            case "license":
+                return MD_LICENSE;
+            case "user_format_description":
+                return MD_USER_FORMAT_DESCRIPTION;
+            case "source":
+                return MD_SOURCE;
+            case "firstname":
+                return MD_FIRSTNAME;
+            case "lastname":
+                return MD_LASTNAME;
+            case "phone":
+                return MD_PHONE;
+            case "language":
+                return MD_LANGUAGE;
+            default:
+                throw new IllegalStateException("Value does not have a field recognized by DSpace: " + name);
+        }
     }
 
     /**

@@ -9,6 +9,7 @@ package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -104,8 +105,22 @@ public class CommunityPackerTest extends BagItPackerTest {
         final CommunityPacker packer = new CommunityPacker(mockContext, community, archFmt);
         packer.unpack(archive.toFile());
 
-        verify(communityService, times(5)).setMetadataSingleValue(any(Context.class), eq(community), anyString(),
-                anyString(), anyString(), anyString(), anyString());
+        // name="export-test"
+        verify(communityService, times(1)).setMetadataSingleValue(any(Context.class), eq(community),
+                eq("dc"), eq("title"), isNull(), isNull(), eq("export-test"));
+        // short_description="test for export tool"
+        verify(communityService, times(1)).setMetadataSingleValue(any(Context.class), eq(community),
+                eq("dc"), eq("description"), eq("abstract"), isNull(), eq("test for export tool"));
+        // introductory_text=""
+        verify(communityService, times(1)).setMetadataSingleValue(any(Context.class), eq(community),
+                eq("dc"), eq("description"), isNull(), isNull(), eq(""));
+        // copyright_text=""
+        verify(communityService, times(1)).setMetadataSingleValue(any(Context.class), eq(community),
+                eq("dc"), eq("rights"), isNull(), isNull(), eq(""));
+        // side_bar_text=""
+        verify(communityService, times(1)).setMetadataSingleValue(any(Context.class), eq(community),
+                eq("dc"), eq("description"), eq("tableofcontents"), isNull(), eq(""));
+
         verify(communityService, never()).setLogo(any(Context.class), eq(community), any(InputStream.class));
         verify(communityService, times(1)).update(any(Context.class), eq(community));
 
