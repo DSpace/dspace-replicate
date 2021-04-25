@@ -16,7 +16,6 @@ import org.dspace.eperson.service.GroupService;
 import org.dspace.eperson.service.RegistrationDataService;
 import org.dspace.eperson.service.SubscribeService;
 import org.dspace.eperson.service.SupervisorService;
-import org.mockito.Mockito;
 
 /**
  * {@link EPersonServiceFactory} for testing

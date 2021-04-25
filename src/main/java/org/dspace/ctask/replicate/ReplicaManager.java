@@ -7,25 +7,25 @@
  */
 package org.dspace.ctask.replicate;
 
-import java.sql.SQLException;
-
-import org.dspace.content.DSpaceObject;
-import org.dspace.core.Constants;
-import org.dspace.core.Context;
+import static org.dspace.ctask.replicate.Odometer.COUNT;
+import static org.dspace.ctask.replicate.Odometer.DOWNLOADED;
+import static org.dspace.ctask.replicate.Odometer.SIZE;
+import static org.dspace.ctask.replicate.Odometer.UPLOADED;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
+import org.dspace.content.DSpaceObject;
+import org.dspace.core.Constants;
+import org.dspace.core.Context;
 import org.dspace.core.factory.CoreServiceFactory;
 import org.dspace.core.service.PluginService;
-import org.dspace.curate.Curator;
 import org.dspace.handle.factory.HandleServiceFactory;
 import org.dspace.handle.service.HandleService;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
-
-import static org.dspace.ctask.replicate.Odometer.*;
 
 /**
  * Singleton access point for communicating with replication access providers.

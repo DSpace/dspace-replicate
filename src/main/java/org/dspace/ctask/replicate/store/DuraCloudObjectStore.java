@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.dspace.ctask.replicate.ObjectStore;
+import org.dspace.curate.Utils;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import org.duracloud.client.ContentStore;
@@ -31,9 +33,6 @@ import org.duracloud.common.retry.Retrier;
 import org.duracloud.domain.Content;
 import org.duracloud.error.ContentStoreException;
 import org.duracloud.error.NotFoundException;
-
-import org.dspace.ctask.replicate.ObjectStore;
-import org.dspace.curate.Utils;
 
 /**
  * DuraCloudReplicaStore invokes the DuraCloud RESTful web service API,

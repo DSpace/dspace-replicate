@@ -7,13 +7,11 @@
  */
 package org.dspace.pack.bagit.xml.roles;
 
-import java.sql.SQLException;
 import javax.xml.bind.annotation.XmlAttribute;
 
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageUtils;
 import org.dspace.core.Context;
-import org.dspace.curate.Curator;
 import org.dspace.eperson.EPerson;
 import org.dspace.eperson.Group;
 

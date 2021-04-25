@@ -8,6 +8,7 @@
 package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.dspace.content.MetadataSchemaEnum.DC;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -34,8 +35,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static org.dspace.content.MetadataSchemaEnum.DC;
 
 import org.assertj.core.util.Files;
 import org.dspace.authorize.ResourcePolicy;

@@ -9,9 +9,7 @@ package org.dspace.pack.bagit;
 
 import static org.dspace.TestContentServiceFactory.CONTENT_SERVICE_FACTORY;
 import static org.dspace.TestDSpaceServicesFactory.DSPACE_SERVICES_FACTORY;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Constructor;
@@ -40,7 +38,6 @@ import org.dspace.kernel.DSpaceKernel;
 import org.dspace.kernel.DSpaceKernelManager;
 import org.dspace.kernel.ServiceManager;
 import org.dspace.services.ConfigurationService;
-import org.junit.After;
 import org.junit.Before;
 
 /**
