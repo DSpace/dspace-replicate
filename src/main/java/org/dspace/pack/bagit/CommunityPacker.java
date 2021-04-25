@@ -32,6 +32,7 @@ import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
+import org.dspace.content.MetadataFieldName;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.service.CommunityService;
@@ -149,8 +150,9 @@ public class CommunityPacker implements Packer
 
         final Metadata metadata= reader.readMetadata();
         for (Value value : metadata.getValues()) {
-            communityService.setMetadataSingleValue(context, community, value.getSchema(), value.getElement(),
-                    value.getQualifier(), value.getLanguage(), value.getBody());
+            MetadataFieldName field = value.getMetadataField();
+            communityService.setMetadataSingleValue(context, community, field.SCHEMA, field.ELEMENT, field.QUALIFIER,
+                    value.getLanguage(), value.getBody());
         }
 
         final Optional<Path> logo = reader.findLogo();

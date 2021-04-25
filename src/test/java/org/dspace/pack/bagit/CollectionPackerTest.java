@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -126,8 +127,28 @@ public class CollectionPackerTest extends BagItPackerTest {
         final CollectionPacker packer = new CollectionPacker(mockContext, collection, archFmt);
         packer.unpack(archive.toFile());
 
-        verify(collectionService, times(7)).setMetadataSingleValue(any(Context.class), eq(collection), anyString(),
-                anyString(), anyString(), anyString(), anyString());
+        // name="collection"
+        verify(collectionService, times(1)).setMetadataSingleValue(any(Context.class), eq(collection),
+                eq("dc"), eq("title"), isNull(), isNull(), eq("collection"));
+        // short_description="short"
+        verify(collectionService, times(1)).setMetadataSingleValue(any(Context.class), eq(collection),
+                eq("dc"), eq("description"), eq("abstract"), isNull(), eq("short"));
+        // introductory_text="introductory"
+        verify(collectionService, times(1)).setMetadataSingleValue(any(Context.class), eq(collection),
+                eq("dc"), eq("description"), isNull(), isNull(), eq("introductory"));
+        // provenance_description=""
+        verify(collectionService, times(1)).setMetadataSingleValue(any(Context.class), eq(collection),
+                eq("dc"), eq("provenance"), isNull(), isNull(), eq(""));
+        // license=""
+        verify(collectionService, times(1)).setMetadataSingleValue(any(Context.class), eq(collection),
+                eq("dc"), eq("rights"), eq("license"), isNull(), eq(""));
+        // copyright_text=""
+        verify(collectionService, times(1)).setMetadataSingleValue(any(Context.class), eq(collection),
+                eq("dc"), eq("rights"), isNull(), isNull(), eq(""));
+        // side_bar_text=""
+        verify(collectionService, times(1)).setMetadataSingleValue(any(Context.class), eq(collection),
+                eq("dc"), eq("description"), eq("tableofcontents"), isNull(), eq(""));
+
         verify(collectionService, times(1)).setLogo(any(Context.class), eq(collection), any(InputStream.class));
         verify(collectionService, times(1)).update(any(Context.class), eq(collection));
         verify(itemService, times(1)).createTemplateItem(any(Context.class), eq(collection));

@@ -34,6 +34,7 @@ import org.dspace.content.Bitstream;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.Item;
+import org.dspace.content.MetadataFieldName;
 import org.dspace.content.MetadataValue;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.packager.PackageException;
@@ -169,8 +170,9 @@ public class CollectionPacker implements Packer
 
         final Metadata metadata = reader.readMetadata();
         for (Value value : metadata.getValues()) {
-            collectionService.setMetadataSingleValue(context, collection, value.getSchema(), value.getElement(),
-                    value.getQualifier(), value.getLanguage(), value.getBody());
+            MetadataFieldName field = value.getMetadataField();
+            collectionService.setMetadataSingleValue(context, collection, field.SCHEMA, field.ELEMENT, field.QUALIFIER,
+                    value.getLanguage(), value.getBody());
         }
 
         final Optional<Metadata> templateMetadata = reader.findItemTemplate();
