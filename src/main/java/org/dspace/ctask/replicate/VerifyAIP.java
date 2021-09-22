@@ -9,6 +9,7 @@
 package org.dspace.ctask.replicate;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -25,7 +26,7 @@ import org.dspace.curate.Suspendable;
  * once a single object fails the verification. However, when run from the Command-Line
  * this task will run to completion (i.e. even if an object fails it will continue
  * processing to completion).
- * 
+ *
  * @author richardrodgers
  * @see TransmitAIP
  */
@@ -33,7 +34,7 @@ import org.dspace.curate.Suspendable;
 public class VerifyAIP extends AbstractCurationTask
 {
     private String archFmt;
-    
+
     // Group where all AIPs are stored
     private String storeGroupName;
 
@@ -55,12 +56,12 @@ public class VerifyAIP extends AbstractCurationTask
     @Override
     public int perform(DSpaceObject dso) throws IOException
     {
-        if(dso!=null)
-        {
-            //NOTE: we can get away with passing in a 'null' Context because
-            // the context isn't actually used to verify whether an AIP exists
-            // (see below 'perform(ctx,id)' method)
-            return perform(null, dso.getHandle());
+        if(dso!=null) {
+            try {
+                return perform(Curator.curationContext(), dso.getHandle());
+            } catch (SQLException e) {
+                throw new IOException(e);
+            }
         }
         else
         {
@@ -70,7 +71,7 @@ public class VerifyAIP extends AbstractCurationTask
             return Curator.CURATE_FAIL;
         }
     }
-    
+
     /**
      * Performs the "Verify AIP" task.
      * <p>
@@ -78,13 +79,13 @@ public class VerifyAIP extends AbstractCurationTask
      * @param ctx DSpace Context
      * @param id ID of object to verify
      * @return integer which represents Curator return status
-     * @throws IOException if I/O error 
+     * @throws IOException if I/O error
      */
     @Override
     public int perform(Context ctx, String id) throws IOException
     {
         ReplicaManager repMan = ReplicaManager.instance();
-        
+
         String objId = repMan.storageId(ctx, id, archFmt);
         boolean found = repMan.objectExists(storeGroupName, objId);
         String result = "AIP for object: " + id + " found: " + found;

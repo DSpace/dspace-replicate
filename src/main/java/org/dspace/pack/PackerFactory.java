@@ -24,7 +24,7 @@ import org.duraspace.bagit.profile.BagProfile;
 
 /**
  * PackerFactory mints packers for specified object types. Packer implementation
- * is based on a configurable property (packer.pkgtype). Currently, only 
+ * is based on a configurable property (packer.pkgtype). Currently, only
  * LC METS-based ("mets") and Bagit-based ("bagit") package formats are supported.
  *
  * @author richardrodgers
@@ -43,7 +43,7 @@ public class PackerFactory
     public static final String WITHDRAWN  = "withdrawn";
     public static final String BAG_PROFILE_KEY = "replicate-bagit.profile";
     public static final String DEFAULT_PROFILE = BagProfile.BuiltIn.BEYOND_THE_REPOSITORY.getIdentifier();
-    
+
     // type of package to use - must be either 'mets' or 'bagit'
     private static String packType = DSpaceServicesFactory.getInstance().getConfigurationService()
                                                           .getProperty("replicate.packer.pkgtype");
@@ -64,6 +64,7 @@ public class PackerFactory
                 metsPacker = new METSPacker(context, dso, archFmt);
             }
             else {
+                metsPacker.setContext(context);
                 metsPacker.setDSO(dso);
             }
             packer = metsPacker;

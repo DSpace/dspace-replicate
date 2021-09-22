@@ -64,10 +64,10 @@ public class METSPacker implements Packer
     private List<String> filterBundles = new ArrayList<String>();
     /** Whether bundles in 'filterBundles' will be included or excluded from exported AIP **/
     private boolean exclude = true;
-    
+
     /** List of all referenced child packages **/
     private List<String> childPackageRefs = new ArrayList<String>();
-    
+
     /** DSpace PackageDisseminator & PackageIngester to utilize for AIP pack() & unpack() **/
     private PackageDisseminator dip = null;
     private PackageIngester sip = null;
@@ -78,12 +78,20 @@ public class METSPacker implements Packer
         this.dso = null;
         this.archFmt = archFmt;
     }
-    
+
     public METSPacker(Context context, DSpaceObject dso, String archFmt)
     {
         this.context = context;
         this.dso = dso;
         this.archFmt = archFmt;
+    }
+
+    /**
+     * Set application context
+     * @param context
+     */
+    public void setContext(Context context) {
+        this.context = context;
     }
 
     /**
@@ -106,7 +114,7 @@ public class METSPacker implements Packer
 
     /**
      * Create a METS AIP Package, using the configured AIP PackageDisseminator (in dspace.cfg)
-     * 
+     *
      * @param packDir the directory where this package should be created
      * @return the created package file
      * @throws AuthorizeException if authorize error
@@ -126,17 +134,17 @@ public class METSPacker implements Packer
         {
             throw new IOException("Cannot obtain AIP disseminator. No dissemination plugin named 'AIP' is configured.");
         }
-        
+
         //Initialize packaging params
         PackageParameters pkgParams = new PackageParameters();
-        
+
         //If a content (Bundle) filter is specified
         if(this.contentFilter!=null && !this.contentFilter.isEmpty())
         {
             //Pass that on to the 'filterBundles' package parameter (which uses the same syntax)
             pkgParams.addProperty("filterBundles", contentFilter);
-        }    
-        
+        }
+
         File archive = new File(packDir.getParentFile(), packDir.getName() + "." + archFmt);
         //disseminate the requested object
         try
@@ -151,14 +159,14 @@ public class METSPacker implements Packer
         {
             throw new IOException(xwkE.getMessage(), xwkE);
         }
-        
+
         return archive;
     }
 
     /**
-     * Restore/Replace a DSpaceObject based on the contents of a METS AIP Package, 
+     * Restore/Replace a DSpaceObject based on the contents of a METS AIP Package,
      * using the configured AIP PackageIngester (in dspace.cfg)
-     * 
+     *
      * @param archive the METS AIP package
      * @throws AuthorizeException if authorize error
      * @throws IOException if I/O error
@@ -170,23 +178,23 @@ public class METSPacker implements Packer
         //unpack with default PackageParameter settings
         unpack(archive, null);
     }
-    
-    
+
+
     /**
-     * Restore/Replace a *single* DSpaceObject based on the contents of a METS AIP Package, 
-     * and the given PackageParameters. This uses the configured AIP PackageIngester 
-     * (in dspace.cfg). 
+     * Restore/Replace a *single* DSpaceObject based on the contents of a METS AIP Package,
+     * and the given PackageParameters. This uses the configured AIP PackageIngester
+     * (in dspace.cfg).
      * <p>
      * Please note that it is up to the calling Curation Task
-     * to perform any recursive restores/replaces of child objects.  
+     * to perform any recursive restores/replaces of child objects.
      * If recursiveMode is enabled, this method will attempt to save all referenced
      * child packages for access via getChildPackageRefs().
-     * 
+     *
      * @param archive the METS AIP package
      * @param pkgParams the PackageParameters (if null, defaults to Recursive Replace settings)
      * @throws AuthorizeException if authorize error
      * @throws IOException if I/O error
-     * @throws SQLException if database error 
+     * @throws SQLException if database error
      */
     public void unpack(File archive, PackageParameters pkgParams) throws AuthorizeException, IOException, SQLException
     {
@@ -206,7 +214,7 @@ public class METSPacker implements Packer
         if(pkgParams==null || pkgParams.isEmpty())
         {
             pkgParams = new PackageParameters();
-        
+
             //--- Default settings/parameters for PackageIngester --
             // These default settings should work for a wide variety of replace/restore actions.
             // For more info, see: https://wiki.duraspace.org/display/DSDOC18/AIP+Backup+and+Restore
@@ -221,7 +229,7 @@ public class METSPacker implements Packer
             // before its parent. But, once parent is restored, the child object will then be restored immediately after)
             pkgParams.setProperty("skipIfParentMissing", "true");
         }
-        
+
         DSpaceObject updatedDso = null;
         try
         {
@@ -239,7 +247,7 @@ public class METSPacker implements Packer
             // NOTE: we should only encounter an IllegalStateException, when
             // attempting to ingest an object that already exists in the system.
             // (i.e. this is a "handle already in use" exception)
-            
+
             //if we are skipping over (i.e. keeping) existing objects
             if(pkgParams.keepExistingModeEnabled())
             {
@@ -249,7 +257,7 @@ public class METSPacker implements Packer
             else // Pass this exception on -- which essentially causes a full rollback of all changes (this is the default)
             {
                 throw ie;
-            }    
+            }
         }
         catch (PackageException pkgE)
         {
@@ -263,10 +271,10 @@ public class METSPacker implements Packer
         {
             throw new IOException(wfE.getMessage(), wfE);
         }
-        
-        //If we are using a class that extends AbstractPackageIngester, 
+
+        //If we are using a class that extends AbstractPackageIngester,
         //then we can save the child AIP references for later processing.
-        //(When recursion is enabled, this step ensures the calling curation task 
+        //(When recursion is enabled, this step ensures the calling curation task
         // knows which child AIPs to next restore/replace)
         if(sip instanceof AbstractPackageIngester)
         {
@@ -277,8 +285,8 @@ public class METSPacker implements Packer
                 //Check if we found child package references when unpacking this latest package into a DSpaceObject
                 this.childPackageRefs = ((AbstractPackageIngester) sip).getPackageReferences(updatedDso);
             }//end if not an Item
-        } 
-        
+        }
+
         //NOTE: Context is handled by Curator -- it will commit or close when needed.
     }
 
@@ -301,22 +309,22 @@ public class METSPacker implements Packer
         else
         {
             return itemSize((Item)dso);
-        }     
+        }
     }
-    
+
     /**
-     * Determine total estimated size of all AIPs 
+     * Determine total estimated size of all AIPs
      * (Site AIP, Community AIPs, Collection AIPs, Item AIPs)
      * <P>
      * Estimated size is currently just based on size of content files.
-     * 
+     *
      * @return estimated storage size
      * @throws SQLException if database error
      */
     private long siteSize() throws SQLException
     {
         long size = 0L;
-        
+
         //This Site AIP itself is very small, so as a "guess" we'll just total
         // up the size of all Community, Collection & Item AIPs
         //Then, perform this task for all Top-Level Communities in the Site
@@ -325,16 +333,16 @@ public class METSPacker implements Packer
         {
             size += communitySize(subcomm);
         }
-        
+
         return size;
     }
-    
+
     /**
      * Determine total estimated size of Community AIP and all child AIPs
      * (Sub-Community AIPs, Collection AIPs, Item AIPs)
      * <P>
      * Estimated size is currently just based on size of content files.
-     * 
+     *
      * @param community DSpace Community
      * @return estimated storage size
      * @throws SQLException if database error
@@ -358,13 +366,13 @@ public class METSPacker implements Packer
         }
         return size;
     }
-    
+
     /**
      * Determine total estimated size of Collection AIP and all child AIPs
      * (Item AIPs)
      * <P>
      * Estimated size is currently just based on size of content files.
-     * 
+     *
      * @param collection DSpace Collection
      * @return estimated storage size
      * @throws SQLException  if database error
@@ -383,14 +391,14 @@ public class METSPacker implements Packer
         {
             size += itemSize(itemIter.next());
         }
-        return size; 
+        return size;
     }
-    
+
    /**
      * Determine total estimated size of Item AIP
      * <P>
      * Estimated size is currently just based on size of content files.
-     * 
+     *
      * @param item DSpace Item
      * @return estimated storage size
      * @throws SQLException  if database error
@@ -411,12 +419,12 @@ public class METSPacker implements Packer
         }
         return size;
     }
-    
+
     @Override
     public void setContentFilter(String filter)
-    { 
+    {
         //If our filter list of bundles begins with a '+', then this list
-        // specifies all the bundles to *include*. Otherwise all 
+        // specifies all the bundles to *include*. Otherwise all
         // bundles *except* the listed ones are included
         if(filter.startsWith("+"))
         {
@@ -424,9 +432,9 @@ public class METSPacker implements Packer
             //remove the preceding '+' from our bundle list
             filter = filter.substring(1);
         }
-        
+
         contentFilter = filter;
-        filterBundles = Arrays.asList(filter.split(",")); 
+        filterBundles = Arrays.asList(filter.split(","));
     }
 
     private boolean includedBundle(String name)
@@ -440,10 +448,10 @@ public class METSPacker implements Packer
     {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-    
+
     /**
      * Return list of referenced child packages (AIPs) which were
-     * located during the unpacking of an AIP (see unpack()). 
+     * located during the unpacking of an AIP (see unpack()).
      * <P>
      * This may be used by tasks so that they can recursively unpack()
      * additional referenced child packages as needed.

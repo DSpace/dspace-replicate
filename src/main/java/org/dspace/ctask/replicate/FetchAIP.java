@@ -10,6 +10,7 @@ package org.dspace.ctask.replicate;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -19,7 +20,7 @@ import org.dspace.curate.Curator;
 /**
  * FetchAIP task will simply retrieve replica representations of the object
  * into the local staging area.
- * 
+ *
  * @author richardrodgers
  * @see TransmitAIP
  */
@@ -27,7 +28,7 @@ import org.dspace.curate.Curator;
 public class FetchAIP extends AbstractCurationTask
 {
     private String archFmt;
-    
+
     private String baseFolder;
 
     // Group where all AIPs are stored
@@ -40,7 +41,7 @@ public class FetchAIP extends AbstractCurationTask
         baseFolder = configurationService.getProperty("replicate.base.dir");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     }
-    
+
     /**
      * Perform the 'Fetch AIP' task
      * @param dso DSpace Object to perform on
@@ -52,10 +53,11 @@ public class FetchAIP extends AbstractCurationTask
     {
         if(dso!=null)
         {
-            //NOTE: we can get away with passing in a 'null' Context because
-            // the context isn't actually used to fetch the AIP
-            // (see below 'perform(ctx,id)' method)
-            return perform(null, dso.getHandle());
+            try {
+                return perform(Curator.curationContext(), dso.getHandle());
+            } catch (SQLException e) {
+                throw new IOException(e);
+            }
         }
         else
         {
@@ -65,8 +67,8 @@ public class FetchAIP extends AbstractCurationTask
             return Curator.CURATE_FAIL;
         }
     }
-    
-    
+
+
     /**
      * Perform the 'Fetch AIP' task
      * @param ctx DSpace Context
@@ -83,7 +85,7 @@ public class FetchAIP extends AbstractCurationTask
         boolean found = archive != null;
         String result = "AIP for object: " + id + " located : " + found + ".";
         if(found)
-            result += " AIP file downloaded to '" 
+            result += " AIP file downloaded to '"
                 + baseFolder + "/" + storeGroupName + "/" + objId + "'";
         report(result);
         setResult(result);
