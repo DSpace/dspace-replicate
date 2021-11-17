@@ -7,7 +7,7 @@
     <description>Replication Task Suite: A DSpace add-on providing Curation Tasks that perform replication
      (backup and restore) of DSpace content to other locations or services.</description>
     <url>https://wiki.lyrasis.org/display/DSPACE/ReplicationTaskSuite</url>
-    <version>7.1-SNAPSHOT</version>
+    <version>7.0-SNAPSHOT</version>
 
     <organization>
         <name>LYRASIS</name>
@@ -15,8 +15,8 @@
     </organization>
 
     <properties>
-        <!-- DSpace Version Information (supported version of DSpace) -->
-        <dspace.version>7.0</dspace.version>
+        <!-- DSpace Version Information (supported version of DSpace is any 7.x release) -->
+        <dspace.version>[7.0,7.20)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
         <duracloud.version>7.0.0</duracloud.version>
         <!-- DuraSpace BagIt Support Library -->
