@@ -9,6 +9,7 @@
 package org.dspace.ctask.replicate;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 import org.dspace.content.DSpaceObject;
@@ -23,14 +24,14 @@ import org.dspace.curate.Distributive;
  * from the 'group.aip.name' store to the 'group.delete.name' store, essentially
  * moving the content into a "trash" folder.
  * <P>
- * This task is primarily used by the ReplicateConsumer to move the AIP for a 
- * deleted DSpace Object off to a "trash" folder / temporary location. This 
+ * This task is primarily used by the ReplicateConsumer to move the AIP for a
+ * deleted DSpace Object off to a "trash" folder / temporary location. This
  * allows the AIP to remain in external storage for a period, just in case the
  * deleted object needs to be restored to DSpace.
  * <P>
- * This task only moves a single AIP at at time (it inhibits iteration when 
+ * This task only moves a single AIP at at time (it inhibits iteration when
  * invoked on a container object).
- * 
+ *
  * @author tdonohue
  */
 @Distributive
@@ -39,9 +40,9 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
     // Source and destination group where AIP will be moved to
     private String srcGroupName;
     private String destGroupName;
-    
+
     private String archFmt;
-    
+
     private static Logger log = Logger.getLogger(MoveToTrashSingleAIP.class);
 
     @Override
@@ -51,7 +52,7 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
         destGroupName = configurationService.getProperty("replicate.group.delete.name");
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
     }
-    
+
     /**
      * Perform 'Move To Trash Single AIP' task
      * <p>
@@ -65,10 +66,11 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
     {
         if(dso!=null)
         {
-            //NOTE: we can get away with passing in a 'null' Context because
-            // the context isn't actually used to fetch the AIP
-            // (see below 'perform(ctx,id)' method)
-            return perform(null, dso.getHandle());
+            try {
+                return perform(Curator.curationContext(), dso.getHandle());
+            } catch (SQLException e) {
+                throw new IOException(e);
+            }
         }
         else
         {
@@ -78,9 +80,9 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
             return Curator.CURATE_FAIL;
         }
     }
-    
+
     /**
-     * Perform 'Move AIP' task 
+     * Perform 'Move AIP' task
      * <p>
      * Moves an existing AIP from the 'group.aip.name' store to the 'group.delete.name' store
      * @param ctx DSpace Context
@@ -93,15 +95,15 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
     {
         ReplicaManager repMan = ReplicaManager.instance();
         String objId = repMan.storageId(ctx, id, archFmt);
-        
+
         boolean success = repMan.moveObject(srcGroupName, destGroupName, objId);
-        
+
         String result = "AIP for object: " + id + " could NOT be moved from: " + srcGroupName + " to : " + destGroupName + ".";
         if(success)
             result = "AIP for object: " + id + " moved from: " + srcGroupName + " to : " + destGroupName + ".";
         report(result);
         setResult(result);
-        
+
         return success ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;
     }
 }

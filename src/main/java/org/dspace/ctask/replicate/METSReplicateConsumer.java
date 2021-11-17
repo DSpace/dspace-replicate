@@ -430,7 +430,7 @@ public class METSReplicateConsumer implements Consumer {
         {
             // either marks end of current deletion or is member of
             // enclosing one: ignore if latter
-            if (delObjId.equals(id))
+            if (event.getDetail().equals(id) || (delObjId != null && delObjId.equals(id)))
             {
                 // determine owner and write out deletion catalog
                 if (Constants.COLLECTION == event.getSubjectType())
