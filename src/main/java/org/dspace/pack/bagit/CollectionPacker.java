@@ -171,7 +171,7 @@ public class CollectionPacker implements Packer
         final Metadata metadata = reader.readMetadata();
         for (Value value : metadata.getValues()) {
             MetadataFieldName field = value.getMetadataField();
-            collectionService.setMetadataSingleValue(context, collection, field.SCHEMA, field.ELEMENT, field.QUALIFIER,
+            collectionService.setMetadataSingleValue(context, collection, field.schema, field.element, field.qualifier,
                     value.getLanguage(), value.getBody());
         }
 
