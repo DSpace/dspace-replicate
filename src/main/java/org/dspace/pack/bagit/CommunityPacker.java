@@ -151,7 +151,7 @@ public class CommunityPacker implements Packer
         final Metadata metadata= reader.readMetadata();
         for (Value value : metadata.getValues()) {
             MetadataFieldName field = value.getMetadataField();
-            communityService.setMetadataSingleValue(context, community, field.SCHEMA, field.ELEMENT, field.QUALIFIER,
+            communityService.setMetadataSingleValue(context, community, field.schema, field.element, field.qualifier,
                     value.getLanguage(), value.getBody());
         }
 
