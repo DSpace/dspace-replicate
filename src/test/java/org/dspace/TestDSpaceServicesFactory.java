@@ -8,7 +8,6 @@
 package org.dspace;
 
 import org.dspace.kernel.ServiceManager;
-import org.dspace.services.CachingService;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.EmailService;
 import org.dspace.services.EventService;
@@ -25,11 +24,6 @@ import org.dspace.utils.DSpace;
 public class TestDSpaceServicesFactory extends DSpaceServicesFactory {
 
     public static final String DSPACE_SERVICES_FACTORY = "dSpaceServicesFactory";
-
-    @Override
-    public CachingService getCachingService() {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public ConfigurationService getConfigurationService() {
