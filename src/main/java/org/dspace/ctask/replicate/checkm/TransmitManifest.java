@@ -17,7 +17,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
 import org.dspace.content.Collection;
@@ -61,7 +62,7 @@ public class TransmitManifest extends AbstractCurationTask {
     // Group where all Manifests will be stored
     private String manifestGroupName;
     
-    private static Logger log = Logger.getLogger(TransmitManifest.class);
+    private static Logger log = LogManager.getLogger();
 
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
