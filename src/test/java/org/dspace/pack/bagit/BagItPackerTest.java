@@ -42,7 +42,7 @@ import org.junit.Before;
 
 /**
  * Base class for all BagIt packing/unpacking tests. This performs initial setup so that the DSpaceKernel is not null
- * and so that some of the that are used through static contexts or have static initializers (e.g.
+ * and so that classes used through static contexts or have static initializers (e.g.
  * {@link org.dspace.services.factory.DSpaceServicesFactory}, {@link org.dspace.core.Context}) can initialize and
  * retrieve any classes which are necessary for basic operations.
  *

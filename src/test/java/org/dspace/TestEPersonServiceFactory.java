@@ -15,7 +15,6 @@ import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.eperson.service.RegistrationDataService;
 import org.dspace.eperson.service.SubscribeService;
-import org.dspace.eperson.service.SupervisorService;
 
 /**
  * {@link EPersonServiceFactory} for testing
@@ -52,8 +51,4 @@ public class TestEPersonServiceFactory extends EPersonServiceFactory {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public SupervisorService getSupervisorService() {
-        throw new UnsupportedOperationException();
-    }
 }
