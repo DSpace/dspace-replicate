@@ -7,7 +7,7 @@
     <description>Replication Task Suite: A DSpace add-on providing Curation Tasks that perform replication
      (backup and restore) of DSpace content to other locations or services.</description>
     <url>https://wiki.lyrasis.org/display/DSPACE/ReplicationTaskSuite</url>
-    <version>7.3-SNAPSHOT</version>
+    <version>7.6-SNAPSHOT</version>
 
     <organization>
         <name>LYRASIS</name>
@@ -36,7 +36,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>1.4.1</version>
+                    <version>3.1.0</version>
                     <executions>
                         <execution>
                             <id>enforce-java</id>
@@ -63,6 +63,21 @@
                             <configuration>
                                 <rules>
                                     <DependencyConvergence />
+                                </rules>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>enforce-banned-dependencies</id>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <bannedDependencies>
+                                        <excludes>
+                                            <exclude>log4j:log4j</exclude>
+                                        </excludes>
+                                    </bannedDependencies>
                                 </rules>
                             </configuration>
                         </execution>
@@ -247,6 +262,10 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -287,6 +306,17 @@
                     <artifactId>logback-classic</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.20.0</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- JAXB is no longer bundled for java 11

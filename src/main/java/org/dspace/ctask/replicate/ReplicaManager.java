@@ -16,7 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
@@ -40,7 +41,7 @@ public class ReplicaManager {
     private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
     private HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
 
-    private Logger log = Logger.getLogger(ReplicaManager.class);
+    private Logger log = LogManager.getLogger();
     // singleton instance
     private static ReplicaManager instance = null;
     // the replica provider

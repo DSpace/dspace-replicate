@@ -19,7 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -57,7 +58,7 @@ import org.dspace.pack.bagit.SitePacker;
 @Mutative
 public class BagItRestoreFromAIP extends AbstractCurationTask {
 
-    private static Logger log = Logger.getLogger(BagItRestoreFromAIP.class);
+    private static Logger log = LogManager.getLogger();
     private String archFmt;
 
     // Group where all AIPs are stored

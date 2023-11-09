@@ -9,7 +9,8 @@ package org.dspace.ctask.replicate;
 
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.content.packager.PackageParameters;
 import org.dspace.curate.AbstractCurationTask;
 
@@ -34,7 +35,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
     // Name of useCollectionTemplate option configurable in curation task configuration file
     private final String useCollectionTemplate = "useCollectionTemplate";
 
-    private static Logger log = Logger.getLogger(AbstractPackagerTask.class);
+    private static Logger log = LogManager.getLogger();
 
     /**
      * Loads pre-configured PackageParameters settings from a given Module

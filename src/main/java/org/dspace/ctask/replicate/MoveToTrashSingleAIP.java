@@ -11,7 +11,8 @@ package org.dspace.ctask.replicate;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
@@ -43,7 +44,7 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
 
     private String archFmt;
 
-    private static Logger log = Logger.getLogger(MoveToTrashSingleAIP.class);
+    private static Logger log = LogManager.getLogger();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {

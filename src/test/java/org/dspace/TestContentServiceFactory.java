@@ -31,8 +31,8 @@ import org.dspace.content.service.MetadataValueService;
 import org.dspace.content.service.RelationshipService;
 import org.dspace.content.service.RelationshipTypeService;
 import org.dspace.content.service.SiteService;
-import org.dspace.content.service.SupervisedItemService;
 import org.dspace.content.service.WorkspaceItemService;
+import org.dspace.eperson.service.SubscribeService;
 
 /**
  * A {@link ContentServiceFactory} which returns mock services
@@ -119,13 +119,13 @@ public class TestContentServiceFactory extends ContentServiceFactory {
     }
 
     @Override
-    public SupervisedItemService getSupervisedItemService() {
-        throw new UnsupportedOperationException();
+    public SiteService getSiteService() {
+        return siteService;
     }
 
     @Override
-    public SiteService getSiteService() {
-        return siteService;
+    public SubscribeService getSubscribeService() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

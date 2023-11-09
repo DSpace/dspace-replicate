@@ -15,7 +15,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.Bundle;
@@ -50,7 +51,7 @@ public class METSPacker implements Packer
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
-    private Logger log = Logger.getLogger(METSPacker.class);
+    private Logger log = LogManager.getLogger();
 
     /** The context to use */
     private Context context;

@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -62,7 +63,7 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  */
 public class BagItReplicateConsumer implements Consumer {
 
-    private Logger log = Logger.getLogger(BagItReplicateConsumer.class);
+    private Logger log = LogManager.getLogger();
 
     private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
     private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();

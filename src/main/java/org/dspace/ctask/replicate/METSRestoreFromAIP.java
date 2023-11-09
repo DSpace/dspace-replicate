@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
 import org.dspace.content.packager.PackageParameters;
@@ -33,7 +34,7 @@ import org.dspace.pack.mets.METSPacker;
 @Mutative
 public class METSRestoreFromAIP extends AbstractPackagerTask 
 {
-    private Logger log = Logger.getLogger(METSRestoreFromAIP.class);
+    private Logger log = LogManager.getLogger();
       
     private String archFmt;
 
