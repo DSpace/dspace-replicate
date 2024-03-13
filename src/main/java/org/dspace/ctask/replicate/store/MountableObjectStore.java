@@ -44,7 +44,13 @@ public class MountableObjectStore extends LocalObjectStore
         {
             archFile.delete();
         }
+        
         Utils.copy(file, archFile);
-        return file.length();
+
+        long fileSize = file.length();
+        // Delete redundant copy from replica store
+        file.delete();
+        
+        return fileSize;
     }
 }
