@@ -76,12 +76,14 @@ public class DuraCloudObjectStore implements ObjectStore {
         defaultWait = configurationService.getIntProperty("duracloud.retry.wait", DEFAULT_WAIT_BETWEEN_RETRIES);
         waitMultiplier = configurationService.getIntProperty("duracloud.retry.multiplier", DEFAULT_WAIT_MULTIPLIER);
 
+        // Attempt to get Content Store from a parameter in the configuration
+        String storeId = configurationService.getProperty("duracloud.store-id", "0");
         try {
-            //Get the primary content store (e.g. Amazon)
-            dcStore = storeManager.getPrimaryContentStore();
+            dcStore = storeManager.getContentStore(storeId);
         } catch (ContentStoreException csE) {
-            throw new IOException("Unable to connect to the DuraCloud Primary Content Store. Please check the " +
-                                  "DuraCloud connection/authentication settings in your 'duracloud.cfg' file.", csE);
+            throw new IOException("Unable to connect to the DuraCloud Content Store. " +
+                "Please check the DuraCloud connection/authentication settings " +
+                "and the store-id setting in your 'duracloud.cfg' file.", csE);
         }
     }
 
