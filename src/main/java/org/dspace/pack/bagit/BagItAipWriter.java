@@ -26,9 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
 
 import com.google.common.io.CountingOutputStream;
 import org.apache.commons.io.FileUtils;
@@ -52,6 +52,8 @@ import org.duraspace.bagit.serialize.BagSerializer;
 import org.duraspace.bagit.serialize.SerializationSupport;
 import org.joda.time.LocalDate;
 import org.joda.time.format.ISODateTimeFormat;
+
+import jakarta.xml.bind.JAXBException;
 
 /**
  * The BagItAipWriter handles the packaging of DSpaceObjects into their respective bags. It processes the metadata and

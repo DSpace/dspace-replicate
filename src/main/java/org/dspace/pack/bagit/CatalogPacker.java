@@ -89,7 +89,7 @@ public class CatalogPacker implements Packer
         properties.put(OBJFILE, objectProperties);
 
         // members file
-        if (members.size() > 0) {
+        if (!members.isEmpty()) {
             properties.put("members", members);
         }
 

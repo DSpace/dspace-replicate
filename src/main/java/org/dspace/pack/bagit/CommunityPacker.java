@@ -110,7 +110,7 @@ public class CommunityPacker implements Packer
         // collect the policy
         final Policies policy = BagItPolicyUtil.getPolicy(context, community);
 
-        // and finally get he roles
+        // and finally get the roles
         DSpaceRoles dSpaceRoles = null;
         try {
             dSpaceRoles = BagItRolesUtil.getDSpaceRoles(context, community);

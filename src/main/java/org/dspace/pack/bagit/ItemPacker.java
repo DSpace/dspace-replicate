@@ -102,7 +102,7 @@ public class ItemPacker implements Packer {
                 linked.append(coll.getHandle()).append(",");
             }
         }
-        if (linked.length() > 0) {
+        if (!linked.isEmpty()) {
             objectProperties.add(OTHER_IDS + PROPERTIES_DELIMITER + linked.substring(0, linked.length() - 1));
         }
         if (item.isWithdrawn()) {
@@ -304,7 +304,7 @@ public class ItemPacker implements Packer {
         {
             String[] parts = filter.split(" ");
             bundle = parts[0];
-            size = Long.valueOf(parts[1]);
+            size = Long.parseLong(parts[1]);
             url = parts[2];
         }
     }

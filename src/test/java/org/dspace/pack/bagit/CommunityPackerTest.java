@@ -35,6 +35,8 @@ import org.dspace.content.Community;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.CommunityService;
 import org.dspace.core.Context;
+import org.dspace.eperson.EPerson;
+import org.dspace.eperson.Group;
 import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
@@ -126,7 +128,7 @@ public class CommunityPackerTest extends BagItPackerTest {
         // since our policy.xml is empty, verify that we never fetched anything and still used the authorize service
         // as expected
         final List<ResourcePolicy> empty = new ArrayList<>();
-        verify(resourcePolicyService, never()).create(any(Context.class));
+        verify(resourcePolicyService, never()).create(any(Context.class), any(EPerson.class), any(Group.class));
         verify(groupService, never()).findByName(any(Context.class), anyString());
         verify(ePersonService, never()).findByEmail(any(Context.class), anyString());
         verify(authorizeService, times(1)).removeAllPolicies(any(Context.class), eq(community));

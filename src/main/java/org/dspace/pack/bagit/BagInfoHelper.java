@@ -36,7 +36,7 @@ public class BagInfoHelper {
 
         final List<String> keys = configurationService.getPropertyKeys(TAG_KEY);
 
-        // precomplie patterns for when we split strings
+        // precompile patterns for when we split strings
         final Pattern dotSplit = Pattern.compile("\\.");
         final Pattern hyphenSplit = Pattern.compile("-");
 
