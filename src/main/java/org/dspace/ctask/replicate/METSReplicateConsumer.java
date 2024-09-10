@@ -328,7 +328,7 @@ public class METSReplicateConsumer implements Consumer {
             taskQMap.clear();
         }
         // now the performables
-        if (taskPMap.size() > 0)
+        if (!taskPMap.isEmpty())
         {
             Curator curator = new Curator();
             for (String task : taskPMap.keySet())
@@ -352,7 +352,7 @@ public class METSReplicateConsumer implements Consumer {
             }
             processDelete(ctx);
         }
-        if (entrySet.size() > 0)
+        if (!entrySet.isEmpty())
         {
             taskQueue.enqueue(queueName, entrySet);
         }
@@ -588,7 +588,7 @@ public class METSReplicateConsumer implements Consumer {
     private void parseTasks(String propName)
     {
         String taskStr = configurationService.getProperty("replicate.consumer.tasks." + propName);
-        if (taskStr == null || taskStr.length() == 0)
+        if (taskStr == null || taskStr.isEmpty())
         {
             return;
         }
