@@ -217,7 +217,7 @@ public class BagItReplicateConsumer implements Consumer {
         long stamp = System.currentTimeMillis();
         // first the queueables
         Set<TaskQueueEntry> entrySet = new HashSet<TaskQueueEntry>();
-        if (taskQMap.size() > 0)
+        if (!taskQMap.isEmpty())
         {
             List<String> taskList = new ArrayList<String>();
             for (String task : taskQMap.keySet())
@@ -232,7 +232,7 @@ public class BagItReplicateConsumer implements Consumer {
             taskQMap.clear();
         }
         // now the performables
-        if (taskPMap.size() > 0)
+        if (!taskPMap.isEmpty())
         {
             Curator curator = new Curator();
             for (String task : taskPMap.keySet())
@@ -256,7 +256,7 @@ public class BagItReplicateConsumer implements Consumer {
             }
             processDelete(ctx);
         }
-        if (entrySet.size() > 0)
+        if (!entrySet.isEmpty())
         {
             taskQueue.enqueue(queueName, entrySet);
         }
@@ -467,7 +467,7 @@ public class BagItReplicateConsumer implements Consumer {
     private void parseTasks(String propName)
     {
         String taskStr = configurationService.getProperty("replicate.consumer.tasks." + propName);
-        if (taskStr == null || taskStr.length() == 0)
+        if (taskStr == null || taskStr.isEmpty())
         {
             return;
         }
