@@ -16,6 +16,7 @@ import static org.dspace.pack.PackerFactory.OTHER_IDS;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.PackerFactory.WITHDRAWN;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.DEFAULT_MODIFIED_DATE;
 import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_ITEM;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
@@ -94,6 +95,12 @@ public class ItemPacker implements Packer {
         objectProperties.add(OBJECT_TYPE + PROPERTIES_DELIMITER + OBJ_TYPE_ITEM);
         objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + item.getHandle());
 
+        // Use item's lastModifiedDate when creating the BagIt bag
+        long lmTime = item.getLastModified().getTime();
+        if (lmTime <= 0) {
+            lmTime = DEFAULT_MODIFIED_DATE;
+        }
+
         final StringBuilder linked = new StringBuilder();
         for (Collection coll : item.getCollections()) {
             if (itemService.isOwningCollection(item, coll)) {
@@ -120,7 +127,7 @@ public class ItemPacker implements Packer {
         // policy.xml
         final Policies policy = BagItPolicyUtil.getPolicy(context, item);
 
-        // proceed to bundles, in sub-directories, filtering
+        // proceed to bundles, in subdirectories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
         for (Bundle bundle : item.getBundles()) {
             final String bundleName = bundle.getName();
@@ -159,6 +166,7 @@ public class ItemPacker implements Packer {
             .withPolicies(policy)
             .withMetadata(metadata)
             .withBitstreams(bitstreams)
+            .withLastModifiedTime(lmTime)
             .packageAip();
     }
 
@@ -308,5 +316,4 @@ public class ItemPacker implements Packer {
             url = parts[2];
         }
     }
-
 }

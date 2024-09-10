@@ -13,6 +13,7 @@ import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
 import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.DEFAULT_MODIFIED_DATE;
 import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COMMUNITY;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
@@ -49,8 +50,7 @@ import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
  *
  * @author richardrodgers
  */
-public class CommunityPacker implements Packer
-{
+public class CommunityPacker implements Packer {
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
 
     // NB - these values must remain synchronized with DB schema -
@@ -123,6 +123,7 @@ public class CommunityPacker implements Packer
             .withPolicies(policy)
             .withMetadata(metadata)
             .withDSpaceRoles(dSpaceRoles)
+            .withLastModifiedTime(DEFAULT_MODIFIED_DATE)
             .packageAip();
     }
 

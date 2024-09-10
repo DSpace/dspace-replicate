@@ -23,9 +23,11 @@ import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
@@ -35,6 +37,7 @@ import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
 import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.Item;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
 import org.dspace.core.Utils;
@@ -53,7 +56,6 @@ import org.duraspace.bagit.serialize.SerializationSupport;
 import org.joda.time.LocalDate;
 import org.joda.time.format.ISODateTimeFormat;
 
-import jakarta.xml.bind.JAXBException;
 
 /**
  * The BagItAipWriter handles the packaging of DSpaceObjects into their respective bags. It processes the metadata and
@@ -81,12 +83,14 @@ public class BagItAipWriter {
     public static final String TEMPLATE_XML = "template-metadata.xml";
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
+    protected static final long DEFAULT_MODIFIED_DATE = 1036368000L * 1000;
+
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
-    // Fields used for book keeping
+    // Fields used for bookkeeping
     private final AtomicLong successBytes = new AtomicLong();
     private final AtomicLong successFiles = new AtomicLong();
-    private final Map<File, String> checksums = new HashMap<>();
+    private final LinkedHashMap<File, String> checksums = new LinkedHashMap<>();
 
     /**
      * The context to use
@@ -139,6 +143,11 @@ public class BagItAipWriter {
     private List<BagBitstream> bitstreams;
 
     /**
+     * Last modified time of DSpace object
+     */
+    private Long lastModifiedTime;
+
+    /**
      * Constructor for a {@link BagItAipWriter}. Takes a minimal set of information needed in order to write an AIP as a
      * BagIt bag for dspace consumption.
      *
@@ -153,6 +162,7 @@ public class BagItAipWriter {
         this.logo = null;
         this.policies = null;
         this.metadata = null;
+        this.lastModifiedTime = DEFAULT_MODIFIED_DATE;
         this.archFmt = checkNotNull(archFmt);
         this.directory = checkNotNull(directory);
         this.properties = checkNotNull(properties);
@@ -210,6 +220,15 @@ public class BagItAipWriter {
      */
     public BagItAipWriter withBitstreams(final List<BagBitstream> bitstreams) {
         this.bitstreams = bitstreams != null ? bitstreams : Collections.<BagBitstream>emptyList();
+        return this;
+    }
+
+    /**
+     * @param lastModifiedTime the {@link Item} to use when writing AIP files
+     * @return the {@link BagItAipWriter} used for creating the aip
+     */
+    public BagItAipWriter withLastModifiedTime(final long lastModifiedTime) {
+        this.lastModifiedTime = lastModifiedTime;
         return this;
     }
 
@@ -354,7 +373,7 @@ public class BagItAipWriter {
         bag.write();
 
         final BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        final Path serializedBag = serializer.serialize(directory.toPath());
+        final Path serializedBag = serializer.serializeWithTimestamp(directory.toPath(), lastModifiedTime);
         delete(directory);
 
         return serializedBag.toFile();

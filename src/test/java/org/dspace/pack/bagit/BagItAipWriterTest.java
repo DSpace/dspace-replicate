@@ -8,6 +8,7 @@
 package org.dspace.pack.bagit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.dspace.pack.bagit.BagItAipWriter.DEFAULT_MODIFIED_DATE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -100,7 +101,8 @@ public class BagItAipWriterTest extends BagItPackerTest {
             .withLogo(logo)
             .withMetadata(metadata)
             .withPolicies(policies)
-            .withBitstreams(bitstreams);
+            .withBitstreams(bitstreams)
+            .withLastModifiedTime(DEFAULT_MODIFIED_DATE);
 
         when(bitstreamService.retrieve(any(Context.class), eq(logo)))
             .thenReturn(new ByteArrayInputStream("logo".getBytes()));

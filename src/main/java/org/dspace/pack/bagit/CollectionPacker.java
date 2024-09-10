@@ -13,6 +13,7 @@ import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
 import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.PackerFactory.OWNER_ID;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
+import static org.dspace.pack.bagit.BagItAipWriter.DEFAULT_MODIFIED_DATE;
 import static org.dspace.pack.bagit.BagItAipWriter.OBJ_TYPE_COLLECTION;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
@@ -143,6 +144,7 @@ public class CollectionPacker implements Packer
             .withMetadata(metadata)
             .withItemTemplate(templateMd)
             .withDSpaceRoles(dSpaceRoles)
+            .withLastModifiedTime(DEFAULT_MODIFIED_DATE)
             .packageAip();
     }
 
