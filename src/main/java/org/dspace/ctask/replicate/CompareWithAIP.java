@@ -87,7 +87,7 @@ public class CompareWithAIP extends AbstractCurationTask
             //First, make sure this object has an AIP in remote storage
             if(checkReplica(context, repMan, dso))
             {    
-                // generate an archive and calculate it's checksum
+                // generate an archive and calculate its checksum
                 File packDir = repMan.stage(context, storeGroupName, id);
                 File archive = packer.pack(packDir);
                 String chkSum = Utils.checksum(archive, "MD5");
