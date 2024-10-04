@@ -122,21 +122,26 @@ public class METSReplicateConsumer implements Consumer {
     private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
     @Override
-    public void initialize() throws Exception
-    {
-        repMan = ReplicaManager.instance();
+    public void initialize() throws Exception {
+        try {
+            repMan = ReplicaManager.instance();
+        } catch (IOException ioE) {
+            // The ReplicaManager attempts to initialize the ObjectStore specified in the configuration.
+            log.error("Unable to initialize the ReplicaManager. ", ioE);
+        }
+
         taskQueue = (TaskQueue) pluginService.getSinglePlugin(TaskQueue.class);
         queueName = configurationService.getProperty("replicate.consumer.queue");
+
         // look for and load any idFilter files - excludes trump includes
         // An "idFilter" is an actual textual file named "exclude" or "include"
         // which contains a list of handles to filter from the Consumer
-        if (! loadIdFilter("exclude"))
-        {
-            if (loadIdFilter("include"))
-            {
+        if (! loadIdFilter("exclude")) {
+            if (loadIdFilter("include")) {
                 idExclude = false;
             }
         }
+
         taskQMap = new HashMap<String, Set<String>>();
         taskPMap = new HashMap<String, Set<String>>();
         parseTasks("add");
@@ -469,23 +474,24 @@ public class METSReplicateConsumer implements Consumer {
     /*
      * Process a deletion event by recording a deletion catalog if configured
      */
-    private void processDelete(Context ctx) throws IOException
-    {
+    private void processDelete(Context ctx) throws IOException {
+        if (repMan == null) {
+            log.error("The ReplicaManager failed to initialize earlier. Check the logs above.");
+            return;
+        }
+
         // write out deletion catalog if defined
-        if (catalogDeletes)
-        {
-            //First, check if this object has an AIP in storage
+        if (catalogDeletes) {
+            // First, check if this object has an AIP in storage
             boolean found = repMan.objectExists(storeGroupName, delObjId);
 
             // If the object has an AIP, then create a deletion catalog
             // If there's no AIP, then there's no need for a deletion
             // catalog as the object isn't backed up & cannot be restored!
-            if(found)
-            {
+            if (found) {
                 //Create a deletion catalog (in BagIt format) of all deleted objects
                 Packer packer = new CatalogPacker(ctx, delObjId, delOwnerId, delMemIds);
-                try
-                {
+                try {
                     // Create a new deletion catalog (with default file extension / format)
                     // and store it in the deletion group store
                     String catID = repMan.deletionCatalogId(delObjId, null);
@@ -493,17 +499,14 @@ public class METSReplicateConsumer implements Consumer {
                     File archive = packer.pack(packDir);
                     // Create a deletion catalog in deletion archive location.
                     repMan.transferObject(deleteGroupName, archive);
-                }
-                catch (AuthorizeException authE)
-                {
+                } catch (AuthorizeException authE) {
                     throw new IOException(authE);
-                }
-                catch (SQLException sqlE)
-                {
+                } catch (SQLException sqlE) {
                     throw new IOException(sqlE);
                 }
             }
         }
+
         // reset for next events
         delObjId = delOwnerId = null;
         delMemIds.clear();

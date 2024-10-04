@@ -102,25 +102,32 @@ public class BagItReplicateConsumer implements Consumer {
     private final String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
     @Override
-    public void initialize() throws Exception
-    {
-        repMan = ReplicaManager.instance();
+    public void initialize() throws Exception {
+        try {
+            repMan = ReplicaManager.instance();
+        } catch (IOException ioE) {
+            // The ReplicaManager attempts to initialize the ObjectStore specified in the configuration.
+            log.error("Unable to initialize the ReplicaManager. ", ioE);
+        }
+
         taskQueue = (TaskQueue) pluginService.getSinglePlugin(TaskQueue.class);
         queueName = configurationService.getProperty("replicate.consumer.queue");
+
         // look for and load any idFilter files - excludes trump includes
         // An "idFilter" is an actual textual file named "exclude" or "include"
         // which contains a list of handles to filter from the Consumer
-        if (! loadIdFilter("exclude"))
-        {
-            if (loadIdFilter("include"))
-            {
+        if (! loadIdFilter("exclude")) {
+            if (loadIdFilter("include")) {
                 idExclude = false;
             }
         }
+
         taskQMap = new HashMap<String, Set<String>>();
         taskPMap = new HashMap<String, Set<String>>();
+
         parseTasks("add");
         parseTasks("mod");
+
         delMemIds = new ArrayList<String>();
         parseTasks("del");
     }
@@ -359,6 +366,11 @@ public class BagItReplicateConsumer implements Consumer {
      * Process a deletion event by recording a deletion catalog if configured
      */
     private void processDelete(Context context) throws IOException {
+        if (repMan == null) {
+            log.error("The ReplicaManager failed to initialize earlier. Check the logs above.");
+            return;
+        }
+
         // write out deletion catalog if defined
         if (catalogDeletes) {
             //First, check if this object has an AIP in storage
