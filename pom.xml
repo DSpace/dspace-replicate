@@ -122,6 +122,44 @@
                     <artifactId>maven-resources-plugin</artifactId>
                     <version>3.3.1</version>
                 </plugin>
+                <!-- Used to validate all code style rules in source code via the Checkstyle config in checkstyle.xml -->
+                <!-- Can be skipped by passing -Dcheckstyle.skip=true to Maven. -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>3.3.1</version>
+                    <executions>
+                        <execution>
+                            <id>verify-style</id>
+                            <!-- Bind to verify so it runs after package & unit tests, but before install -->
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <sourceDirectories>
+                            <sourceDirectory>src/main/java</sourceDirectory>
+                        </sourceDirectories>
+                        <configLocation>checkstyle.xml</configLocation>
+                        <logViolationsToConsole>true</logViolationsToConsole>
+                        <failOnViolation>true</failOnViolation>
+                        <!-- Enable checks on all test source files -->
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                        <!-- Define our suppressions file location, and the key used to pass it to checkstyle.xml-->
+                        <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
+                        <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
+                    </configuration>
+                    <dependencies>
+                        <!-- Override dependencies to use latest version of checkstyle -->
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>8.38</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
                 <!-- Used to generate a new release via Sonatype (see release profile). -->
                 <plugin>
                     <groupId>org.sonatype.plugins</groupId>

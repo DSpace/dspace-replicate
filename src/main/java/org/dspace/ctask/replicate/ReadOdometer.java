@@ -16,7 +16,7 @@ import org.dspace.curate.Distributive;
 
 /**
  * ReadOdometer simply reads and displays the odometer data. Since this data
- * is currently only maintained per site, the actual data object is ignored. 
+ * is currently only maintained per site, the actual data object is ignored.
  * <p>
  * Odometer data is stored in base folder for the Replication Task Suite
  * (see 'base.dir' setting in 'replicate.cfg'). It is stored in a text file
@@ -26,8 +26,7 @@ import org.dspace.curate.Distributive;
  * @see Odometer
  */
 @Distributive
-public class ReadOdometer extends AbstractCurationTask
-{
+public class ReadOdometer extends AbstractCurationTask {
     /**
      * Performs the "Read Odometer" task.
      * @param dso this param is ignored, as the odometer is sitewide
@@ -35,8 +34,7 @@ public class ReadOdometer extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         Odometer odometer = repMan.getOdometer();
         StringBuilder sb = new StringBuilder();
@@ -44,15 +42,14 @@ public class ReadOdometer extends AbstractCurationTask
         sb.append("Size:       ").append(scaledSize(odometer.getProperty("storesize"), 0)).append(", \n");
         sb.append("Uploaded:   ").append(scaledSize(odometer.getProperty("uploaded"), 0)).append(", \n");
         sb.append("Downloaded: ").append(scaledSize(odometer.getProperty("downloaded"), 0)).append("\n");
-        String msg = sb.toString();           
+        String msg = sb.toString();
         report(msg);
         setResult(msg);
         return Curator.CURATE_SUCCESS;
     }
-    
+
     String[] prefixes = { "", "kilo", "mega", "giga", "tera", "peta", "exa" };
-    private String scaledSize(long size, int idx)
-    {
+    private String scaledSize(long size, int idx) {
         return (size < 1000L) ? size + " " + prefixes[idx] + "bytes" :
                scaledSize(size / 1000L, idx + 1);
     }

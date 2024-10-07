@@ -39,8 +39,7 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  *
  * @author richardrodgers
  */
-public class CatalogPacker implements Packer
-{
+public class CatalogPacker implements Packer {
     private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
     private final Context context;
@@ -50,27 +49,23 @@ public class CatalogPacker implements Packer
     // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
     private String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
-    public CatalogPacker(Context context, String objectId)
-    {
+    public CatalogPacker(Context context, String objectId) {
         this.context = context;
         this.objectId = objectId;
     }
-    
-    public CatalogPacker(Context context, String objectId, String ownerId, List<String> members)
-    {
+
+    public CatalogPacker(Context context, String objectId, String ownerId, List<String> members) {
         this.context = context;
         this.objectId = objectId;
         this.ownerId = ownerId;
         this.members = members;
     }
 
-    public String getOwnerId()
-    {
+    public String getOwnerId() {
         return ownerId;
     }
 
-    public List<String> getMembers()
-    {
+    public List<String> getMembers() {
         return members;
     }
 
@@ -114,21 +109,18 @@ public class CatalogPacker implements Packer
     }
 
     @Override
-    public long size(String method)
-    {
+    public long size(String method) {
         // not currently implemented
         return 0L;
     }
 
     @Override
-    public void setContentFilter(String filter)
-    {
+    public void setContentFilter(String filter) {
        // no-op
     }
 
     @Override
-    public void setReferenceFilter(String filter)
-    {
+    public void setReferenceFilter(String filter) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 }

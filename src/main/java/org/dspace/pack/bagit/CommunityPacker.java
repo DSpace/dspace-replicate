@@ -67,20 +67,17 @@ public class CommunityPacker implements Packer {
     private Community community = null;
     private String archFmt = null;
 
-    public CommunityPacker(Context context, Community community, String archFmt)
-    {
+    public CommunityPacker(Context context, Community community, String archFmt) {
         this.context = context;
         this.community = community;
         this.archFmt = archFmt;
     }
 
-    public Community getCommunity()
-    {
+    public Community getCommunity() {
         return community;
     }
 
-    public void setCommunity(Community community)
-    {
+    public void setCommunity(Community community) {
         this.community = community;
     }
 
@@ -149,7 +146,7 @@ public class CommunityPacker implements Packer {
             throw new IOException(e.getMessage(), e);
         }
 
-        final Metadata metadata= reader.readMetadata();
+        final Metadata metadata = reader.readMetadata();
         for (Value value : metadata.getValues()) {
             MetadataFieldName field = value.getMetadataField();
             communityService.setMetadataSingleValue(context, community, field.schema, field.element, field.qualifier,
@@ -169,39 +166,35 @@ public class CommunityPacker implements Packer {
     }
 
     @Override
-    public long size(String method) throws SQLException
-    {
+    public long size(String method) throws SQLException {
         long size = 0L;
+
         // logo size, if present
         Bitstream logo = community.getLogo();
-        if (logo != null)
-        {
+        if (logo != null) {
             size += logo.getSizeBytes();
         }
+
         // proceed to children, unless 'norecurse' set
-        if (! "norecurse".equals(method))
-        {
-            for (Community comm : community.getSubcommunities())
-            {
+        if (!"norecurse".equals(method)) {
+            for (Community comm : community.getSubcommunities()) {
                 size += PackerFactory.instance(context, comm).size(method);
             }
-            for (Collection coll : community.getCollections())
-            {
+            for (Collection coll : community.getCollections()) {
                 size += PackerFactory.instance(context, coll).size(method);
             }
         }
+
         return size;
     }
 
     @Override
-    public void setContentFilter(String filter)
-    {
+    public void setContentFilter(String filter) {
         // no-op
     }
 
     @Override
-    public void setReferenceFilter(String filter)
-    {
+    public void setReferenceFilter(String filter) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 

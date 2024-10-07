@@ -67,6 +67,7 @@ public class SitePacker implements Packer {
     @Override
     public File pack(File packDir) throws AuthorizeException, IOException, SQLException {
         final Map<String, List<String>> properties = new HashMap<>();
+
         // object.properties
         final List<String> objectProperties = new ArrayList<>();
         objectProperties.add(BAG_TYPE + PROPERTIES_DELIMITER + BAG_AIP);

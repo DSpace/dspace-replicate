@@ -39,7 +39,6 @@ import org.mockito.ArgumentMatchers;
  * create outgoing requests to DuraCloud
  */
 public class DuraCloudObjectStoreTest {
-
     private final String group = "dc-object-store-test";
     private final String mimeType = "application/zip";
 
@@ -55,6 +54,7 @@ public class DuraCloudObjectStoreTest {
     @Test
     public void testUploadRetry() throws Exception {
         final URL root = DuraCloudObjectStoreTest.class.getClassLoader().getResource("unpack");
+
         // copy the file because the ObjectStore will delete it after transfer
         final Path catalog = Paths.get(root.toURI()).resolve("catalog.zip");
         final Path zipFile = Paths.get(root.toURI()).resolve("dc-upload.zip");
@@ -95,6 +95,7 @@ public class DuraCloudObjectStoreTest {
             objectStore.transferObject(group, zipFile.toFile());
             fail("Expected transfer to fail");
         } catch (IOException ignored) {
+            // ignore exception
         }
 
         // verify that the retry process was attempted
@@ -108,5 +109,4 @@ public class DuraCloudObjectStoreTest {
         // and finish cleaning up
         Files.delete(zipFile);
     }
-
 }

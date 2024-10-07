@@ -30,7 +30,7 @@ import org.dspace.pack.PackerFactory;
  * <P>
  * This task is "suspendable" when invoked from the UI. If a single AIP fails
  * to be generated and transmitted to storage, we should inform the user ASAP.
- * We wouldn't want them to assume everything was transferred successfully, 
+ * We wouldn't want them to assume everything was transferred successfully,
  * if there were actually underlying errors.
  * <P>
  * Note that this task has a companion task called TransmitSingleAIP which
@@ -40,9 +40,8 @@ import org.dspace.pack.PackerFactory;
  * @see PackerFactory
  * @see TransmitSingleAIP
  */
-@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
-public class TransmitAIP extends AbstractCurationTask
-{
+@Suspendable(invoked = Curator.Invoked.INTERACTIVE)
+public class TransmitAIP extends AbstractCurationTask {
     // Group where all AIPs will be stored
     private String storeGroupName;
 
@@ -51,7 +50,6 @@ public class TransmitAIP extends AbstractCurationTask
         super.init(curator, taskId);
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     }
-
 
     /**
      * Perform 'Transmit AIP' task
@@ -62,22 +60,19 @@ public class TransmitAIP extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
-            
-        try
-        {
+
+        try {
             Context context = Curator.curationContext();
             Packer packer = PackerFactory.instance(context, dso);
             File archive = packer.pack(repMan.stage(context, storeGroupName, dso.getHandle()));
-            String msg = "Created AIP: '" + archive.getName() + 
+            String msg = "Created AIP: '" + archive.getName() +
                          "' size: " + archive.length();
             repMan.transferObject(storeGroupName, archive);
             setResult(msg);
             return Curator.CURATE_SUCCESS;
-        }
-        catch (AuthorizeException | SQLException e) {
+        } catch (AuthorizeException | SQLException e) {
             throw new IOException(e);
         }
     }

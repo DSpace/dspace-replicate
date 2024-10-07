@@ -9,7 +9,6 @@ package org.dspace.pack.bagit.xml.roles;
 
 import jakarta.xml.bind.annotation.XmlAttribute;
 import jakarta.xml.bind.annotation.XmlElement;
-
 import org.dspace.eperson.EPerson;
 
 /**

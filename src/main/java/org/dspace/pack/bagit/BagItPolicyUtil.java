@@ -50,6 +50,11 @@ public class BagItPolicyUtil {
     private static final Logger logger = LoggerFactory.getLogger(BagItPolicyUtil.class);
 
     /**
+     * Private constructor for this utility class
+     */
+    private BagItPolicyUtil() {}
+
+    /**
      * Create a {@link Policy} for a {@link DSpaceObject}
      *
      * @param dso The {@link DSpaceObject} to get the {@link Policy} for

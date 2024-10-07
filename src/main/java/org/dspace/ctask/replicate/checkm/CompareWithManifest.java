@@ -37,10 +37,9 @@ import org.dspace.curate.Distributive;
  * @see TransmitManifest
  */
 @Distributive
-public class CompareWithManifest extends AbstractCurationTask
-{
+public class CompareWithManifest extends AbstractCurationTask {
     private String result = null;
-    
+
     // Group where all Manifests will be stored
     private String manifestGroupName;
 
@@ -57,31 +56,27 @@ public class CompareWithManifest extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
-        
-        try
-        {
+
+        try {
             Context context = Curator.curationContext();
             String filename = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
             int status = checkManifest(repMan, filename, context);
 
-            //report the final result
+            // report the final result
             report(result);
             setResult(result);
             return status;
-        }
-        catch (SQLException sqlE)
-        {
+        } catch (SQLException sqlE) {
             throw new IOException(sqlE);
         }
     }
-    
+
     /**
      * This method recursively checks Manifests.
      * <P>
-     * In a sense, all this is checking is that Bitstreams (files) have not changed within 
+     * In a sense, all this is checking is that Bitstreams (files) have not changed within
      * the current DSpace object.  So, if the current object is a Site, Community or Collection,
      * its manifest is not validated (as those manifests just point at other sub-manifests). Rather,
      * this method recursively loads manifests until it locates all Item-level manifests. Then it
@@ -94,73 +89,58 @@ public class CompareWithManifest extends AbstractCurationTask
      * @throws SQLException if database error
      * @return integer which represents Curator return status
      */
-    private int checkManifest(ReplicaManager repMan, String filename, Context context) throws IOException, SQLException
-    {
+    private int checkManifest(ReplicaManager repMan, String filename, Context context)
+        throws IOException, SQLException {
         File manFile = repMan.fetchObject(context, manifestGroupName, filename);
-        if (manFile != null)
-        {
+        if (manFile != null) {
             Item item = null;
             Map<String, Bitstream> bsMap = new HashMap<>();
             BufferedReader reader = new BufferedReader(new FileReader(manFile));
             String line = null;
-            while ((line = reader.readLine()) != null)
-            {
-                if (! line.startsWith("#"))  // skip comments
-                {
+            while ((line = reader.readLine()) != null) {
+                if (! line.startsWith("#")) {  // skip comments
                     String entry = line.substring(0, line.indexOf("|"));
                     // if there's a dash in the first entry, then it just
                     // refers to a sub manifest
-                    if (entry.indexOf("-") > 0)
-                    {
+                    if (entry.indexOf("-") > 0) {
                         // it's another manifest - fetch & check it
                         item = null;
                         bsMap.clear();
                         int status = checkManifest(repMan, entry, context);
-                        
-                        //if manifest failed check, return immediately (otherwise we'll continue processing)
-                        if(status == Curator.CURATE_FAIL)
+
+                        // if manifest failed check, return immediately (otherwise we'll continue processing)
+                        if (status == Curator.CURATE_FAIL) {
                             return status;
-                    }
-                    else
-                    {
+                        }
+                    } else {
                         // first entry is a bitstream reference. So, check it
                         int cut = entry.lastIndexOf("/");
-                        if (item == null)
-                        {
+                        if (item == null) {
                             // look up object first & map bitstreams by seqID
                             String handle = entry.substring(0, cut);
                             DSpaceObject dso = handleService.resolveToObject(context, handle);
-                            if (dso != null && dso instanceof Item)
-                            {
+                            if (dso != null && dso instanceof Item) {
                                 item = (Item)dso;
-                                for (Bundle bundle : item.getBundles())
-                                {
-                                    for (Bitstream bs : bundle.getBitstreams())
-                                    {
+                                for (Bundle bundle : item.getBundles()) {
+                                    for (Bitstream bs : bundle.getBitstreams()) {
                                         bsMap.put(Integer.toString(bs.getSequenceID()), bs);
                                     }
                                 }
-                            }
-                            else
-                            {
+                            } else {
                                 result = "No item found for manifest entry: " + handle;
                                 return Curator.CURATE_FAIL;
                             }
                         }
                         String seqId = entry.substring(cut + 1);
                         Bitstream bs = bsMap.get(seqId);
-                        if (bs != null)
-                        {
+                        if (bs != null) {
                             String[] parts = line.split("\\|");
                             // compare checksums
-                            if (! bs.getChecksum().equals(parts[2]))
-                            {
+                            if (! bs.getChecksum().equals(parts[2])) {
                                 result = "Bitstream: " + seqId + " differs from manifest: " + entry;
                                 return Curator.CURATE_FAIL;
                             }
-                        }
-                        else
-                        {
+                        } else {
                             result = "No bitstream: " + seqId + " found for manifest entry: " + entry;
                             return Curator.CURATE_FAIL;
                         }
@@ -168,15 +148,13 @@ public class CompareWithManifest extends AbstractCurationTask
                 }
             }
             reader.close();
-            
-            //finished checking this entire manifest -- it was successful!
+
+            // finished checking this entire manifest -- it was successful!
             result = "Manifest and repository content agree";
             return Curator.CURATE_SUCCESS;
-        }
-        else
-        {
+        } else {
             result = "No manifest file found: " + filename;
-            return Curator.CURATE_FAIL; 
+            return Curator.CURATE_FAIL;
         }
     }
 }

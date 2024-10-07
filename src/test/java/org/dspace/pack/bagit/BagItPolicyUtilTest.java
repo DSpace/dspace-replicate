@@ -10,7 +10,6 @@ package org.dspace.pack.bagit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.dspace.authorize.ResourcePolicy.TYPE_CUSTOM;
 import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -26,7 +25,6 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
-import java.util.Optional;
 
 import org.dspace.authorize.ResourcePolicy;
 import org.dspace.authorize.factory.AuthorizeServiceFactory;
@@ -215,7 +213,8 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
         final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance()
                                                                                    .getResourcePolicyService();
-        when(resourcePolicyService.create(any(Context.class), any(), any())).thenReturn(initReloadable(ResourcePolicy.class));
+        when(resourcePolicyService.create(any(Context.class), any(), any()))
+            .thenReturn(initReloadable(ResourcePolicy.class));
         when(groupService.findByName(any(Context.class), eq(Group.ADMIN))).thenReturn(group);
         when(groupService.findByName(any(Context.class), eq(Group.ANONYMOUS))).thenReturn(group);
         when(ePersonService.findByEmail(any(Context.class), eq(personEmail))).thenReturn(ePerson);
@@ -225,13 +224,14 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
         // verify service interactions
         verify(resourcePolicyService, times(8)).create(any(Context.class), any(), any());
-        verify(groupService, times(4)).findByName(any(Context.class), matches(Group.ADMIN + "|" + Group.ANONYMOUS));
+        verify(groupService, times(4)).findByName(any(Context.class),
+            matches(Group.ADMIN + "|" + Group.ANONYMOUS));
         verify(ePersonService, times(4)).findByEmail(any(Context.class), eq(personEmail));
 
         // additional verification of services which we didn't need to set up
         final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
         verify(authorizeService, times(1)).removeAllPolicies(any(Context.class), eq(community));
-        verify(authorizeService, times(1)).addPolicies(any(Context.class), anyListOf(ResourcePolicy.class),
-                                                       eq(community));
+        verify(authorizeService, times(1)).addPolicies(any(Context.class),
+            anyListOf(ResourcePolicy.class), eq(community));
     }
 }

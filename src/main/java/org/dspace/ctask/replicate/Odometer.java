@@ -21,7 +21,7 @@ import java.util.Properties;
  * usage. This can assist the consumer of the service to monitor it's cost,
  * inter alia.
  * <p>
- * The Odometer tracks basic statistics of replication activities: bytes uploaded, 
+ * The Odometer tracks basic statistics of replication activities: bytes uploaded,
  * modified, count of objects, and external objectstore size.
  * <p>
  * See org.dspace.ctask.replicate.ReplicaManager for how the Odometer readings
@@ -30,8 +30,7 @@ import java.util.Properties;
  * @author richardrodgers
  * @see org.dspace.ctask.replicate.ReplicaManager
  */
-public class Odometer
-{
+public class Odometer {
     // name of file
     private static final String ODO_NAME = "odometer";
     // names of fixed properties
@@ -47,75 +46,56 @@ public class Odometer
     // directory path
     private String dirPath = null;
 
-    Odometer(String dirPath, boolean readOnly) throws IOException
-    {
+    Odometer(String dirPath, boolean readOnly) throws IOException {
         this.readOnly = readOnly;
         this.dirPath = dirPath;
         odoProps = new Properties();
-        try
-        {
+        try {
             File odoFile = new File(dirPath, ODO_NAME);
-            if (odoFile.exists())
-            {
-                
+            if (odoFile.exists()) {
                 InputStream in = null;
-                try
-                {
+                try {
                     in = new FileInputStream(odoFile);
                     odoProps.load(new FileInputStream(odoFile));
-                }
-                finally
-                {
-                    if (in != null)
-                    {
+                } finally {
+                    if (in != null) {
                         in.close();
                     }
                 }
             }
-        }
-        catch (FileNotFoundException fnfE)
-        {
+        } catch (FileNotFoundException fnfE) {
             throw new IOException(fnfE);
         }
     }
 
-    void save() throws IOException
-    {
-        if (! readOnly)
-        {
+    void save() throws IOException {
+        if (!readOnly) {
             odoProps.setProperty("modified", String.valueOf(System.currentTimeMillis()));
             File odoFile = new File(dirPath, ODO_NAME);
             OutputStream out = null;
-            try
-            {
+            try {
                 out = new FileOutputStream(odoFile);
                 odoProps.store(out, null);
-            }
-            finally
-            {
-                if (out != null)
-                {
+            } finally {
+                if (out != null) {
                     out.close();
                 }
             }
         }
     }
 
-    void adjustProperty(String name, long adjustment)
-    {
+    void adjustProperty(String name, long adjustment) {
         long val = getProperty(name);
         setProperty(name, val + adjustment);
     }
 
-    void setProperty(String name, long value)
-    {
+    void setProperty(String name, long value) {
         odoProps.setProperty(name, String.valueOf(value));
     }
-    
-    public long getProperty(String name)
-    {
-       String val = odoProps.getProperty(name);
-       long lval = val != null ? Long.valueOf(val) : 0L;
-       return lval;
+
+    public long getProperty(String name) {
+        String val = odoProps.getProperty(name);
+        long lval = val != null ? Long.valueOf(val) : 0L;
+        return lval;
     }
 }

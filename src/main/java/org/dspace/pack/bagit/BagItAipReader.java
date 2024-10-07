@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Unmarshaller;
 
 import com.google.common.base.Optional;
 import gov.loc.repository.bagit.domain.Bag;
@@ -39,6 +36,9 @@ import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
 import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
 import org.apache.commons.io.FileUtils;
 import org.dspace.pack.bagit.xml.metadata.Metadata;
 import org.dspace.pack.bagit.xml.policy.Policies;
@@ -183,7 +183,7 @@ public class BagItAipReader {
         };
 
         Optional<Path> logo = Optional.absent();
-        try(DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bag.resolve(dataDirectory), bitstreamFilter)) {
+        try (DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bag.resolve(dataDirectory), bitstreamFilter)) {
             final Iterator<Path> iterator = bitstreams.iterator();
             if (iterator.hasNext()) {
                 logo = Optional.of(iterator.next());
@@ -293,7 +293,7 @@ public class BagItAipReader {
                 final String bundleName = bundle.getFileName().toString();
 
                 // iterate all bitstreams
-                try(DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bundle, bitstreamFilter)) {
+                try (DirectoryStream<Path> bitstreams = Files.newDirectoryStream(bundle, bitstreamFilter)) {
                     for (Path bitstream : bitstreams) {
                         final String bitstreamName = bitstream.getFileName().toString();
 

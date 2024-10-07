@@ -8,7 +8,6 @@
 package org.dspace.pack.bagit.xml.roles;
 
 import jakarta.xml.bind.annotation.XmlAttribute;
-
 import org.dspace.content.packager.PackageException;
 import org.dspace.content.packager.PackageUtils;
 import org.dspace.core.Context;

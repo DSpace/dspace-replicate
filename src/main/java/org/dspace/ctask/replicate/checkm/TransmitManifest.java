@@ -51,17 +51,17 @@ import org.dspace.curate.Utils;
 @Distributive
 public class TransmitManifest extends AbstractCurationTask {
 
-    //Version of CDL Checkm spec that this manifest conforms to
+    // Version of CDL Checkm spec that this manifest conforms to
     private static final String CKM_VSN = "0.7";
-    
-    //Format extension for manifest files
+
+    // Format extension for manifest files
     protected static final String MANIFEST_EXTENSION = "txt";
 
     private String template = null;
-    
+
     // Group where all Manifests will be stored
     private String manifestGroupName;
-    
+
     private static Logger log = LogManager.getLogger();
 
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
@@ -73,7 +73,7 @@ public class TransmitManifest extends AbstractCurationTask {
         template = configurationService.getProperty("replicate.checkm.template");
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
-    
+
     /**
      * Perform 'Transmit Manifest' task
      * <p>
@@ -83,45 +83,34 @@ public class TransmitManifest extends AbstractCurationTask {
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
-        try
-        {
+        try {
             Context context = Curator.curationContext();
             File manFile = null;
             int type = dso.getType();
-            if (Constants.ITEM == type)
-            {
+            if (Constants.ITEM == type) {
                 manFile = itemManifest(context, repMan, (Item)dso);
-            }
-            else if (Constants.COLLECTION == type)
-            {
+            } else if (Constants.COLLECTION == type) {
                 // create manifests for each item - link in collection manifest
                 manFile = collectionManifest(context, repMan, (Collection)dso);
-            }
-            else if (Constants.COMMUNITY == type)
-            {
+            } else if (Constants.COMMUNITY == type) {
                 // create manifests for Community on down
                 manFile = communityManifest(context, repMan, (Community)dso);
-            }
-            else if (Constants.SITE == type)
-            {
+            } else if (Constants.SITE == type) {
                 // create manifests for all objects in DSpace
                 manFile = siteManifest(context, repMan, (Site)dso);
             }
-            
+
             repMan.transferObject(manifestGroupName, manFile);
-        }
-        catch (SQLException sqlE)
-        {
+        } catch (SQLException sqlE) {
             throw new IOException(sqlE);
         }
         setResult("Created manifest for: " + dso.getHandle());
         return Curator.CURATE_SUCCESS;
     }
-    
-    
+
+
     /**
      * Generate a manifest for the DSpace Site. Also
      * generate & transfer to replica ObjectStore the manifests for all
@@ -134,40 +123,39 @@ public class TransmitManifest extends AbstractCurationTask {
      * @throws IOException if I/O error
      * @throws SQLException if database error
      */
-    private File siteManifest(Context context, ReplicaManager repMan, Site site) throws IOException, SQLException
-    {
-        //Manifests stored as text files
+    private File siteManifest(Context context, ReplicaManager repMan, Site site) throws IOException, SQLException {
+        // Manifests stored as text files
         String filename = repMan.storageId(context, site.getHandle(), MANIFEST_EXTENSION);
-        
+
         log.debug("Creating manifest for: " + site.getHandle());
-        
+
         //Create site manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
-        
+
         List<Community> topCommunities = communityService.findAllTop(context);
-        //Create top-level community manifests & transfer each
-        for (Community comm : topCommunities)
-        {
+        // Create top-level community manifests & transfer each
+        for (Community comm : topCommunities) {
             File scFile = communityManifest(context, repMan, comm);
             writer.write(tokenized(scFile) + "\n");
             count++;
             repMan.transferObject(manifestGroupName, scFile);
         }
-        if (count == 0)
-        {
+
+        if (count == 0) {
             // write EOF marker to prevent confusion if container empty
             writer.write("#%eof" + "\n");
         }
+
         writer.close();
         report("Created manifest for: " + site.getHandle());
         return manFile;
     }
-    
+
     /**
      * Generate a manifest for the specified DSpace Community. Also
-     * generate & transfer to replica ObjectStore the manifests for any child 
+     * generate & transfer to replica ObjectStore the manifests for any child
      * objects (sub-communities, collections).
      *
      * @param context the context to use
@@ -178,38 +166,37 @@ public class TransmitManifest extends AbstractCurationTask {
      * @throws SQLException if database error
      */
     private File communityManifest(Context context, ReplicaManager repMan, Community comm) throws IOException,
-            SQLException
-    {
-        //Manifests stored as text files
+            SQLException {
+        // Manifests stored as text files
         String filename = repMan.storageId(context, comm.getHandle(), MANIFEST_EXTENSION);
-        
+
         log.debug("Creating manifest for: " + comm.getHandle());
-        
-        //Create community manifest
+
+        // Create community manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
-        //Create sub-community manifests & transfer each
-        for (Community subComm : comm.getSubcommunities())
-        {
+        // Create sub-community manifests & transfer each
+        for (Community subComm : comm.getSubcommunities()) {
             File scFile = communityManifest(context, repMan, subComm);
             writer.write(tokenized(scFile) + "\n");
             count++;
-            repMan.transferObject(manifestGroupName, scFile); 
+            repMan.transferObject(manifestGroupName, scFile);
         }
-        //Create collection manifests & transfer each
-        for (Collection coll: comm.getCollections())
-        {
+
+        // Create collection manifests & transfer each
+        for (Collection coll: comm.getCollections()) {
             File colFile = collectionManifest(context, repMan, coll);
             writer.write(tokenized(colFile) + "\n");
             count++;
             repMan.transferObject(manifestGroupName, colFile);
         }
-        if (count == 0)
-        {
+
+        if (count == 0) {
             // write EOF marker to prevent confusion if container empty
             writer.write("#%eof" + "\n");
         }
+
         writer.close();
         report("Created manifest for: " + comm.getHandle());
         return manFile;
@@ -217,7 +204,7 @@ public class TransmitManifest extends AbstractCurationTask {
 
     /**
      * Generate a manifest for the specified DSpace Collection. Also
-     * generate & transfer to replica ObjectStore the manifests for any child 
+     * generate & transfer to replica ObjectStore the manifests for any child
      * objects (items).
      *
      * @param context the context to use
@@ -228,32 +215,31 @@ public class TransmitManifest extends AbstractCurationTask {
      * @throws SQLException if database error
      */
     private File collectionManifest(Context context, ReplicaManager repMan, Collection coll) throws IOException,
-            SQLException
-    {
-         //Manifests stored as text files
+            SQLException {
+         // Manifests stored as text files
         String filename = repMan.storageId(context, coll.getHandle(), MANIFEST_EXTENSION);
-       
+
         log.debug("Creating manifest for: " + coll.getHandle());
-        
+
         //Create Collection manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
         int count = 0;
-        
-        //Create all Item manifests & transfer each
+
+        // Create all Item manifests & transfer each
         Iterator<Item> ii = itemService.findByCollection(context, coll);
-        while (ii.hasNext())
-        {
+        while (ii.hasNext()) {
             File itemMan = itemManifest(context, repMan, ii.next());
             count++;
             writer.write(tokenized(itemMan) + "\n");
             repMan.transferObject(manifestGroupName, itemMan);
         }
-        if (count == 0)
-        {
+
+        if (count == 0) {
             // write EOF marker to prevent confusion if container empty
             writer.write("#%eof" + "\n");
         }
+
         writer.close();
         report("Created manifest for: " + coll.getHandle());
         return manFile;
@@ -269,35 +255,29 @@ public class TransmitManifest extends AbstractCurationTask {
      * @throws IOException if I/O error
      * @throws SQLException if database error
      */
-    private File itemManifest(Context context, ReplicaManager repMan, Item item) throws IOException, SQLException
-    {
+    private File itemManifest(Context context, ReplicaManager repMan, Item item) throws IOException, SQLException {
         String filename = repMan.storageId(context, item.getHandle(), MANIFEST_EXTENSION);
-        
+
         log.debug("Creating manifest for: " + item.getHandle());
-        
+
         //Create Item manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
         Writer writer = manifestWriter(manFile);
-       
+
         // look through all ORIGINAL bitstreams, and add
         // information about each (e.g. checksum) to manifest
         int count = 0;
         List<Bundle> bundles = itemService.getBundles(item, "ORIGINAL");
-        if(bundles!=null && bundles.size()>0)
-        {    
-            //there should be only one ORIGINAL bundle
+        if (bundles != null && !bundles.isEmpty()) {
+            // there should be only one ORIGINAL bundle
             Bundle bundle = bundles.get(0);
-            for (Bitstream bs : bundle.getBitstreams())
-            {
+            for (Bitstream bs : bundle.getBitstreams()) {
                 int i = 0;
                 StringBuilder sb = new StringBuilder();
-                for (String token : Arrays.asList(template.split("\\|")))
-                {
-                    if (! token.startsWith("x"))
-                    {
+                for (String token : Arrays.asList(template.split("\\|"))) {
+                    if (!token.startsWith("x")) {
                         // tokens are positionally defined
-                        switch (i)
-                        {
+                        switch (i) {
                             case 0:
                                 // what URL/name format?
                                 sb.append(item.getHandle()).append("/").append(bs.getSequenceID());
@@ -329,16 +309,15 @@ public class TransmitManifest extends AbstractCurationTask {
                 }
                 count++;
                 writer.write(sb.substring(0, sb.length() - 1) + "\n");
-            } //end for each bitstream
-        }//end if ORIGINAL bundle
-        
-        //If no bitstreams found, then this is an empty manifest
-        if (count == 0)
-        {
+            } // end for each bitstream
+        } // end if ORIGINAL bundle
+
+        // If no bitstreams found, then this is an empty manifest
+        if (count == 0) {
             // write EOF marker to prevent confusion if container empty
             writer.write("#%eof" + "\n");
         }
-        
+
         writer.close();
         report("Created manifest for: " + item.getHandle());
         return manFile;
@@ -350,8 +329,7 @@ public class TransmitManifest extends AbstractCurationTask {
      * @return reference to Writer
      * @throws IOException if I/O error
      */
-    private Writer manifestWriter(File file) throws IOException
-    {
+    private Writer manifestWriter(File file) throws IOException {
         FileWriter writer = new FileWriter(file);
         writer.write("#%checkm_" + CKM_VSN + "\n");
         // write out template as explanatory metadata
@@ -359,14 +337,11 @@ public class TransmitManifest extends AbstractCurationTask {
         return writer;
     }
 
-    private String tokenized(File file) throws IOException
-    {
+    private String tokenized(File file) throws IOException {
         int i = 0;
         StringBuilder sb = new StringBuilder();
-        for (String token : Arrays.asList(template.split("\\|")))
-        {
-            if (! token.startsWith("x"))
-            {
+        for (String token : Arrays.asList(template.split("\\|"))) {
+            if (!token.startsWith("x")) {
                 // tokens are positionally defined
                 switch (i) {
                     case 0:
@@ -390,9 +365,9 @@ public class TransmitManifest extends AbstractCurationTask {
                         sb.append(file.lastModified());
                         break;
                     case 5:
-                         // target name - skip for now
+                        // target name - skip for now
                     default:
-                         break;
+                        break;
                 }
             }
             sb.append("|");

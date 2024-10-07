@@ -32,10 +32,9 @@ import org.dspace.pack.mets.METSPacker;
  */
 @Distributive
 @Mutative
-public class METSRestoreFromAIP extends AbstractPackagerTask 
-{
+public class METSRestoreFromAIP extends AbstractPackagerTask {
     private Logger log = LogManager.getLogger();
-      
+
     private String archFmt;
 
     // Group where all AIPs are stored
@@ -43,7 +42,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
 
     // Group where object deletion catalog/records are stored
     private String deleteGroupName;
-    
+
     // Name of module configuration file specific to METS based AIPs
     private final String metsModuleConfig = "replicate-mets";
 
@@ -54,8 +53,7 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
         deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
     }
-    
-    
+
     /**
      * Perform the Restore/Replace task.
      * <P>
@@ -67,30 +65,28 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException
-    {
+    public int perform(Context ctx, String id) throws IOException {
         String result = null;
         int status = Curator.CURATE_FAIL;
-        
+
         ReplicaManager repMan = ReplicaManager.instance();
-        
-        //Look for object in Replica Store
+
+        // Look for object in Replica Store
         String objId = repMan.storageId(ctx, id, archFmt);
         File archive = repMan.fetchObject(ctx, storeGroupName, objId);
-          
-        if (archive != null) 
-        {
-            //Load packaging options from replicate-mets.cfg configuration file
+
+        if (archive != null) {
+            // Load packaging options from replicate-mets.cfg configuration file
             PackageParameters pkgParams = this.loadPackagerParameters(metsModuleConfig);
-            
-            //log that this task is starting (as this may be a large task)
+
+            // log that this task is starting (as this may be a large task)
             log.info(getStartMsg(id, pkgParams));
-            
-            //restore/replace object represented by this archive file
-            //(based on packaging params, this may also restore/replace all child objects too)
+
+            // restore/replace object represented by this archive file
+            // (based on packaging params, this may also restore/replace all child objects too)
             restoreObject(ctx, repMan, archive, pkgParams);
 
-            //Check if a deletion catalog exists for this object
+            // Check if a deletion catalog exists for this object
             String catId = repMan.deletionCatalogId(id, archFmt);
             File catArchive = repMan.fetchObject(ctx, deleteGroupName, catId);
             if (catArchive != null) {
@@ -99,44 +95,36 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
                 // remove from local cache as well
                 catArchive.delete();
             }
-            
+
             result = getSuccessMsg(id, pkgParams);
             status = Curator.CURATE_SUCCESS;
-        }
-        else
-        {
+        } else {
             result = "Failed to update Object '" + id + "'. AIP could not be found in Replica Store.";
         }
-             
+
         report(result);
         setResult(result);
         return status;
     }
-    
-    
-    
+
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         int status = Curator.CURATE_FAIL;
-        try
-        {
-            //Get Context from current curation thread
+        try {
+            // Get Context from current curation thread
             Context ctx = Curator.curationContext();
             status = perform(ctx, dso.getHandle());
-            //Note: context will be committed/closed by Curator
+            // Note: context will be committed/closed by Curator
+        } catch (SQLException sqlE) {
+            throw new IOException(sqlE);
         }
-        catch(SQLException sqle)
-        {
-            throw new IOException(sqle);
-        }
+
         return status;
     }
-    
-    
+
     /**
      * Restores/Replaces a DSpace Object (along with possibly its child objects),
-     * based on an archive file in the Replica Filestore and the given 
+     * based on an archive file in the Replica Filestore and the given
      * PackageParameters.
      *
      * @param context the context to use
@@ -146,121 +134,109 @@ public class METSRestoreFromAIP extends AbstractPackagerTask
      * @throws IOException if I/O error
      */
     private void restoreObject(Context context, ReplicaManager repMan, File archive, PackageParameters pkgParams)
-             throws IOException
-    {
-        //Initialize a new METS-based packer, without an associated object
+             throws IOException {
+        // Initialize a new METS-based packer, without an associated object
         METSPacker packer = new METSPacker(context, archFmt);
-       
-        try
-        {
-            //unpack archival package & actually run the restore/replace,
+
+        try {
+            // unpack archival package & actually run the restore/replace,
             // based on the current PackageParameters
             // This only restores/replaces a single object.
             packer.unpack(archive, pkgParams);
 
             // Remove the locally cached archive file - it is no longer needed.
-            if(archive.exists())
+            if (archive.exists()) {
                 archive.delete();
+            }
 
-            //check if recursiveMode is enabled (restore/replace multiple objects)
-            if(pkgParams.recursiveModeEnabled())
-            {
-                //See if this package refered to child packages, 
-                //if so, we want to also replace those child objects
+            // check if recursiveMode is enabled (restore/replace multiple objects)
+            if (pkgParams.recursiveModeEnabled()) {
+                // See if this package refered to child packages,
+                // if so, we want to also replace those child objects
                 List<String> childPkgRefs = packer.getChildPackageRefs();
-                if(childPkgRefs!=null && !childPkgRefs.isEmpty())
-                {
-                    for(String childRef : childPkgRefs)
-                    {
+                if (childPkgRefs != null && !childPkgRefs.isEmpty()) {
+                    for (String childRef : childPkgRefs) {
                         File childArchive = repMan.fetchObject(context, storeGroupName, childRef);
 
-                        if(childArchive!=null)
-                        {
-                            //recurse to restore/replace this child object (and all its children)
+                        if (childArchive != null) {
+                            // recurse to restore/replace this child object (and all its children)
                             restoreObject(context, repMan, childArchive, pkgParams);
-                        }
-                        else
-                        {
+                        } else {
                             throw new IOException("Archive " + childRef + " was not found in Replica Store");
                         }
-                    }    
+                    }
                 }
             }
+        } catch (AuthorizeException authE) {
+            throw new IOException(authE);
+        } catch (SQLException sqlE) {
+            throw new IOException(sqlE);
         }
-        catch(AuthorizeException authe)
-        {
-            throw new IOException(authe);
-        }
-        catch(SQLException sqle)
-        {
-            throw new IOException(sqle);
-        }
-    }        
-    
-    
+    }
+
     /**
-     * Return a human-friendly 'start processing' message based on the 
+     * Return a human-friendly 'start processing' message based on the
      * actions performed (determined via PackageParameters).
      * 
      * @param objId Object ID
      * @param pkgParams PackageParameters (used to determine actions)
      * @return human-friendly start message
      */
-    private String getStartMsg(String objId, PackageParameters pkgParams)
-    {
+    private String getStartMsg(String objId, PackageParameters pkgParams) {
         String resultMsg = "Beginning ";
-        
-        //add action
-        if(pkgParams.replaceModeEnabled())
+
+        // add action
+        if (pkgParams.replaceModeEnabled()) {
             resultMsg += "replacement of ";
-        else if (pkgParams.keepExistingModeEnabled())
+        } else if (pkgParams.keepExistingModeEnabled()) {
             resultMsg += "restoration (keep-existing mode) of ";
-        else
+        } else {
             resultMsg += "restoration of ";
-        
-        //add object info
-        resultMsg += "Object '" + objId +"' ";
-        
-        //is it recursive?
-        if(pkgParams.recursiveModeEnabled())
+        }
+
+        // add object info
+        resultMsg += "Object '" + objId + "' ";
+
+        // is it recursive?
+        if (pkgParams.recursiveModeEnabled()) {
             resultMsg += "(and all child objects) ";
-        
-        //complete message;
+        }
+
+        // complete message;
         resultMsg += "from AIP.";
         return resultMsg;
-        
     }
-    
+
     /**
-     * Return a human-friendly success message based on the 
+     * Return a human-friendly success message based on the
      * actions performed (determined via PackageParameters).
      * 
      * @param objId Object ID
      * @param pkgParams PackageParameters (used to determine actions)
      * @return human-friendly result message
      */
-    private String getSuccessMsg(String objId, PackageParameters pkgParams)
-    {
+    private String getSuccessMsg(String objId, PackageParameters pkgParams) {
         String resultMsg = "Successfully ";
-        
-        //add action
-        if(pkgParams.replaceModeEnabled())
+
+        // add action
+        if (pkgParams.replaceModeEnabled()) {
             resultMsg += "replaced ";
-        else if (pkgParams.keepExistingModeEnabled())
+        } else if (pkgParams.keepExistingModeEnabled()) {
             resultMsg += "restored (keep-existing mode) ";
-        else
+        } else {
             resultMsg += "restored ";
-        
-        //add object info
-        resultMsg += "Object '" + objId +"' ";
-        
-        //is it recursive?
-        if(pkgParams.recursiveModeEnabled())
+        }
+
+        // add object info
+        resultMsg += "Object '" + objId + "' ";
+
+        // is it recursive?
+        if (pkgParams.recursiveModeEnabled()) {
             resultMsg += "(and all child objects) ";
-        
-        //complete message;
+        }
+
+        // complete message;
         resultMsg += "from AIP.";
         return resultMsg;
     }
-    
 }

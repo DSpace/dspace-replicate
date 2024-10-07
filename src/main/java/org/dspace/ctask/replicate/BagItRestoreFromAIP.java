@@ -63,7 +63,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
 
     // Group where all AIPs are stored
     private String storeGroupName;
-    
+
     // Group where object deletion catalog/records are stored
     private String deleteGroupName;
 
@@ -79,7 +79,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
     }
-    
+
     /**
      * Perform 'Recover From AIP' task on a particular object. If the {@code dso} is a {@link Site}, attempt to restore
      * the Site and child objects. Otherwise this method returns an exception.
@@ -136,6 +136,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     @Override
     public int perform(Context ctx, String id) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
+
         // first we locate the deletion catalog for this object
         String catId = repMan.deletionCatalogId(id, archFmt);
         File catArchive = repMan.fetchObject(ctx, deleteGroupName, catId);
@@ -203,7 +204,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     /**
      * Recover a DSpace Item from a particular AIP package file
      * @param ctx current DSpace context
-     * @param archive AIP package file 
+     * @param archive AIP package file
      * @param objId identifier of object we are restoring
      * @param props properties which control how item is restored
      * @throws IOException if IO error
@@ -241,7 +242,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     /**
      * Recover a DSpace Collection from a particular AIP package file
      * @param ctx current DSpace context
-     * @param archive AIP package file 
+     * @param archive AIP package file
      * @param collId identifier of collection we are restoring
      * @param commId identifier of parent community for this collection
      * @throws IOException if IO error
@@ -268,7 +269,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     /**
      * Recover a DSpace Community from a particular AIP package file
      * @param ctx current DSpace context
-     * @param archive AIP package file 
+     * @param archive AIP package file
      * @param commId identifier of community we are restoring
      * @param parentId identifier of parent community (if any) for community
      * @throws IOException if IO error

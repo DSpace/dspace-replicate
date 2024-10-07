@@ -26,24 +26,22 @@ import org.dspace.curate.Utils;
  * 
  * @author richardrodgers
  */
-public class MountableObjectStore extends LocalObjectStore
-{
+public class MountableObjectStore extends LocalObjectStore {
     // need a no-arg constructor for PluginManager
-    public MountableObjectStore()
-    {
+    public MountableObjectStore() {
     }
 
     @Override
-    public long transferObject(String group, File file) throws IOException
-    {
+    public long transferObject(String group, File file) throws IOException {
         // local transfer is a simple matter of copying the file,
         // we don't bother checking if replica is really new, since
         // local deletes/copies are cheap
+
         File archFile = new File(storeDir + File.separator + group, file.getName());
-        if (archFile.exists())
-        {
+        if (archFile.exists()) {
             archFile.delete();
         }
+
         Utils.copy(file, archFile);
         return file.length();
     }

@@ -24,8 +24,7 @@ import org.dspace.curate.AbstractCurationTask;
  * @see org.dspace.content.packager.PackageDisseminator
  * @see org.dspace.content.packager.PackageIngester
  */
-public abstract class AbstractPackagerTask extends AbstractCurationTask
-{
+public abstract class AbstractPackagerTask extends AbstractCurationTask {
     // Name of recursive mode option configurable in curation task configuration file
     private final String recursiveMode = "recursiveMode";
 
@@ -66,48 +65,38 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask
      * @return configured PackageParameters (or null, if configurations not found)
      * @see org.dspace.content.packager.PackageParameters
      */
-    protected PackageParameters loadPackagerParameters(String moduleName)
-    {
-        //Load up the replicate-mets.cfg file & all settings inside it
+    protected PackageParameters loadPackagerParameters(String moduleName) {
+        // Load up the replicate-mets.cfg file & all settings inside it
         List<String> moduleProps = configurationService.getPropertyKeys(moduleName);
 
         PackageParameters pkgParams = new PackageParameters();
 
-        //If our config file doesn't load properly, we'll return null
-        if(moduleProps!=null)
-        {
-            //loop through all properties in the config file
-            for(String property : moduleProps)
-            {
-                //Set propertyName, removing leading module name (if applicable)
+        // If our config file doesn't load properly, we'll return null
+        if (moduleProps != null) {
+            // loop through all properties in the config file
+            for (String property : moduleProps) {
+                // Set propertyName, removing leading module name (if applicable)
                 String propertyName = property;
-                if(propertyName.startsWith(moduleName + ".")) {
+                if (propertyName.startsWith(moduleName + ".")) {
                     propertyName = propertyName.replaceFirst(moduleName + ".", "");
                 }
 
-                //Only obey the setting(s) beginning with this task's ID/name,
-                if(propertyName.startsWith(this.taskId))
-                {
-                    //Parse out the option name by removing the "[taskID]." from beginning of property
+                // Only obey the setting(s) beginning with this task's ID/name,
+                if (propertyName.startsWith(this.taskId)) {
+                    // Parse out the option name by removing the "[taskID]." from beginning of property
                     String option = propertyName.replace(taskId + ".", "");
                     String value = configurationService.getProperty(property);
 
-                    //Check which option is being set
-                    if(option.equalsIgnoreCase(recursiveMode))
-                    {
+                    // Check which option is being set
+                    if (option.equalsIgnoreCase(recursiveMode)) {
                         pkgParams.setRecursiveModeEnabled(Boolean.parseBoolean(value));
-                    }
-                    else if (option.equals(useWorkflow))
-                    {
+                    } else if (option.equals(useWorkflow)) {
                         pkgParams.setWorkflowEnabled(Boolean.parseBoolean(value));
-                    }
-                    else if (option.equals(useCollectionTemplate))
-                    {
+                    } else if (option.equals(useCollectionTemplate)) {
                         pkgParams.setUseCollectionTemplate(Boolean.parseBoolean(value));
-                    }
-                    else //otherwise, assume the Packager will understand what to do with this option
-                    {
-                        //just set it as a property in PackageParameters
+                    } else {
+                        // otherwise, assume the Packager will understand what to do with this option
+                        // just set it as a property in PackageParameters
                         pkgParams.addProperty(option, value);
                     }
 

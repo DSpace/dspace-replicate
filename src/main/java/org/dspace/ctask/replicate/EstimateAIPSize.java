@@ -31,12 +31,10 @@ import org.dspace.pack.PackerFactory;
  * @see TransmitAIP
  */
 @Distributive
-public class EstimateAIPSize extends AbstractCurationTask
-{
+public class EstimateAIPSize extends AbstractCurationTask {
     @Override
     public int perform(DSpaceObject dso) throws IOException {
-        try
-        {
+        try {
             Packer packer = PackerFactory.instance(Curator.curationContext(), dso);
             // just report the size
             long size = packer.size("");
@@ -44,17 +42,15 @@ public class EstimateAIPSize extends AbstractCurationTask
                          ") estimated AIP size: " + scaledSize(size, 0);
             report(msg);
             setResult(scaledSize(size, 0));
-        }
-        catch (SQLException sqlE)
-        {
+        } catch (SQLException sqlE) {
             throw new IOException(sqlE);
         }
+
         return Curator.CURATE_SUCCESS;
     }
-    
+
     String[] prefixes = { "", "kilo", "mega", "giga", "tera", "peta", "exa" };
-    private String scaledSize(long size, int idx)
-    {
+    private String scaledSize(long size, int idx) {
         return (size < 1000L) ? size + " " + prefixes[idx] + "bytes" :
                scaledSize(size / 1000L, idx + 1);
     }

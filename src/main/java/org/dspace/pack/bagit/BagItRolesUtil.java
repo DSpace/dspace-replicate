@@ -42,6 +42,11 @@ import org.dspace.pack.bagit.xml.roles.Person;
 public class BagItRolesUtil {
 
     /**
+     * Private constructor for this utility class
+     */
+    private BagItRolesUtil() {}
+
+    /**
      * Retrieve all roles in a DSpace site. Gets all {@link Group}s and {@link EPerson}s.
      *
      * @param context the context to use
@@ -53,7 +58,7 @@ public class BagItRolesUtil {
     public static DSpaceRoles getDSpaceRoles(final Context context, final Site site) throws SQLException,
             PackageException {
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
-        final EPersonService ePersonService=  EPersonServiceFactory.getInstance().getEPersonService();
+        final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
 
         final DSpaceRoles dSpaceRoles = new DSpaceRoles();
 

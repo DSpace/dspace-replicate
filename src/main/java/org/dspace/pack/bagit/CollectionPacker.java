@@ -54,15 +54,13 @@ import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
  *
  * @author richardrodgers
  */
-public class CollectionPacker implements Packer
-{
+public class CollectionPacker implements Packer {
     private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     // NB - these values must remain synchronized with DB schema
     // they represent the persistent object state
-    private static final String[] fields =
-    {
+    private static final String[] fields = {
         "name",
         "short_description",
         "introductory_text",
@@ -76,20 +74,17 @@ public class CollectionPacker implements Packer
     private Collection collection = null;
     private String archFmt = null;
 
-    public CollectionPacker(Context context, Collection collection, String archFmt)
-    {
+    public CollectionPacker(Context context, Collection collection, String archFmt) {
         this.context = context;
         this.collection = collection;
         this.archFmt = archFmt;
     }
 
-    public Collection getCollection()
-    {
+    public Collection getCollection() {
         return collection;
     }
 
-    public void setCollection(Collection collection)
-    {
+    public void setCollection(Collection collection) {
         this.collection = collection;
     }
 
@@ -202,45 +197,40 @@ public class CollectionPacker implements Packer
     }
 
     @Override
-    public long size(String method) throws SQLException
-    {
+    public long size(String method) throws SQLException {
         long size = 0L;
+
         // start with logo size, if present
         Bitstream logo = collection.getLogo();
-        if (logo != null)
-        {
+        if (logo != null) {
             size += logo.getSizeBytes();
         }
+
         // proceed to items, unless 'norecurse' set
-        if (! "norecurse".equals(method))
-        {
+        if (!"norecurse".equals(method)) {
             Iterator<Item> itemIter = itemService.findByCollection(context, collection);
             ItemPacker iPup = null;
-            while (itemIter.hasNext())
-            {
-                if (iPup == null)
-                {
+            while (itemIter.hasNext()) {
+                if (iPup == null) {
                     iPup = (ItemPacker)PackerFactory.instance(context, itemIter.next());
-                }
-                else
-                {
+                } else {
                     iPup.setItem(itemIter.next());
                 }
+
                 size += iPup.size(method);
             }
         }
+
         return size;
     }
 
     @Override
-    public void setContentFilter(String filter)
-    {
+    public void setContentFilter(String filter) {
         // no-op
     }
 
     @Override
-    public void setReferenceFilter(String filter)
-    {
+    public void setReferenceFilter(String filter) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 

@@ -97,7 +97,7 @@ public class DuraCloudObjectStore implements ObjectStore {
             String contentSizeHeader = content.getProperties().get(ContentStore.CONTENT_SIZE);
             try {
                 size = Long.parseLong(contentSizeHeader);
-            } catch(NumberFormatException nfe) {
+            } catch (NumberFormatException nfe) {
                 // ignore - header was missing or not a valid Long. We will determine size below
             }
 
@@ -150,6 +150,7 @@ public class DuraCloudObjectStore implements ObjectStore {
     public long transferObject(String group, File file) throws IOException {
         long size = 0L;
         String chkSum = Utils.checksum(file, "MD5");
+
         // make sure this is a different file from what replica store has
         // to avoid network I/O tax
         try {
@@ -164,6 +165,7 @@ public class DuraCloudObjectStore implements ObjectStore {
         } catch (ContentStoreException csE) {
             throw new IOException(csE);
         }
+
         // delete staging file
         file.delete();
         return size;
@@ -251,11 +253,12 @@ public class DuraCloudObjectStore implements ObjectStore {
      * @return DuraCloud Space ID
      */
     private String getSpaceID(String group) {
-        //If group contains a forward or backslash, then the
-        //Space ID is whatever is before that slash
-        if (group!=null && group.contains("/")) {
+        // If group contains a forward or backslash, then the
+        // Space ID is whatever is before that slash
+        if (group != null && group.contains("/")) {
             return group.substring(0, group.indexOf("/"));
-        } else { // otherwise, the passed in group is the Space ID
+        } else {
+            // otherwise, the passed in group is the Space ID
             return group;
         }
     }
@@ -271,11 +274,12 @@ public class DuraCloudObjectStore implements ObjectStore {
      * @return content prefix (ending with a forward slash)
      */
     private String getContentPrefix(String group) {
-        //If group contains a forward or backslash, then the
+        // If group contains a forward or backslash, then the
         // content prefix is whatever is after that slash
-        if (group!=null && group.contains("/")) {
+        if (group != null && group.contains("/")) {
             return group.substring(group.indexOf("/") + 1) + "/";
-        } else { // otherwise, no content prefix is specified
+        } else {
+            // otherwise, no content prefix is specified
             return "";
         }
     }

@@ -18,8 +18,7 @@ import org.dspace.authorize.AuthorizeException;
  *
  * @author richardrodgers
  */
-public interface Packer
-{
+public interface Packer {
     /**
      * Packs (maps) the contents of this object into an archive file.
      *

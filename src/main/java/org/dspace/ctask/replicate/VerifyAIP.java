@@ -30,16 +30,15 @@ import org.dspace.curate.Suspendable;
  * @author richardrodgers
  * @see TransmitAIP
  */
-@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
-public class VerifyAIP extends AbstractCurationTask
-{
+@Suspendable(invoked = Curator.Invoked.INTERACTIVE)
+public class VerifyAIP extends AbstractCurationTask {
     private String archFmt;
 
     // Group where all AIPs are stored
     private String storeGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException{
+    public void init(Curator curator, String taskId) throws IOException {
         super.init(curator, taskId);
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
@@ -54,17 +53,14 @@ public class VerifyAIP extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
-        if(dso!=null) {
+    public int perform(DSpaceObject dso) throws IOException {
+        if (dso != null) {
             try {
                 return perform(Curator.curationContext(), dso.getHandle());
             } catch (SQLException e) {
                 throw new IOException(e);
             }
-        }
-        else
-        {
+        } else {
             String result = "DSpace Object not found!";
             report(result);
             setResult(result);
@@ -82,12 +78,12 @@ public class VerifyAIP extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException
-    {
+    public int perform(Context ctx, String id) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
 
         String objId = repMan.storageId(ctx, id, archFmt);
         boolean found = repMan.objectExists(storeGroupName, objId);
+
         String result = "AIP for object: " + id + " found: " + found;
         report(result);
         setResult(result);
