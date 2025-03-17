@@ -12,7 +12,6 @@ import static org.dspace.pack.PackerFactory.OBJECT_ID;
 import static org.dspace.pack.PackerFactory.OBJECT_TYPE;
 import static org.dspace.pack.PackerFactory.OBJFILE;
 import static org.dspace.pack.bagit.BagItAipWriter.BAG_AIP;
-import static org.dspace.pack.bagit.BagItAipWriter.DEFAULT_MODIFIED_DATE;
 import static org.dspace.pack.bagit.BagItAipWriter.PROPERTIES_DELIMITER;
 
 import java.io.File;
@@ -98,7 +97,6 @@ public class SitePacker implements Packer {
 
         return new BagItAipWriter(context, packDir, archFmt, properties)
             .withDSpaceRoles(dSpaceRoles)
-            .withLastModifiedTime(DEFAULT_MODIFIED_DATE)
             .packageAip();
     }
 
