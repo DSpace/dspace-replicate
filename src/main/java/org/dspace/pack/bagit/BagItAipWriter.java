@@ -142,11 +142,6 @@ public class BagItAipWriter {
     private List<BagBitstream> bitstreams;
 
     /**
-     * Last modified time of DSpace object
-     */
-    private Long lastModifiedTime;
-
-    /**
      * Constructor for a {@link BagItAipWriter}. Takes a minimal set of information needed in order to write an AIP as a
      * BagIt bag for dspace consumption.
      *
@@ -161,7 +156,6 @@ public class BagItAipWriter {
         this.logo = null;
         this.policies = null;
         this.metadata = null;
-        this.lastModifiedTime = DEFAULT_MODIFIED_DATE;
         this.archFmt = checkNotNull(archFmt);
         this.directory = checkNotNull(directory);
         this.properties = checkNotNull(properties);
@@ -219,15 +213,6 @@ public class BagItAipWriter {
      */
     public BagItAipWriter withBitstreams(final List<BagBitstream> bitstreams) {
         this.bitstreams = bitstreams != null ? bitstreams : Collections.<BagBitstream>emptyList();
-        return this;
-    }
-
-    /**
-     * @param lastModifiedTime the {@link Item} to use when writing AIP files
-     * @return the {@link BagItAipWriter} used for creating the aip
-     */
-    public BagItAipWriter withLastModifiedTime(final long lastModifiedTime) {
-        this.lastModifiedTime = lastModifiedTime;
         return this;
     }
 
@@ -372,7 +357,7 @@ public class BagItAipWriter {
         bag.write();
 
         final BagSerializer serializer = SerializationSupport.serializerFor(archFmt, profile);
-        final Path serializedBag = serializer.serializeWithTimestamp(directory.toPath(), lastModifiedTime);
+        final Path serializedBag = serializer.serialize(directory.toPath());
         delete(directory);
 
         return serializedBag.toFile();
