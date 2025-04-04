@@ -9,8 +9,9 @@ package org.dspace.pack.bagit.xml.policy;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Root element for policy.xml. Contains only a list of {@link Policy} objects.

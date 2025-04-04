@@ -50,6 +50,11 @@ public class BagItPolicyUtil {
     private static final Logger logger = LoggerFactory.getLogger(BagItPolicyUtil.class);
 
     /**
+     * Private constructor for this utility class
+     */
+    private BagItPolicyUtil() {}
+
+    /**
      * Create a {@link Policy} for a {@link DSpaceObject}
      *
      * @param dso The {@link DSpaceObject} to get the {@link Policy} for
@@ -134,7 +139,45 @@ public class BagItPolicyUtil {
         // then use the authorizationService to add all policies to the dso
         final List<ResourcePolicy> resourcePolicies = new ArrayList<>();
         for (Policy policy : policies.getPolicies()) {
-            final ResourcePolicy resourcePolicy = resourcePolicyService.create(context);
+            EPerson ePerson = null;
+            Group group = null;
+
+            final String groupName = policy.getGroup();
+            final String ePersonEmail = policy.getEperson();
+
+            if (groupName != null) {
+                final String nameForImport;
+
+                if (groupName.equalsIgnoreCase(Group.ADMIN) || groupName.equalsIgnoreCase(Group.ANONYMOUS)) {
+                    nameForImport = groupName;
+                } else {
+                    nameForImport = PackageUtils.translateGroupNameForImport(context, groupName);
+                }
+
+                group = groupService.findByName(context, nameForImport);
+                if (group == null) {
+                    logger.warn("Could not find group {}} in the database! If this" +
+                            "is either the ADMIN or ANONYMOUS group check that your database is" +
+                            "initialized correctly.", nameForImport);
+                }
+            } else if (ePersonEmail != null) {
+                ePerson = ePersonService.findByEmail(context, ePersonEmail);
+                if (ePerson == null) {
+                    logger.warn("Could not find ePerson {} in the database!", ePersonEmail);
+                }
+            }
+
+            // ResourcePolicy requires either a Group or an EPerson
+            if (ePerson == null && group == null) {
+                throw new PackageException("ResourcePolicy requires either a Group or an EPerson. Neither were found.");
+            }
+
+            final ResourcePolicy resourcePolicy = resourcePolicyService.create(context, ePerson, group);
+            if (resourcePolicy == null) {
+                throw new PackageException("Unable to create a ResourcePolicy.");
+            }
+
+            // Set remaining ResourcePolicy fields
             resourcePolicy.setdSpaceObject(dSpaceObject);
 
             final String rpName = policy.getName();
@@ -165,37 +208,6 @@ public class BagItPolicyUtil {
                 } catch (ParseException ignored) {
                     logger.warn("Failed to parse rp-end-date. The date needs to be in the format 'yyyy-MM-dd'.");
                 }
-            }
-
-            final String groupName = policy.getGroup();
-            final String epersonEmail = policy.getEperson();
-            if (groupName != null) {
-                final String nameForImport;
-
-                if (groupName.equalsIgnoreCase(Group.ADMIN) || groupName.equalsIgnoreCase(Group.ANONYMOUS)) {
-                    nameForImport = groupName;
-                } else {
-                    nameForImport = PackageUtils.translateGroupNameForImport(context, groupName);
-                }
-
-                final Group group = groupService.findByName(context, nameForImport);
-                if (group == null) {
-                    throw new PackageException("Could not find group " + nameForImport + " in the database! If this" +
-                                               "is either the ADMIN or ANONYMOUS group check that your database is" +
-                                               "initialized correctly.");
-                }
-
-                resourcePolicy.setGroup(group);
-            } else if (epersonEmail != null) {
-                final EPerson ePerson = ePersonService.findByEmail(context, epersonEmail);
-                if (ePerson == null) {
-                    throw new PackageException("Could not find ePerson " + epersonEmail + " in the database!");
-                }
-
-                resourcePolicy.setEPerson(ePerson);
-            } else {
-                // throw an exception as well?
-                logger.warn("Cannot import policy, no rp-group or rp-eperson attribute found on value!");
             }
 
             final Integer action = actionMapper().get(policy.getAction());

@@ -21,9 +21,8 @@ import static org.dspace.eperson.service.EPersonService.MD_LANGUAGE;
 import static org.dspace.eperson.service.EPersonService.MD_LASTNAME;
 import static org.dspace.eperson.service.EPersonService.MD_PHONE;
 
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlValue;
-
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlValue;
 import org.dspace.content.MetadataFieldName;
 import org.dspace.content.MetadataValue;
 

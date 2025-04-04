@@ -33,17 +33,15 @@ import org.dspace.curate.TaskQueueEntry;
  * Only the first TWO entries will be returned by "dequeue()", as entries #3
  * and #4 would be considered duplicates of entry #1.
  * <P>
- * This FilteredFileTaskQueue is extremely useful to Replication Tasks, as it 
+ * This FilteredFileTaskQueue is extremely useful to Replication Tasks, as it
  * ensures that AIPs are not (re-)generated multiple times when the queue
  * is actually processed. (NOTE however that some of the Replication store plugins
  * avoid duplicate transfers by ensuring Checksums differ before transferring)
  *
  * @author Tim Donohue
  */
-public class FilteredFileTaskQueue extends FileTaskQueue
-{
+public class FilteredFileTaskQueue extends FileTaskQueue {
     private static Logger log = LogManager.getLogger();
-
 
     /**
      * Returns the set of UNIQUE task entries from the named queue. Any duplicate
@@ -62,12 +60,11 @@ public class FilteredFileTaskQueue extends FileTaskQueue
      */
     @Override
     public synchronized Set<TaskQueueEntry> dequeue(String queueName, long ticket)
-           throws IOException
-    {
-        //Dequeue our list of tasks (which may include duplicates)
+           throws IOException {
+        // Dequeue our list of tasks (which may include duplicates)
         Set<TaskQueueEntry> entrySet = super.dequeue(queueName, ticket);
 
-        //Filter out any duplicate entries in the task list
+        // Filter out any duplicate entries in the task list
         filterDuplicates(entrySet);
 
         return entrySet;
@@ -78,25 +75,22 @@ public class FilteredFileTaskQueue extends FileTaskQueue
      * A duplicate entry is one that references the same object and the same task(s)
      * @param entries initial set of entries
      */
-    private void filterDuplicates(Set<TaskQueueEntry> entries)
-    {
-        //create filteredSet as a LinkedHashSet in order to maintain existing order of queue
+    private void filterDuplicates(Set<TaskQueueEntry> entries) {
+        // create filteredSet as a LinkedHashSet in order to maintain existing order of queue
         Set<UniqueTaskQueueEntry> filteredSet = new LinkedHashSet<UniqueTaskQueueEntry>();
 
         // Add all our TaskQueueEntries to our "filteredSet".
-        // This will filter out any duplicates automatically 
+        // This will filter out any duplicates automatically
         // (see UniqueTaskQueueEntry.equals() below).
         Iterator<TaskQueueEntry> entryIter = entries.iterator();
-        while (entryIter.hasNext())
-        {
+        while (entryIter.hasNext()) {
             filteredSet.add(new UniqueTaskQueueEntry(entryIter.next()));
         }
 
         // Now overwrite our initial entry set with the filtered list of entries
         entries.clear();
         Iterator<UniqueTaskQueueEntry> filterIter = filteredSet.iterator();
-        while (filterIter.hasNext())
-        {
+        while (filterIter.hasNext()) {
             entries.add(filterIter.next().getTaskQueueEntry());
         }
     }
@@ -108,19 +102,16 @@ public class FilteredFileTaskQueue extends FileTaskQueue
      * TaskQueueEntry (not allowed, as it's "final"), or have a similar
      * TaskQueueEntry.equals() method.
      */
-    private class UniqueTaskQueueEntry
-    {
+    private class UniqueTaskQueueEntry {
         private final TaskQueueEntry entry;
         private final String tasks;
         private final String objId;
 
-        public UniqueTaskQueueEntry(TaskQueueEntry entry)
-        {
+        public UniqueTaskQueueEntry(TaskQueueEntry entry) {
             this.entry = entry;
             List<String> taskNames = entry.getTaskNames();
             StringBuilder sb = new StringBuilder();
-            for (String tName : taskNames)
-            {
+            for (String tName : taskNames) {
                 sb.append(tName).append(",");
             }
             this.tasks = sb.substring(0, sb.length() - 1);
@@ -131,11 +122,9 @@ public class FilteredFileTaskQueue extends FileTaskQueue
          * Get the TaskQueueEntry object that was used to generate the TaskQueueEntryFilter
          * @return TaskQueueEntry object
          */
-        public TaskQueueEntry getTaskQueueEntry()
-        {
+        public TaskQueueEntry getTaskQueueEntry() {
             return entry;
         }
-
 
         /**
         * Return true if this object equals obj, false otherwise.
@@ -144,22 +133,20 @@ public class FilteredFileTaskQueue extends FileTaskQueue
         * @return true if TaskQueueEntryFilter objects are equal
         */
         @Override
-        public boolean equals(Object obj)
-        {
-            if (obj == null)
-            {
+        public boolean equals(Object obj) {
+            if (obj == null) {
                 return false;
             }
-            if (getClass() != obj.getClass())
-            {
+
+            if (getClass() != obj.getClass()) {
                 return false;
             }
+
             final UniqueTaskQueueEntry other = (UniqueTaskQueueEntry) obj;
             // two task entries are considered "equal" if they refer to the
             // same object and same list of tasks
             if (this.tasks.equalsIgnoreCase(other.tasks) &&
-                this.objId.equalsIgnoreCase(other.objId))
-            {
+                this.objId.equalsIgnoreCase(other.objId)) {
                 return true;
             }
 

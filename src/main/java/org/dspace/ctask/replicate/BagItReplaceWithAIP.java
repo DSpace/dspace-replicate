@@ -57,7 +57,7 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     }
-    
+
     /**
      * Perform the 'Replace with AIP' task.
      * <P>
@@ -70,7 +70,7 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
     @Override
     public int perform(DSpaceObject dso) throws IOException {
         final ReplicaManager repMan = ReplicaManager.instance();
-        
+
         // overwrite with AIP data
         try {
             Context context = Curator.curationContext();

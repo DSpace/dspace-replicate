@@ -18,7 +18,7 @@ import org.dspace.curate.Distributive;
  * inhibits container iteration (distribution to members) when invoked upon
  * a container object.
  * <P>
- * This task is primarily for usage via the ReplicateConsumer, as it needs to 
+ * This task is primarily for usage via the ReplicateConsumer, as it needs to
  * interact with a single object at a time.
  * <P>
  * The type of AIP produced is based on the 'packer.pkgtype' setting

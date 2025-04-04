@@ -213,7 +213,8 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
         final ResourcePolicyService resourcePolicyService = AuthorizeServiceFactory.getInstance()
                                                                                    .getResourcePolicyService();
-        when(resourcePolicyService.create(any(Context.class))).thenReturn(initReloadable(ResourcePolicy.class));
+        when(resourcePolicyService.create(any(Context.class), any(), any()))
+            .thenReturn(initReloadable(ResourcePolicy.class));
         when(groupService.findByName(any(Context.class), eq(Group.ADMIN))).thenReturn(group);
         when(groupService.findByName(any(Context.class), eq(Group.ANONYMOUS))).thenReturn(group);
         when(ePersonService.findByEmail(any(Context.class), eq(personEmail))).thenReturn(ePerson);
@@ -222,14 +223,15 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         BagItPolicyUtil.registerPolicies(mockContext, community, policy);
 
         // verify service interactions
-        verify(resourcePolicyService, times(8)).create(any(Context.class));
-        verify(groupService, times(4)).findByName(any(Context.class), matches(Group.ADMIN + "|" + Group.ANONYMOUS));
+        verify(resourcePolicyService, times(8)).create(any(Context.class), any(), any());
+        verify(groupService, times(4)).findByName(any(Context.class),
+            matches(Group.ADMIN + "|" + Group.ANONYMOUS));
         verify(ePersonService, times(4)).findByEmail(any(Context.class), eq(personEmail));
 
         // additional verification of services which we didn't need to set up
         final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
         verify(authorizeService, times(1)).removeAllPolicies(any(Context.class), eq(community));
-        verify(authorizeService, times(1)).addPolicies(any(Context.class), anyListOf(ResourcePolicy.class),
-                                                       eq(community));
+        verify(authorizeService, times(1)).addPolicies(any(Context.class),
+            anyListOf(ResourcePolicy.class), eq(community));
     }
 }

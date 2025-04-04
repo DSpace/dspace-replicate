@@ -56,7 +56,6 @@ public interface ObjectStore {
      * @throws IOException if I/O error
      */
     long fetchObject(String group, String id, File file) throws IOException;
-    
 
     /**
      * Transfers a copy of this file to the object store
@@ -78,7 +77,7 @@ public interface ObjectStore {
      * @throws IOException if I/O error
      */
     long removeObject(String group, String id) throws IOException;
-    
+
     /**
      * Moves the passed object from one storage group to another.
      * 

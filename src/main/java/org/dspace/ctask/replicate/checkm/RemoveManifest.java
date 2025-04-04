@@ -31,7 +31,7 @@ import org.dspace.curate.Distributive;
 
 /**
  * RemoveManifest task will remove the manifest of requested objects from the
- * replica store. If the manifest is multi-level, all the manifests of its 
+ * replica store. If the manifest is multi-level, all the manifests of its
  * children (members) will also be removed.
  * <p>
  * Manifests conform to the CDL Checkm v0.7 manifest format spec.
@@ -54,7 +54,7 @@ public class RemoveManifest extends AbstractCurationTask {
         super.init(curator, taskId);
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
-    
+
     /**
      * Removes replicas of passed object from the replica store.
      * If a container, removes all the member replicas, in addition
@@ -66,8 +66,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException 
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         try {
             Context context = Curator.curationContext();
@@ -84,7 +83,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * If object has any associated child objects, their existing manifests
      * are also removed from the Replica ObjectStore.
      * <p>
-     * NOTE: this method does NOT remove the DSpace Object itself (nor any 
+     * NOTE: this method does NOT remove the DSpace Object itself (nor any
      * children) from the DSpace repository. It only removes the associated
      * manifests from the Replica ObjectStore.
      *
@@ -94,8 +93,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * @throws IOException if I/O error
      * @throws SQLException if database error
      */
-    private void remove(Context context, ReplicaManager repMan, DSpaceObject dso) throws IOException, SQLException
-    {    
+    private void remove(Context context, ReplicaManager repMan, DSpaceObject dso) throws IOException, SQLException {
         String objId = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
         repMan.removeObject(manifestGroupName, objId);
         report("Removing manifest for: " + objId);
@@ -139,8 +137,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException 
-    {
+    public int perform(Context ctx, String id) throws IOException {
         DSpaceObject dso = dereference(ctx, id);
         if (dso != null) {
             return perform(dso);
@@ -150,13 +147,13 @@ public class RemoveManifest extends AbstractCurationTask {
         setResult("Manifest for '" + id + "' has been removed");
         return Curator.CURATE_SUCCESS;
     }
-    
+
     /**
      * Removes a DSpace Object's Manifest from the Replica ObjectStore.
      * If object has any associated child objects, their existing manifests
      * are also removed from the Replica ObjectStore.
      * <p>
-     * NOTE: this method does NOT remove the DSpace Object itself (nor any 
+     * NOTE: this method does NOT remove the DSpace Object itself (nor any
      * children) from the DSpace repository. It only removes the associated
      * manifests from the Replica ObjectStore.
      *
@@ -165,8 +162,7 @@ public class RemoveManifest extends AbstractCurationTask {
      * @param id the DSpace Object's identifier
      * @throws IOException if I/O error
      */
-    private void deleteManifest(Context context, ReplicaManager repMan, String id) throws IOException
-    {
+    private void deleteManifest(Context context, ReplicaManager repMan, String id) throws IOException {
         File manFile = repMan.fetchObject(context, manifestGroupName, id);
         if (manFile != null) {
             BufferedReader reader = new BufferedReader(new FileReader(manFile));

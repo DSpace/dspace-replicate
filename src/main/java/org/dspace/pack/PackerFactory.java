@@ -29,9 +29,7 @@ import org.duraspace.bagit.profile.BagProfile;
  *
  * @author richardrodgers
  */
-public class PackerFactory
-{
-
+public class PackerFactory {
     // basic bag property names - some optional
     public static final String OBJFILE = "object.properties";
     public static final String BAG_TYPE = "bagType";
@@ -56,14 +54,18 @@ public class PackerFactory
     // cached instance of METSPacker - because a little expensive to create
     private static METSPacker metsPacker = null;
 
+    /**
+     * Private constructor for this utility class
+     */
+    private PackerFactory() {}
+
     public static Packer instance(Context context, DSpaceObject dso) {
         Packer packer = null;
         int type = dso.getType();
         if ("mets".equals(packType)) {
             if (metsPacker == null) {
                 metsPacker = new METSPacker(context, dso, archFmt);
-            }
-            else {
+            } else {
                 metsPacker.setContext(context);
                 metsPacker.setDSO(dso);
             }
@@ -83,7 +85,7 @@ public class PackerFactory
         } else if (Constants.SITE == type) {
             packer = new SitePacker(context, (Site)dso, archFmt);
         } else {
-            throw new RuntimeException("No packer for object type");
+            throw new RuntimeException("No packer for object type.");
         }
         return packer;
     }

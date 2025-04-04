@@ -35,7 +35,8 @@ public class CatalogPackerTest extends BagItPackerTest {
         final Path output = Paths.get(resources.toURI().resolve("catalog-packer-test"));
 
         // setup the packer
-        final CatalogPacker packer = new CatalogPacker(mockContext, "object-id", "owner-id", ImmutableList.of("member"));
+        final CatalogPacker packer = new CatalogPacker(mockContext, "object-id",
+            "owner-id", ImmutableList.of("member"));
         final File packedOutput = packer.pack(output.toFile());
 
         assertThat(packedOutput).exists();

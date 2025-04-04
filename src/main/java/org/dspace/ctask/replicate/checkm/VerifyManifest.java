@@ -34,7 +34,7 @@ import org.dspace.curate.Suspendable;
  * @author richardrodgers
  * @see TransmitManifest
  */
-@Suspendable(invoked=Curator.Invoked.INTERACTIVE)
+@Suspendable(invoked = Curator.Invoked.INTERACTIVE)
 public class VerifyManifest extends AbstractCurationTask {
 
     // Group where all Manifests are stored
@@ -53,14 +53,14 @@ public class VerifyManifest extends AbstractCurationTask {
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         Context context;
         try {
             context = Curator.curationContext();
         } catch (SQLException e) {
             throw new IOException(e);
         }
+
         ReplicaManager repMan = ReplicaManager.instance();
         String objId = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
         boolean found = repMan.objectExists(manifestGroupName, objId);

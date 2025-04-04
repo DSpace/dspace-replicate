@@ -36,7 +36,6 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  * @author richardrodgers
  */
 public class ReplicaManager {
-
     private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
     private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
     private HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
@@ -64,54 +63,45 @@ public class ReplicaManager {
     private final String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
 
-    private ReplicaManager() throws IOException
-    {
+    private ReplicaManager() throws IOException {
         objStore = (ObjectStore) pluginService.getSinglePlugin(ObjectStore.class);
         if (objStore == null) {
             log.error("No ObjectStore configured in 'replicate.cfg'!");
             throw new IOException("No ObjectStore configured in 'replicate.cfg'!");
         }
-        
+
         objStore.init();
-        
+
         // create directory structures
         new File(repDir).mkdirs();
         // load our odometer - writeable copy
-        try
-        {
+        try {
             odometer = new Odometer(repDir, false);
-        }
-        catch (IOException ioE)
-        {
-            //just log a warning
-            log.warn("Unable to read odometer file in '"+ repDir + "'", ioE);
+        } catch (IOException ioE) {
+            // just log a warning
+            log.warn("Unable to read odometer file in '" + repDir + "'", ioE);
         }
     }
 
-    public static synchronized ReplicaManager instance() throws IOException
-    {
-        if (instance == null)
-        {
+    public static synchronized ReplicaManager instance() throws IOException {
+        if (instance == null) {
             instance = new ReplicaManager();
         }
         return instance;
     }
-    
-    public File stage(Context context, String group, String id)
-    {
+
+    public File stage(Context context, String group, String id) {
         // ensure path exists
         File stageDir = new File(repDir + File.separator + group);
-        if (! stageDir.isDirectory())
-        {
+        if (!stageDir.isDirectory()) {
             stageDir.mkdirs();
         }
         return new File(stageDir, storageId(context, id, null));
     }
-    
-    
+
     /**
-     * Determine the Identifier of an object once it is placed 
-     * in storage. This method ensures any special characters are 
+     * Determine the Identifier of an object once it is placed
+     * in storage. This method ensures any special characters are
      * escaped. It also ensures all objects are named in a similar
      * manner once they are in a given store (so that they can similarly
      * be retrieved from storage using this same 'storageId').
@@ -121,84 +111,81 @@ public class ReplicaManager {
      * @param fileExtension - file extension, if any (may be null)
      * @return reformatted storage ID for this object (including file extension)
      */
-    public String storageId(Context context, String objId, String fileExtension)
-    {
+    public String storageId(Context context, String objId, String fileExtension) {
         // canonical handle notation bedevils file system semantics
         String storageId = objId.replaceAll("/", "-");
-        
-        // add appropriate file extension, if needed
-        if(fileExtension!=null && !storageId.endsWith("." + fileExtension))
-            storageId = storageId + "." + fileExtension;
 
-        // If 'packer.typeprefix' setting is 'true', 
+        // add appropriate file extension, if needed
+        if (fileExtension != null && !storageId.endsWith("." + fileExtension)) {
+            storageId = storageId + "." + fileExtension;
+        }
+
+        // If 'packer.typeprefix' setting is 'true',
         // then prefix the storageID with the DSpace Type (if it doesn't already have a prefix)
-        if(configurationService.getBooleanProperty("replicate.packer.typeprefix", true) &&
-           !storageId.contains(typePrefixSeparator))
-        {    
+        if (configurationService.getBooleanProperty("replicate.packer.typeprefix", true) &&
+            !storageId.contains(typePrefixSeparator)) {
             String typePrefix = null;
-        
-            try
-            {    
-                //Get object associated with this handle
+
+            try {
+                // Get object associated with this handle
                 DSpaceObject dso = handleService.resolveToObject(context, objId);
 
-                //typePrefix format = 'TYPE@'
-                if(dso!=null)
+                // typePrefix format = 'TYPE@'
+                if (dso != null) {
                     typePrefix = Constants.typeText[dso.getType()] + typePrefixSeparator;
+                }
+            } catch (SQLException sqle) {
+                // do nothing, just ignore -- we'll handle this in a moment
             }
-            catch(SQLException sqle)
-            {
-                //do nothing, just ignore -- we'll handle this in a moment
-            }
-            
+
             // If we were unable to determine a type prefix, then this must mean the object
             // no longer exists in DSpace!  Let's see if we can find it in storage!
-            if(typePrefix==null)
-            {
-                try
-                {
-                    //Currently we need to try and lookup the object in storage
-                    //Hopefully, there will be an easier way to do this in the future
-                    
-                    //see if this object exists in main storage group
+            if (typePrefix == null) {
+                try {
+                    // Currently we need to try and lookup the object in storage
+                    // Hopefully, there will be an easier way to do this in the future
+
+                    // see if this object exists in main storage group
                     typePrefix = findTypePrefix(storeGroupName, storageId);
-                    if(typePrefix==null && deleteGroupName!=null) //if not found, check deletion group as well
+
+                    // if not found, check deletion group as well
+                    if (typePrefix == null && deleteGroupName != null) {
                         typePrefix = findTypePrefix(deleteGroupName, storageId);
+                    }
+                } catch (IOException ioE) {
+                    // do nothing, just ignore
                 }
-                catch(IOException io)
-                {
-                    //do nothing, just ignore
-                }
-            }    
-            
-            //if we found a typePrefix, prepend it on storageId
-            if(typePrefix!=null)
+            }
+
+            // if we found a typePrefix, prepend it on storageId
+            if (typePrefix != null) {
                 storageId = typePrefix + storageId;
+            }
         }
-        
-       
+
         // Return final storage ID
         return storageId;
     }
-    
+
     /**
      * Convert a Storage ID back into a Canonical Identifier
      * (opposite of 'storageId()' method).
      * @param storageId the given object's storage ID
      * @return the objects canonical identifier
      */
-    public String canonicalId(String storageId)
-    {
-        //If this 'storageId' includes a TYPE prefix (see 'storageId()' method),
+    public String canonicalId(String storageId) {
+        // If this 'storageId' includes a TYPE prefix (see 'storageId()' method),
         // then remove it, before returning the reformatted ID.
-        if(storageId.contains(typePrefixSeparator))
-            storageId = storageId.substring(storageId.indexOf(typePrefixSeparator)+1);
-        
-        //If this 'storageId' includes a file extension suffix, also remove it.
-        if(storageId.contains("."))
+        if (storageId.contains(typePrefixSeparator)) {
+            storageId = storageId.substring(storageId.indexOf(typePrefixSeparator) + 1);
+        }
+
+        // If this 'storageId' includes a file extension suffix, also remove it.
+        if (storageId.contains(".")) {
             storageId = storageId.substring(0, storageId.indexOf("."));
-        
-        //Finally revert all dashes back to slashes (to create the original canonical ID)
+        }
+
+        // Finally revert all dashes back to slashes (to create the original canonical ID)
         return storageId.replaceAll("-", "/");
     }
 
@@ -213,53 +200,46 @@ public class ReplicaManager {
      * @param fileExtension - file extension, if any (may be null)
      * @return reformatted storage ID for this object (including file extension)
      */
-    public String deletionCatalogId(String objId, String fileExtension)
-    {
+    public String deletionCatalogId(String objId, String fileExtension) {
         // canonical handle notation bedevils file system semantics
         String storageId = objId.replaceAll("/", "-");
 
         // add appropriate file extension, if needed
-        if(fileExtension!=null && !storageId.endsWith("." + fileExtension))
+        if (fileExtension != null && !storageId.endsWith("." + fileExtension)) {
             storageId = storageId + "." + fileExtension;
-
-        if(configurationService.getBooleanProperty("replicate.packer.typeprefix", true) &&
-           !storageId.contains(typePrefixSeparator))
-        {
-            //Prepend the "deletion catalog" type prefix on the name
-            return deletionCatalogPrefix + typePrefixSeparator + storageId;
         }
-        else
-        {
+
+        if (configurationService.getBooleanProperty("replicate.packer.typeprefix", true) &&
+            !storageId.contains(typePrefixSeparator)) {
+            // Prepend the "deletion catalog" type prefix on the name
+            return deletionCatalogPrefix + typePrefixSeparator + storageId;
+        } else {
             // Otherwise, just return the cleaned up ID
             return storageId;
         }
     }
 
-    public Odometer getOdometer() throws IOException
-    {
+    public Odometer getOdometer() throws IOException {
         // return a new read-only copy
         return new Odometer(repDir, true);
     }
 
     // Replica store-backed methods
 
-    public File fetchObject(Context context, String group, String objId) throws IOException
-    {
-        //String repId = safeId(id) + "." + arFmt;
+    public File fetchObject(Context context, String group, String objId) throws IOException {
+        // String repId = safeId(id) + "." + arFmt;
         File file = stage(context, group, objId);
         long size = objStore.fetchObject(group, objId, file);
-        if (size > 0L)
-        {
-            synchronized (odoLock)
-            {
+        if (size > 0L) {
+            synchronized (odoLock) {
                 odometer.adjustProperty(DOWNLOADED, size);
                 odometer.save();
             }
         }
-       
+
         return file.exists() ? file : null;
     }
-    
+
     public void transferObject(String group, File file) throws IOException {
         String psStr = objStore.objectAttribute(group, file.getName(), "sizebytes");
         long prevSize = psStr != null ? Long.valueOf(psStr) : 0L;
@@ -274,9 +254,9 @@ public class ReplicaManager {
                 }
                 odometer.save();
             }
-        }       
+        }
     }
-    
+
     public boolean objectExists(String group, String objId) throws IOException {
         return objStore.objectExists(group, objId);
     }
@@ -295,18 +275,19 @@ public class ReplicaManager {
             }
         }
     }
-    
+
     public boolean moveObject(String srcGroup, String destGroup, String objId) throws IOException {
         long size = objStore.moveObject(srcGroup, destGroup, objId);
-        
-        // NOTE: no need to adjust the odometer. In this case we haven't 
-        // actually uploaded or downloaded any content. 
-        if (size > 0L)
+
+        // NOTE: no need to adjust the odometer. In this case we haven't
+        // actually uploaded or downloaded any content.
+        if (size > 0L) {
             return true;
-        else
+        } else {
             return false;
+        }
     }
-    
+
     /**
      * This method is only called if we cannot determine an object's type prefix
      * via DSpace (i.e. the object no longer exists in DSpace). In this case,
@@ -317,46 +298,44 @@ public class ReplicaManager {
      * @param baseId base object id we are looking for (without type prefix)
      * @return Type prefix if a matching object is located successfully. Null otherwise.
      */
-    private String findTypePrefix(String group, String baseId) throws IOException
-    {
+    private String findTypePrefix(String group, String baseId) throws IOException {
         boolean exists = false;
-        
+
         // This next part may look a bit like a hack, but it's actually safer than
         // it seems. Essentially, we are going to try to "guess" what the Type Prefix
         // may be, and see if we can find an object with that name in our object Store.
         // The reason this is still "safe" is that the "objId" should be unique with or without
-        // the Type prefix. Even if it wasn't unique, DSpace HandleManager has checks in place 
-        // to ensure we can never restore an object of a different Type to a Handle that was 
+        // the Type prefix. Even if it wasn't unique, DSpace HandleManager has checks in place
+        // to ensure we can never restore an object of a different Type to a Handle that was
         // used previously (e.g. cannot restore an Item with a handle that was previously used by a Collection)
-        
+
         // NOTE: If DSpace ever provided a way to lookup Object type for an unbound handle, then
         // we may no longer need to guess which type this object may have been.
         // ALTERNATIVELY: If DuraCloud & other stores provide a way to search by file properties, we could change
         // our store plugins to always save the object handle as a property & retrieve files via that property.
 
-        //Most objects are Items, so lets see if this object can be found with an Item Type prefix
+        // Most objects are Items, so lets see if this object can be found with an Item Type prefix
         String typePrefix = Constants.typeText[Constants.ITEM] + typePrefixSeparator;
         exists = objStore.objectExists(group, typePrefix + baseId);
 
-        if(!exists)
-        {
-            //Ok, our second guess will be that this used to be a Collection
+        if (!exists) {
+            // Ok, our second guess will be that this used to be a Collection
             typePrefix = Constants.typeText[Constants.COLLECTION] + typePrefixSeparator;
             exists = objStore.objectExists(group, typePrefix + baseId);
         }
 
-        if(!exists)
-        {
-            //Final guess: maybe this used to be a Community?
+        if (!exists) {
+            // Final guess: maybe this used to be a Community?
             typePrefix = Constants.typeText[Constants.COMMUNITY] + typePrefixSeparator;
             exists = objStore.objectExists(group, typePrefix + baseId);
-        }    
-        
-        // That's it. We're done guessing. If we still couldn't find this object, 
+        }
+
+        // That's it. We're done guessing. If we still couldn't find this object,
         // it obviously doesn't exist in our object Store.
-        if(exists)
+        if (exists) {
             return typePrefix;
-        else
+        } else {
             return null;
+        }
     }
 }

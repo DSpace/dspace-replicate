@@ -29,8 +29,7 @@ import org.dspace.curate.Curator;
  * @see TransmitManifest
  */
 
-public class FetchManifest extends AbstractCurationTask
-{
+public class FetchManifest extends AbstractCurationTask {
     private String archFmt;
 
     // Group where all Manifests are stored
@@ -42,7 +41,7 @@ public class FetchManifest extends AbstractCurationTask
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
-    
+
     /**
      * Perform 'Fetch Manifest' task
      * @param dso DSpace Object to perform on
@@ -50,8 +49,7 @@ public class FetchManifest extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
+    public int perform(DSpaceObject dso) throws IOException {
         try {
             Context context = Curator.curationContext();
             ReplicaManager repMan = ReplicaManager.instance();

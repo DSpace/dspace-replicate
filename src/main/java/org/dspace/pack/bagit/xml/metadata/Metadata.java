@@ -9,8 +9,9 @@ package org.dspace.pack.bagit.xml.metadata;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Root tag for metadata.xml. Contains only a list of metadata {@link Value}s.

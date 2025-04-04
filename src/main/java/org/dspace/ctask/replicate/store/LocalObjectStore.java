@@ -34,30 +34,28 @@ public class LocalObjectStore implements ObjectStore {
 
     // where replicas are kept
     protected String storeDir = null;
-    
+
     // need no-arg constructor for PluginManager
     public LocalObjectStore() {
     }
 
     @Override
-    public void init() throws IOException
-    {
+    public void init() throws IOException {
         storeDir = configurationService.getProperty("replicate.store.dir");
+
         File storeFile = new File(storeDir);
-        if (! storeFile.exists())
-        {
+        if (! storeFile.exists()) {
             storeFile.mkdirs();
         }
     }
 
     @Override
-    public long fetchObject(String group, String id, File file) throws IOException
-    {
+    public long fetchObject(String group, String id, File file) throws IOException {
         // locate archive and copy to file
         long size = 0L;
+
         File archFile = new File(storeDir + File.separator + group, id);
-        if (archFile.exists())
-        {
+        if (archFile.exists()) {
             size = archFile.length();
             Utils.copy(archFile, file);
         }
@@ -65,20 +63,18 @@ public class LocalObjectStore implements ObjectStore {
     }
 
     @Override
-    public boolean objectExists(String group, String id)
-    {
+    public boolean objectExists(String group, String id) {
         // do we have a copy in our managed area?
         return new File(storeDir + File.separator + group, id).exists();
     }
 
     @Override
-    public long removeObject(String group, String id)
-    {
+    public long removeObject(String group, String id) {
         // remove file if present
         long size = 0L;
+
         File remFile = new File(storeDir + File.separator + group, id);
-        if (remFile.exists())
-        {
+        if (remFile.exists()) {
             size = remFile.length();
             remFile.delete();
         }
@@ -86,61 +82,54 @@ public class LocalObjectStore implements ObjectStore {
     }
 
     @Override
-    public long transferObject(String group, File file) throws IOException
-    {
+    public long transferObject(String group, File file) throws IOException {
         // local transfer is a simple matter of renaming the file,
         // we don't bother checking if replica is really new, since
         // local deletes/copies are cheap
+
         File archDir = new File(storeDir, group);
-        if (! archDir.isDirectory())
-        {
+        if (!archDir.isDirectory()) {
             archDir.mkdirs();
         }
+
         File archFile = new File(archDir, file.getName());
-        if (archFile.exists())
-        {
+        if (archFile.exists()) {
             archFile.delete();
         }
-        if (! file.renameTo(archFile))
-        {
-            throw new UnsupportedOperationException("Store does not support rename");
+
+        if (!file.renameTo(archFile)) {
+            throw new UnsupportedOperationException("Store does not support rename.");
         }
+
         return archFile.length();
     }
 
     @Override
-    public String objectAttribute(String group, String id, String attrName) throws IOException
-    {
+    public String objectAttribute(String group, String id, String attrName) throws IOException {
         File archFile = new File(storeDir + File.separator + group, id);
-        if ("checksum".equals(attrName))
-        {
+        if ("checksum".equals(attrName)) {
             return Utils.checksum(archFile, "MD5");
-        }
-        else if ("sizebytes".equals(attrName))
-        {
+        } else if ("sizebytes".equals(attrName)) {
             return String.valueOf(archFile.length());
-        }
-        else if ("modified".equals(attrName))
-        {
+        } else if ("modified".equals(attrName)) {
             return String.valueOf(archFile.lastModified());
         }
+
         return null;
     }
-    
+
     @Override
-    public long moveObject(String srcGroup, String destGroup, String id) throws IOException
-    {
+    public long moveObject(String srcGroup, String destGroup, String id) throws IOException {
         long size = 0L;
-        
-        //Find the file
+
+        // Find the file
         File file = new File(storeDir + File.separator + srcGroup, id);
-        if (file.exists())
-        {
-            //If file is found, just transfer it to destination,
+        if (file.exists()) {
+            // If file is found, just transfer it to destination,
             // as transferObject() just does a file rename
             size = transferObject(destGroup, file);
         }
-        
+
         return size;
     }
 }

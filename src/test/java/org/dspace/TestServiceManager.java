@@ -50,6 +50,11 @@ public class TestServiceManager implements ServiceManager {
     }
 
     @Override
+    public <T> Map<String, T> getServicesWithNamesByType(Class<T> type) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void registerService(String name, Object service) {
         serviceNameMap.put(name, service);
     }

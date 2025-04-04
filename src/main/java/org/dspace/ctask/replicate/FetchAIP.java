@@ -25,8 +25,7 @@ import org.dspace.curate.Curator;
  * @see TransmitAIP
  */
 
-public class FetchAIP extends AbstractCurationTask
-{
+public class FetchAIP extends AbstractCurationTask {
     private String archFmt;
 
     private String baseFolder;
@@ -49,18 +48,14 @@ public class FetchAIP extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
-        if(dso!=null)
-        {
+    public int perform(DSpaceObject dso) throws IOException {
+        if (dso != null) {
             try {
                 return perform(Curator.curationContext(), dso.getHandle());
             } catch (SQLException e) {
                 throw new IOException(e);
             }
-        }
-        else
-        {
+        } else {
             String result = "DSpace Object not found!";
             report(result);
             setResult(result);
@@ -77,16 +72,19 @@ public class FetchAIP extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException
-    {
+    public int perform(Context ctx, String id) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         String objId = repMan.storageId(ctx, id, archFmt);
         File archive = repMan.fetchObject(ctx, storeGroupName, objId);
+
         boolean found = archive != null;
         String result = "AIP for object: " + id + " located : " + found + ".";
-        if(found)
+
+        if (found) {
             result += " AIP file downloaded to '"
                 + baseFolder + "/" + storeGroupName + "/" + objId + "'";
+        }
+
         report(result);
         setResult(result);
         return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;

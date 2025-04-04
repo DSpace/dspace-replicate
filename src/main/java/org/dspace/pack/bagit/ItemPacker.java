@@ -69,20 +69,17 @@ public class ItemPacker implements Packer {
     private boolean exclude = true;
     private List<RefFilter> refFilters = new ArrayList<>();
 
-    public ItemPacker(Context context, Item item, String archFmt)
-    {
+    public ItemPacker(Context context, Item item, String archFmt) {
         this.context = context;
         this.item = item;
         this.archFmt = archFmt;
     }
 
-    public Item getItem()
-    {
+    public Item getItem() {
         return item;
     }
 
-    public void setItem(Item item)
-    {
+    public void setItem(Item item) {
         this.item = item;
     }
 
@@ -102,7 +99,7 @@ public class ItemPacker implements Packer {
                 linked.append(coll.getHandle()).append(",");
             }
         }
-        if (linked.length() > 0) {
+        if (!linked.isEmpty()) {
             objectProperties.add(OTHER_IDS + PROPERTIES_DELIMITER + linked.substring(0, linked.length() - 1));
         }
         if (item.isWithdrawn()) {
@@ -120,7 +117,7 @@ public class ItemPacker implements Packer {
         // policy.xml
         final Policies policy = BagItPolicyUtil.getPolicy(context, item);
 
-        // proceed to bundles, in sub-directories, filtering
+        // proceed to bundles, in subdirectories, filtering
         final List<BagBitstream> bitstreams = new ArrayList<>();
         for (Bundle bundle : item.getBundles()) {
             final String bundleName = bundle.getName();
@@ -232,81 +229,69 @@ public class ItemPacker implements Packer {
     }
 
     @Override
-    public long size(String method) throws SQLException
-    {
+    public long size(String method) throws SQLException {
         long size = 0L;
+
         // just total bitstream sizes, respecting filters
-        for (Bundle bundle : item.getBundles())
-        {
-            if (accept(bundle.getName()))
-            {
-                for (Bitstream bs : bundle.getBitstreams())
-                {
+        for (Bundle bundle : item.getBundles()) {
+            if (accept(bundle.getName())) {
+                for (Bitstream bs : bundle.getBitstreams()) {
                     size += bs.getSizeBytes();
                 }
             }
         }
+
         return size;
     }
-    
+
     @Override
-    public void setContentFilter(String filter) 
-    {
-        //If our filter list of bundles begins with a '+', then this list
-        // specifies all the bundles to *include*. Otherwise all 
+    public void setContentFilter(String filter) {
+        // If our filter list of bundles begins with a '+', then this list
+        // specifies all the bundles to *include*. Otherwise all
         // bundles *except* the listed ones are included
-        if(filter.startsWith("+"))
-        {
+        if (filter.startsWith("+")) {
             exclude = false;
-            //remove the preceding '+' from our bundle list
+            // remove the preceding '+' from our bundle list
             filter = filter.substring(1);
         }
-        
+
         filterBundles = Arrays.asList(filter.split(","));
     }
 
-    private boolean accept(String name)
-    {
+    private boolean accept(String name) {
         boolean onList = filterBundles.contains(name);
         return exclude ? ! onList : onList;
     }
 
     @Override
-    public void setReferenceFilter(String filterSet)
-    {
+    public void setReferenceFilter(String filterSet) {
         // parse ref filter list
-        for (String filter : filterSet.split(","))
-        {
+        for (String filter : filterSet.split(",")) {
             refFilters.add(new RefFilter(filter));
         }
     }
 
-    private String byReference(Bundle bundle, Bitstream bs)
-    {
-        for (RefFilter filter : refFilters)
-        {
+    private String byReference(Bundle bundle, Bitstream bs) {
+        for (RefFilter filter : refFilters) {
             if (filter.bundle.equals(bundle.getName()) &&
-                filter.size == bs.getSizeBytes())
-            {
+                filter.size == bs.getSizeBytes()) {
                 return filter.url;
             }
         }
+
         return null;
     }
 
-    private class RefFilter
-    {
+    private class RefFilter {
         public String bundle;
         public long size;
         public String url;
 
-        public RefFilter(String filter)
-        {
+        public RefFilter(String filter) {
             String[] parts = filter.split(" ");
             bundle = parts[0];
-            size = Long.valueOf(parts[1]);
+            size = Long.parseLong(parts[1]);
             url = parts[2];
         }
     }
-
 }

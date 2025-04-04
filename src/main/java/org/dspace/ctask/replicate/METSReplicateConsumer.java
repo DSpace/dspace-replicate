@@ -122,21 +122,26 @@ public class METSReplicateConsumer implements Consumer {
     private final String deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
 
     @Override
-    public void initialize() throws Exception
-    {
-        repMan = ReplicaManager.instance();
+    public void initialize() throws Exception {
+        try {
+            repMan = ReplicaManager.instance();
+        } catch (IOException ioE) {
+            // The ReplicaManager attempts to initialize the ObjectStore specified in the configuration.
+            log.error("Unable to initialize the ReplicaManager. ", ioE);
+        }
+
         taskQueue = (TaskQueue) pluginService.getSinglePlugin(TaskQueue.class);
         queueName = configurationService.getProperty("replicate.consumer.queue");
+
         // look for and load any idFilter files - excludes trump includes
         // An "idFilter" is an actual textual file named "exclude" or "include"
         // which contains a list of handles to filter from the Consumer
-        if (! loadIdFilter("exclude"))
-        {
-            if (loadIdFilter("include"))
-            {
+        if (! loadIdFilter("exclude")) {
+            if (loadIdFilter("include")) {
                 idExclude = false;
             }
         }
+
         taskQMap = new HashMap<String, Set<String>>();
         taskPMap = new HashMap<String, Set<String>>();
         parseTasks("add");
@@ -162,44 +167,39 @@ public class METSReplicateConsumer implements Consumer {
      * @throws Exception if error
      */
     @Override
-    public void consume(Context ctx, Event event) throws Exception
-    {
+    public void consume(Context ctx, Event event) throws Exception {
         int evType = event.getEventType();
         int subjType = event.getSubjectType();
-        //In this situation the "id" is actually the Object Handle
+
+        // In this situation the "id" is actually the Object Handle
         String id = null;
 
         //Special processing specific to Group & EPerson events
-        if(subjType==Constants.GROUP || subjType==Constants.EPERSON)
-        {
+        if (subjType == Constants.GROUP || subjType == Constants.EPERSON) {
             // ANY changes to a Group/EPerson are essentially modifications
             // to the DSpace System (Site), as they are site-wide changes
             Site site = siteService.findSite(ctx);
             id  = site == null ? null : site.getHandle();
+
             // make sure we are supposed to process this object
-            if (acceptId(id, event, ctx))
-            {
+            if (acceptId(id, event, ctx)) {
                 // add it to the master lists of modified objects
                 // for which we need to perform tasks
                 mapId(taskQMap, modQTasks, id);
                 mapId(taskPMap, modPTasks, id);
             }
-        }
-        else // process all other object types
-        {
-            switch (evType)
-            {
-                //ADD = Adding an object to a container or group
+        } else {
+            // process all other object types
+            switch (evType) {
+                // ADD = Adding an object to a container or group
                 case ADD:
-                    //If mapping/adding an Item to a Collection
-                    if(subjType==Constants.COLLECTION)
-                    {
-                        //First, get Handle of collection that was modified
+                    // If mapping/adding an Item to a Collection
+                    if (subjType == Constants.COLLECTION) {
+                        // First, get Handle of collection that was modified
                         id = event.getSubject(ctx).getHandle();
 
                         // make sure we are supposed to process this Collection
-                        if (acceptId(id, event, ctx))
-                        {
+                        if (acceptId(id, event, ctx)) {
                             // add Collection to the master lists of modified objects
                             // for which we need to perform tasks
                             mapId(taskQMap, modQTasks, id);
@@ -214,21 +214,19 @@ public class METSReplicateConsumer implements Consumer {
                             mapId(taskPMap, modPTasks, id);
                         }
                     }
-                    //IGNORE all other "ADD" events. Currently it's not possible to map
-                    //Collections or SubCommunities to multiple parents.
-                    break;
 
-                case CREATE: //CREATE = Create a new object.
-                case INSTALL: //INSTALL = Install an object (exits workflow/workspace). Only used for Items.
+                    // IGNORE all other "ADD" events. Currently it's not possible to map
+                    // Collections or SubCommunities to multiple parents.
+                    break;
+                case CREATE: // CREATE = Create a new object.
+                case INSTALL: // INSTALL = Install an object (exits workflow/workspace). Only used for Items.
                     // For CREATE & INSTALL, the Handle of object being created is found in Event Detail
                     id = event.getDetail();
 
                     // if NOT (Create & Item)
                     // (i.e. We don't want to replicate items UNTIL they are Installed)
-                    if (!(subjType == Constants.ITEM && evType == CREATE))
-                    {
-                        if (acceptId(id, event, ctx))
-                        {
+                    if (!(subjType == Constants.ITEM && evType == CREATE)) {
+                        if (acceptId(id, event, ctx)) {
                             // add it to the master lists of added/new objects
                             // for which we need to perform tasks
                             mapId(taskQMap, addQTasks, id);
@@ -237,14 +235,13 @@ public class METSReplicateConsumer implements Consumer {
 
                         // get parent of this newly created object & mark it as modified
                         DSpaceObject subject = event.getSubject(ctx);
-                        DSpaceObject parent = ContentServiceFactory.getInstance().getDSpaceObjectService(subject).getParentObject(ctx, subject);
-                        if(parent!=null)
-                        {
+                        DSpaceObject parent = ContentServiceFactory.getInstance()
+                            .getDSpaceObjectService(subject).getParentObject(ctx, subject);
+
+                        if (parent != null) {
                             id = parent.getHandle();
-                            if(id != null)
-                            {
-                                if (acceptId(id, event, ctx))
-                                {
+                            if (id != null) {
+                                if (acceptId(id, event, ctx)) {
                                     // add it to the master lists of modified objects
                                     // for which we need to perform tasks
                                     mapId(taskQMap, modQTasks, id);
@@ -254,12 +251,10 @@ public class METSReplicateConsumer implements Consumer {
                         }
                     }
                     break;
-
-                case MODIFY: //MODIFY = modify an object
-                case MODIFY_METADATA: //MODIFY_METADATA = just modify an object's metadata
+                case MODIFY: // MODIFY = modify an object
+                case MODIFY_METADATA: // MODIFY_METADATA = just modify an object's metadata
                     // If subject of event is null, this means the object was likely deleted
-                    if (event.getSubject(ctx)==null)
-                    {
+                    if (event.getSubject(ctx) == null) {
                         log.warn(event.getEventTypeAsString() + " event, could not get object for "
                                 + event.getSubjectTypeAsString() + " id="
                                 + String.valueOf(event.getSubjectID())
@@ -267,16 +262,14 @@ public class METSReplicateConsumer implements Consumer {
                         break;
                     }
 
-                    //For MODIFY events, the Handle of modified object needs to be obtained from the Subject
+                    // For MODIFY events, the Handle of modified object needs to be obtained from the Subject
                     id = event.getSubject(ctx).getHandle();
 
                     // make sure handle resolves - these could be events
                     // for a newly created item that hasn't been assigned a handle
-                    if (id != null)
-                    {
+                    if (id != null) {
                         // make sure we are supposed to process this object
-                        if (acceptId(id, event, ctx))
-                        {
+                        if (acceptId(id, event, ctx)) {
                             // add it to the master lists of modified objects
                             // for which we need to perform tasks
                             mapId(taskQMap, modQTasks, id);
@@ -284,58 +277,51 @@ public class METSReplicateConsumer implements Consumer {
                         }
                     }
                     break;
-
                 case REMOVE: //REMOVE = Remove an object from a container or group
                 case DELETE: //DELETE = Delete an object (actually destroy it)
                     // For REMOVE & DELETE, the Handle of object being deleted is found in Event Detail
                     id = event.getDetail();
 
                     // make sure we are supposed to process this object
-                    if (acceptId(id, event, ctx))
-                    {   // analyze & process the deletion/removal event
+                    if (acceptId(id, event, ctx)) {
+                        // analyze & process the deletion/removal event
                         deleteEvent(ctx, id, event);
                     }
-
                     break;
                 default:
                     break;
-            }//end switch
-        }//end if
+            }
+        }
     }
 
     @Override
-    public void end(Context ctx) throws Exception
-    {
+    public void end(Context ctx) throws Exception {
         // if there are any pending objectIds, pass them to the curation
         // system to queue for later processing, or perform immediately
         EPerson ep = ctx.getCurrentUser();
         String name = (ep != null) ? ep.getName() : "unknown";
         long stamp = System.currentTimeMillis();
+
         // first the queueables
         Set<TaskQueueEntry> entrySet = new HashSet<TaskQueueEntry>();
-        if (taskQMap.size() > 0)
-        {
+        if (!taskQMap.isEmpty()) {
             List<String> taskList = new ArrayList<String>();
-            for (String task : taskQMap.keySet())
-            {
+            for (String task : taskQMap.keySet()) {
                 taskList.add(task);
-                for (String id : taskQMap.get(task))
-                {
+                for (String id : taskQMap.get(task)) {
                     entrySet.add(new TaskQueueEntry(name, stamp, taskList, id));
                 }
                 taskList.clear();
             }
             taskQMap.clear();
         }
+
         // now the performables
-        if (taskPMap.size() > 0)
-        {
+        if (!taskPMap.isEmpty()) {
             Curator curator = new Curator();
-            for (String task : taskPMap.keySet())
-            {
+            for (String task : taskPMap.keySet()) {
                 curator.addTask(task);
-                for (String id : taskQMap.get(task))
-                {
+                for (String id : taskQMap.get(task)) {
                     curator.curate(ctx, id);
                 }
                 curator.clear();
@@ -344,23 +330,20 @@ public class METSReplicateConsumer implements Consumer {
         }
 
         // if there any uncommitted deletions, record them now
-        if (delObjId != null)
-        {
-            if (delTasks != null)
-            {
+        if (delObjId != null) {
+            if (delTasks != null) {
                 entrySet.add(new TaskQueueEntry(name, stamp, delTasks, delObjId));
             }
             processDelete(ctx);
         }
-        if (entrySet.size() > 0)
-        {
+
+        if (!entrySet.isEmpty()) {
             taskQueue.enqueue(queueName, entrySet);
         }
     }
 
     @Override
-    public void finish(Context ctx) throws Exception
-    {
+    public void finish(Context ctx) throws Exception {
         // no-op
     }
 
@@ -376,27 +359,25 @@ public class METSReplicateConsumer implements Consumer {
      * @return true if this consumer should process this object event, false if it should not
      * @throws SQLException if database error occurs
      */
-    private boolean acceptId(String id, Event event, Context ctx) throws SQLException
-    {
+    private boolean acceptId(String id, Event event, Context ctx) throws SQLException {
         // always accept if not filtering
-        if (idFilter == null)
-        {
+        if (idFilter == null) {
             return true;
         }
+
         // filter supports only container ids - so if id is for an item,
         // find its owning collection
         String id2check = id;
-        if (event.getSubjectType() == Constants.ITEM)
-        {
+        if (event.getSubjectType() == Constants.ITEM) {
             // NB: Item should be available form context cache - should
             // not incur a performance hit here
             Item item = itemService.find(ctx, event.getSubjectID());
             Collection coll = item.getOwningCollection();
-            if (coll != null)
-            {
+            if (coll != null) {
                 id2check = coll.getHandle();
             }
         }
+
         boolean onList = idFilter.contains(id2check);
         return idExclude ? ! onList : onList;
     }
@@ -410,38 +391,27 @@ public class METSReplicateConsumer implements Consumer {
      * @param event event that was triggered
      * @throws Exception if error
      */
-    private void deleteEvent(Context ctx, String id, Event event) throws Exception
-    {
+    private void deleteEvent(Context ctx, String id, Event event) throws Exception {
         int type = event.getEventType();
-        if (DELETE == type)
-        {
+        if (DELETE == type) {
             // either marks start of new deletion or a member of enclosing one
-            if (delObjId == null)
-            {
-                //Start of a new deletion
+            if (delObjId == null) {
+                // Start of a new deletion
                 delObjId = id;
-            }
-            else
-            {
+            } else {
                 // just add to list of deleted members
                 delMemIds.add(id);
             }
-        }
-        else if (REMOVE == type)
-        {
+        } else if (REMOVE == type) {
             // either marks end of current deletion or is member of
             // enclosing one: ignore if latter
-            if (event.getDetail().equals(id) || (delObjId != null && delObjId.equals(id)))
-            {
+            if (event.getDetail().equals(id) || (delObjId != null && delObjId.equals(id))) {
                 // determine owner and write out deletion catalog
-                if (Constants.COLLECTION == event.getSubjectType())
-                {
+                if (Constants.COLLECTION == event.getSubjectType()) {
                     // my owner is a collection
                     Collection ownColl = collectionService.find(ctx, event.getSubjectID());
                     delOwnerId = ownColl.getHandle();
-                }
-                else if (Constants.COMMUNITY == event.getSubjectType())
-                {
+                } else if (Constants.COMMUNITY == event.getSubjectType()) {
                     // my owner is a community
                     Community comm = communityService.find(ctx, event.getSubjectID());
                     delOwnerId = comm.getHandle();
@@ -449,10 +419,8 @@ public class METSReplicateConsumer implements Consumer {
 
                 // If the parent/owner was found, mark that parent as having been modified
                 // (This ensures that a fresh AIP will be generated for the parent object)
-                if(delOwnerId != null)
-                {
-                    if (acceptId(delOwnerId, event, ctx))
-                    {
+                if (delOwnerId != null) {
+                    if (acceptId(delOwnerId, event, ctx)) {
                         // add parent to the master lists of modified objects
                         // for which we need to perform tasks
                         mapId(taskQMap, modQTasks, delOwnerId);
@@ -460,32 +428,33 @@ public class METSReplicateConsumer implements Consumer {
                     }
                 }
 
-                //Record the deletion catalog for the deleted object (as needed)
+                // Record the deletion catalog for the deleted object (as needed)
                 processDelete(ctx);
-             }
+            }
         }
     }
 
     /*
      * Process a deletion event by recording a deletion catalog if configured
      */
-    private void processDelete(Context ctx) throws IOException
-    {
+    private void processDelete(Context ctx) throws IOException {
+        if (repMan == null) {
+            log.error("The ReplicaManager failed to initialize earlier. Check the logs above.");
+            return;
+        }
+
         // write out deletion catalog if defined
-        if (catalogDeletes)
-        {
-            //First, check if this object has an AIP in storage
+        if (catalogDeletes) {
+            // First, check if this object has an AIP in storage
             boolean found = repMan.objectExists(storeGroupName, delObjId);
 
             // If the object has an AIP, then create a deletion catalog
             // If there's no AIP, then there's no need for a deletion
             // catalog as the object isn't backed up & cannot be restored!
-            if(found)
-            {
+            if (found) {
                 //Create a deletion catalog (in BagIt format) of all deleted objects
                 Packer packer = new CatalogPacker(ctx, delObjId, delOwnerId, delMemIds);
-                try
-                {
+                try {
                     // Create a new deletion catalog (with default file extension / format)
                     // and store it in the deletion group store
                     String catID = repMan.deletionCatalogId(delObjId, null);
@@ -493,17 +462,14 @@ public class METSReplicateConsumer implements Consumer {
                     File archive = packer.pack(packDir);
                     // Create a deletion catalog in deletion archive location.
                     repMan.transferObject(deleteGroupName, archive);
-                }
-                catch (AuthorizeException authE)
-                {
+                } catch (AuthorizeException authE) {
                     throw new IOException(authE);
-                }
-                catch (SQLException sqlE)
-                {
+                } catch (SQLException sqlE) {
                     throw new IOException(sqlE);
                 }
             }
         }
+
         // reset for next events
         delObjId = delOwnerId = null;
         delMemIds.clear();
@@ -516,41 +482,32 @@ public class METSReplicateConsumer implements Consumer {
      * @param filterName the name of the textual filter file
      * @return true if filter file was loaded successfully, false otherwise
      */
-    private boolean loadIdFilter(String filterName)
-    {
+    private boolean loadIdFilter(String filterName) {
         File filterFile = new File(configurationService.getProperty("replicate.base.dir"), filterName);
-        if (filterFile.exists())
-        {
+        if (filterFile.exists()) {
             idFilter = new ArrayList<String>();
             BufferedReader reader = null;
-            try
-            {
+            try {
                 reader = new BufferedReader(new FileReader(filterFile));
                 String id = null;
-                while((id = reader.readLine()) != null)
-                {
+                while ((id = reader.readLine()) != null) {
                     idFilter.add(id);
                 }
                 return true;
-            }
-            catch (IOException ioE)
-            {
-                //log.error("Unable to read filter file '" + filterName + "'");
+            } catch (IOException ioE) {
+                // log.error("Unable to read filter file '" + filterName + "'");
                 idFilter = null;
-            }
-            finally
-            {
+            } finally {
                 if (reader != null) {
-                    try
-                    {
+                    try {
                         reader.close();
-                    }
-                    catch (IOException ioE)
-                    {
+                    } catch (IOException ioE) {
+                        // ignore exception
                     }
                 }
             }
         }
+
         return false;
     }
 
@@ -563,15 +520,11 @@ public class METSReplicateConsumer implements Consumer {
      * @param tasks Tasks to be performed
      * @param id Object for which the tasks should be performed.
      */
-    private void mapId(Map<String, Set<String>> map, List<String> tasks, String id)
-    {
-        if (tasks != null)
-        {
-            for (String task : tasks)
-            {
+    private void mapId(Map<String, Set<String>> map, List<String> tasks, String id) {
+        if (tasks != null) {
+            for (String task : tasks) {
                 Set<String> ids = map.get(task);
-                if (ids == null)
-                {
+                if (ids == null) {
                     ids = new HashSet<String>();
                     map.put(task, ids);
                 }
@@ -585,76 +538,55 @@ public class METSReplicateConsumer implements Consumer {
      * is in the 'replicate.cfg' file.
      * @param propName property name
      */
-    private void parseTasks(String propName)
-    {
+    private void parseTasks(String propName) {
         String taskStr = configurationService.getProperty("replicate.consumer.tasks." + propName);
-        if (taskStr == null || taskStr.length() == 0)
-        {
+        if (taskStr == null || taskStr.isEmpty()) {
             return;
         }
-        for (String task : taskStr.split(","))
-        {
+
+        for (String task : taskStr.split(",")) {
             task = task.trim();
+
             //If the task in question does NOT end in "+p",
             // then it should be queued for later processing
-            if (! task.endsWith("+p"))
-            {
-                if ("add".equals(propName))
-                {
-                    if (addQTasks == null)
-                    {
+            if (!task.endsWith("+p")) {
+                if ("add".equals(propName)) {
+                    if (addQTasks == null) {
                         addQTasks = new ArrayList<String>();
                     }
                     addQTasks.add(task);
-                }
-                else if ("mod".equals(propName))
-                {
-                    if (modQTasks == null)
-                    {
+                } else if ("mod".equals(propName)) {
+                    if (modQTasks == null) {
                         modQTasks = new ArrayList<String>();
                     }
                     modQTasks.add(task);
-                }
-                else if ("del".equals(propName))
-                {
-                    if (delTasks == null)
-                    {
+                } else if ("del".equals(propName)) {
+                    if (delTasks == null) {
                         delTasks = new ArrayList<String>();
                     }
                     delTasks.add(task);
                 }
-            }
-            //Otherwise (if the task ends in "+p"),
-            //  it should be added to the list of tasks to perform immediately
-            else
-            {
+            } else {
+                // Otherwise (if the task ends in "+p"),
+                //  it should be added to the list of tasks to perform immediately
                 String sTask = task.substring(0, task.lastIndexOf("+p"));
-                if ("add".equals(propName))
-                {
-                    if (addPTasks == null)
-                    {
+                if ("add".equals(propName)) {
+                    if (addPTasks == null) {
                         addPTasks = new ArrayList<String>();
                     }
                     addPTasks.add(sTask);
-                }
-                else if ("mod".equals(propName))
-                {
-                    if (modPTasks == null)
-                    {
+                } else if ("mod".equals(propName)) {
+                    if (modPTasks == null) {
                         modPTasks = new ArrayList<String>();
                     }
                     addPTasks.add(sTask);
-                }
-                else if ("del".equals(propName))
-                {
+                } else if ("del".equals(propName)) {
                     // just test for special case of deletion catalogs.
-                    if ("catalog".equals(sTask))
-                    {
+                    if ("catalog".equals(sTask)) {
                         catalogDeletes = true;
                     }
                 }
             }
         }
     }
-
 }

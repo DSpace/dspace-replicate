@@ -23,17 +23,19 @@ import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 
 import com.google.common.io.CountingOutputStream;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
 import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
+import org.dspace.content.Item;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
@@ -52,6 +54,7 @@ import org.duraspace.bagit.serialize.BagSerializer;
 import org.duraspace.bagit.serialize.SerializationSupport;
 import org.joda.time.LocalDate;
 import org.joda.time.format.ISODateTimeFormat;
+
 
 /**
  * The BagItAipWriter handles the packaging of DSpaceObjects into their respective bags. It processes the metadata and
@@ -79,12 +82,14 @@ public class BagItAipWriter {
     public static final String TEMPLATE_XML = "template-metadata.xml";
     private static final String BITSTREAM_PREFIX = "bitstream_";
 
+    protected static final long DEFAULT_MODIFIED_DATE = 1036368000L * 1000;
+
     private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
-    // Fields used for book keeping
+    // Fields used for bookkeeping
     private final AtomicLong successBytes = new AtomicLong();
     private final AtomicLong successFiles = new AtomicLong();
-    private final Map<File, String> checksums = new HashMap<>();
+    private final LinkedHashMap<File, String> checksums = new LinkedHashMap<>();
 
     /**
      * The context to use

@@ -24,6 +24,11 @@ import org.dspace.services.factory.DSpaceServicesFactory;
 public class BagInfoHelper {
 
     /**
+     * Private constructor for this utility class
+     */
+    private BagInfoHelper() {}
+
+    /**
      * Loads the bag-info.txt and any other fields for tag files found under 'replicate.bag.tag'
      *
      * @return a Map containing the identifier of each tag file to its key-value pairs
@@ -36,7 +41,7 @@ public class BagInfoHelper {
 
         final List<String> keys = configurationService.getPropertyKeys(TAG_KEY);
 
-        // precomplie patterns for when we split strings
+        // precompile patterns for when we split strings
         final Pattern dotSplit = Pattern.compile("\\.");
         final Pattern hyphenSplit = Pattern.compile("-");
 
@@ -76,5 +81,4 @@ public class BagInfoHelper {
 
         return tagFiles;
     }
-
 }

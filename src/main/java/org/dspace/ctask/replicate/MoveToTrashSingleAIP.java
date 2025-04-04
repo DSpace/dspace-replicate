@@ -36,8 +36,7 @@ import org.dspace.curate.Distributive;
  * @author tdonohue
  */
 @Distributive
-public class MoveToTrashSingleAIP extends AbstractCurationTask
-{
+public class MoveToTrashSingleAIP extends AbstractCurationTask {
     // Source and destination group where AIP will be moved to
     private String srcGroupName;
     private String destGroupName;
@@ -63,18 +62,14 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException
-    {
-        if(dso!=null)
-        {
+    public int perform(DSpaceObject dso) throws IOException {
+        if (dso != null) {
             try {
                 return perform(Curator.curationContext(), dso.getHandle());
             } catch (SQLException e) {
                 throw new IOException(e);
             }
-        }
-        else
-        {
+        } else {
             String result = "DSpace Object not specified!";
             report(result);
             setResult(result);
@@ -92,16 +87,19 @@ public class MoveToTrashSingleAIP extends AbstractCurationTask
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(Context ctx, String id) throws IOException
-    {
+    public int perform(Context ctx, String id) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         String objId = repMan.storageId(ctx, id, archFmt);
 
         boolean success = repMan.moveObject(srcGroupName, destGroupName, objId);
 
-        String result = "AIP for object: " + id + " could NOT be moved from: " + srcGroupName + " to : " + destGroupName + ".";
-        if(success)
+        String result = "AIP for object: " + id + " could NOT be moved from: " + srcGroupName + " to : "
+            + destGroupName + ".";
+
+        if (success) {
             result = "AIP for object: " + id + " moved from: " + srcGroupName + " to : " + destGroupName + ".";
+        }
+
         report(result);
         setResult(result);
 
