@@ -50,7 +50,7 @@
                                         <version>${java.version}</version>
                                     </requireJavaVersion>
                                     <requireMavenVersion>
-                                        <version>[3.0.5,)</version>
+                                        <version>[3.8,)</version>
                                     </requireMavenVersion>
                                 </rules>
                             </configuration>
@@ -110,7 +110,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.7.1</version>
+                    <version>3.8.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -171,6 +171,14 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.11.2</version>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                     <configuration>
                         <!-- Never fail a build based on Javadoc errors -->
                         <failOnError>false</failOnError>
@@ -197,13 +205,15 @@
                 <version>3.1.1</version>
                 <configuration>
                     <!-- During release:perform, enable the "release" profile (see below) -->
-                    <releaseProfiles>release</releaseProfiles>
+                    <arguments>-Drelease</arguments>
                     <goals>deploy</goals>
+                    <!-- Suggest tagging the release in SCM as "dspace-[version]" -->
+                    <tagNameFormat>dspace-replicate-@{project.version}</tagNameFormat>
                     <!-- Auto-Version all modules the same as the parent module -->
                     <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
             </plugin>
-            <!-- Copy necessary Runtime Depenencies to /target/lib/
+            <!-- Copy necessary Runtime Dependencies to /target/lib/
                  during build process. (We are only including Runtime
                  dependencies which are not a part of DSpace by default)-->
             <plugin>
@@ -253,8 +263,12 @@
                                  MUST be specified for server 'ossrh' -->
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <!-- Disable autoclose of repository after upload, as this sometimes times out -->
+                            <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
                             <!-- Require manual verification / release to Maven Central -->
                             <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                            <!-- Increase Staging timeout to 10mins -->
+                            <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
                         </configuration>
                     </plugin>
                     <!-- For new releases, generate Source JAR files -->
