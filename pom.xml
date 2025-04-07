@@ -205,7 +205,7 @@
                 <version>3.1.1</version>
                 <configuration>
                     <!-- During release:perform, enable the "release" profile (see below) -->
-                    <releaseProfiles>-Drelease</releaseProfiles>
+                    <arguments>-Drelease</arguments>
                     <goals>deploy</goals>
                     <!-- Suggest tagging the release in SCM as "dspace-[version]" -->
                     <tagNameFormat>dspace-replicate-@{project.version}</tagNameFormat>
