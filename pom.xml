@@ -171,14 +171,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.11.2</version>
-                    <executions>
-                        <execution>
-                            <id>attach-javadocs</id>
-                            <goals>
-                                <goal>jar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
                     <configuration>
                         <!-- Never fail a build based on Javadoc errors -->
                         <failOnError>false</failOnError>
@@ -200,11 +192,13 @@
         </pluginManagement>
         <plugins>
             <plugin>
+                <!-- Specify our settings for new releases via 'mvn release:*' -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>3.1.1</version>
                 <configuration>
-                    <!-- During release:perform, enable the "release" profile (see below) -->
+                    <!-- During release:prepare and release:perform, pass the "release" property to enable the
+                     "release" profile (and enable/disable other profiles based on whether they need releasing) -->
                     <arguments>-Drelease</arguments>
                     <goals>deploy</goals>
                     <!-- Suggest tagging the release in SCM as "dspace-[version]" -->
@@ -244,11 +238,17 @@
           to actually perform an dspace-replicate release to Maven central.
           This profile contains settings which are ONLY enabled when performing
           a DSpace module release. See also https://wiki.lyrasis.org/display/DSPACE/Release+Procedure
+          NOTE: You MUST trigger this profile by running "-Drelease"
+          (as that flag also triggers other modules to be enabled/disabled as necessary for release)
          -->
         <profile>
             <id>release</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <!-- Enable this profile if we are doing a release (-Drelease) -->
+                <property>
+                    <name>release</name>
+                </property>
             </activation>
             <build>
                 <plugins>
@@ -284,8 +284,21 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <!-- For new releases, generate JavaDocs -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <!-- Sign any new releases via GPG.
-                         NOTE: you may optionall specify the "gpg.passphrase" in your settings.xml -->
+                         NOTE: you may optionally specify the "gpg.passphrase" in your settings.xml -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
