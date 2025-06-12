@@ -11,7 +11,7 @@ Replication / Backup Locations
 Supported Replication / Backup locations include:
   * Local filesystem folder
   * Mounted drive
-  * DuraCloud (http://www.duracloud.org)
+  * DuraCloud (https://wiki.lyrasis.org/display/DURACLOUD)
 
 Backup Format
 -------------
