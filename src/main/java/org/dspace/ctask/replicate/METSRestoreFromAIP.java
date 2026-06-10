@@ -167,10 +167,8 @@ public class METSRestoreFromAIP extends AbstractPackagerTask {
                     }
                 }
             }
-        } catch (AuthorizeException authE) {
+        } catch (AuthorizeException | SQLException authE) {
             throw new IOException(authE);
-        } catch (SQLException sqlE) {
-            throw new IOException(sqlE);
         }
     }
 
