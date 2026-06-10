@@ -110,10 +110,8 @@ public class CompareWithAIP extends AbstractCurationTask {
 
             setResult(result);
             return status;
-        } catch (AuthorizeException authE) {
+        } catch (AuthorizeException | SQLException authE) {
             throw new IOException(authE);
-        } catch (SQLException sqlE) {
-            throw new IOException(sqlE);
         }
     }
 
