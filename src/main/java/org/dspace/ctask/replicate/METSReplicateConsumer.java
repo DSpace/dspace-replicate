@@ -462,10 +462,8 @@ public class METSReplicateConsumer implements Consumer {
                     File archive = packer.pack(packDir);
                     // Create a deletion catalog in deletion archive location.
                     repMan.transferObject(deleteGroupName, archive);
-                } catch (AuthorizeException authE) {
+                } catch (AuthorizeException | SQLException authE) {
                     throw new IOException(authE);
-                } catch (SQLException sqlE) {
-                    throw new IOException(sqlE);
                 }
             }
         }
