@@ -127,7 +127,7 @@ public class TransmitManifest extends AbstractCurationTask {
         // Manifests stored as text files
         String filename = repMan.storageId(context, site.getHandle(), MANIFEST_EXTENSION);
 
-        log.debug("Creating manifest for: " + site.getHandle());
+        log.debug("Creating site manifest for: {}", site.getHandle());
 
         //Create site manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
@@ -170,7 +170,7 @@ public class TransmitManifest extends AbstractCurationTask {
         // Manifests stored as text files
         String filename = repMan.storageId(context, comm.getHandle(), MANIFEST_EXTENSION);
 
-        log.debug("Creating manifest for: " + comm.getHandle());
+        log.debug("Creating community manifest for: {}", comm.getHandle());
 
         // Create community manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
