@@ -153,7 +153,7 @@ public class BagItReplicateConsumer implements Consumer {
         int evType = event.getEventType();
         int subjType = event.getSubjectType();
 
-        // This is the Handle of the object on which an event occured
+        // This is the Handle of the object on which an event occurred
         String id = event.getDetail();
 
         // System.out.println("got event type: " + evType + " for subject type: " + subjType);
