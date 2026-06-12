@@ -62,7 +62,7 @@ public class DuraCloudObjectStore implements ObjectStore {
     public void init() throws IOException {
         final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
-        // locate & login to Duracloud store
+        // locate & login to DuraCloud store
         ContentStoreManager storeManager =
             new ContentStoreManagerImpl(configurationService.getProperty("duracloud.host"),
                                         configurationService.getProperty("duracloud.port"),
