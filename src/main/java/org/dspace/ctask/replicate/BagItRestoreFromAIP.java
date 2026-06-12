@@ -179,7 +179,12 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     private void recover(Context ctx, ReplicaManager repMan, String id) throws IOException {
         final String objId = repMan.storageId(ctx, id, archFmt);
         final File archive = repMan.fetchObject(ctx, storeGroupName, objId);
-        final DSpaceObject dso = dereference(ctx, id);
+        DSpaceObject dso;
+        try {
+            dso = dspaceObjectUtils.findDSpaceObject(ctx,id);
+        }  catch (SQLException sqlE) {
+            throw new IOException(sqlE.getMessage(), sqlE);
+        }
         if (archive != null && dso == null) {
             final BagItAipReader reader = new BagItAipReader(archive.toPath());
             final Properties props = reader.readProperties();
@@ -197,7 +202,7 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             // discard bag when done
             reader.clean();
         } else if (dso != null) {
-            log.warn("Unable to restore object for " + id + ". Object already exists!");
+            log.warn("Unable to restore object for {}. Object already exists!", id);
         }
     }
 
@@ -232,10 +237,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
                 itemService.withdraw(ctx, item);
             }
             embargoService.setEmbargo(ctx, item);
-        } catch (AuthorizeException authE) {
+        } catch (AuthorizeException | SQLException authE) {
             throw new IOException(authE);
-        } catch (SQLException sqlE) {
-            throw new IOException(sqlE);
         }
     }
 
@@ -259,10 +262,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             // update with AIP data
             Packer packer = PackerFactory.instance(ctx, coll);
             packer.unpack(archive);
-        } catch (AuthorizeException authE) {
+        } catch (AuthorizeException | SQLException authE) {
             throw new IOException(authE);
-        } catch (SQLException sqlE) {
-            throw new IOException(sqlE);
         }
     }
 
@@ -287,10 +288,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             // update with AIP data
             Packer packer = PackerFactory.instance(ctx, comm);
             packer.unpack(archive);
-        } catch (AuthorizeException authE) {
+        } catch (AuthorizeException | SQLException authE) {
             throw new IOException(authE);
-        } catch (SQLException sqlE) {
-            throw new IOException(sqlE);
         }
     }
 

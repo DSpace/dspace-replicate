@@ -138,10 +138,16 @@ public class RemoveManifest extends AbstractCurationTask {
      */
     @Override
     public int perform(Context ctx, String id) throws IOException {
-        DSpaceObject dso = dereference(ctx, id);
-        if (dso != null) {
-            return perform(dso);
+        DSpaceObject dso;
+        try {
+            dso = dspaceObjectUtils.findDSpaceObject(ctx,id);
+            if (dso != null) {
+                return perform(dso);
+            }
+        }  catch (SQLException sqlE) {
+            throw new IOException(sqlE.getMessage(), sqlE);
         }
+
         ReplicaManager repMan = ReplicaManager.instance();
         deleteManifest(ctx, repMan, repMan.storageId(ctx, id, TransmitManifest.MANIFEST_EXTENSION));
         setResult("Manifest for '" + id + "' has been removed");
