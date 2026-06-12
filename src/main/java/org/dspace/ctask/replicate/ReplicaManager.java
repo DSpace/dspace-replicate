@@ -14,6 +14,8 @@ import static org.dspace.ctask.replicate.Odometer.UPLOADED;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,6 +23,8 @@ import org.apache.logging.log4j.Logger;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Constants;
 import org.dspace.core.Context;
+import org.dspace.core.PluginConfigurationError;
+import org.dspace.core.PluginInstantiationException;
 import org.dspace.core.factory.CoreServiceFactory;
 import org.dspace.core.service.PluginService;
 import org.dspace.handle.factory.HandleServiceFactory;
@@ -64,22 +68,31 @@ public class ReplicaManager {
 
 
     private ReplicaManager() throws IOException {
-        objStore = (ObjectStore) pluginService.getSinglePlugin(ObjectStore.class);
-        if (objStore == null) {
+        try {
+            objStore = (ObjectStore) pluginService.getSinglePlugin(ObjectStore.class);
+        } catch (PluginConfigurationError | PluginInstantiationException ex) {
             log.error("No ObjectStore configured in 'replicate.cfg'!");
             throw new IOException("No ObjectStore configured in 'replicate.cfg'!");
         }
 
         objStore.init();
 
-        // create directory structures
-        new File(repDir).mkdirs();
+        // create directory structure
+        Path repPath = Path.of(repDir);
+        try {
+            Files.createDirectories(repPath);
+            System.out.println("Successfully created replicate directory: " + repPath);
+        } catch (IOException e) {
+            System.err.println("Failed to create replicate.store.dir: " + e.getMessage());
+            throw e;
+        }
+
         // load our odometer - writeable copy
         try {
             odometer = new Odometer(repDir, false);
         } catch (IOException ioE) {
             // just log a warning
-            log.warn("Unable to read odometer file in '" + repDir + "'", ioE);
+            log.warn("Unable to read odometer file in '{}'", repDir, ioE);
         }
     }
 
@@ -94,7 +107,10 @@ public class ReplicaManager {
         // ensure path exists
         File stageDir = new File(repDir + File.separator + group);
         if (!stageDir.isDirectory()) {
-            stageDir.mkdirs();
+            boolean successful = stageDir.mkdirs();
+            if (!successful) {
+                log.error("Creating staging directory {} failed!", stageDir);
+            }
         }
         return new File(stageDir, storageId(context, id, null));
     }
