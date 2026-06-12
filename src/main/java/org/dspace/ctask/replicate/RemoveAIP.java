@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
@@ -37,6 +39,8 @@ import org.dspace.pack.bagit.CatalogPacker;
  */
 @Distributive
 public class RemoveAIP extends AbstractCurationTask {
+    private static final Logger log = LogManager.getLogger();
+
     private String archFmt;
 
     // Group where all AIPs are stored
@@ -96,26 +100,26 @@ public class RemoveAIP extends AbstractCurationTask {
 
         // If it is a Collection, also remove all Items from AIP storage
         if (dso instanceof Collection) {
-            Collection coll = (Collection) dso;
-            Iterator<Item> iter = itemService.findByCollection(context, coll);
+            Collection collection = (Collection) dso;
+            Iterator<Item> iter = itemService.findByCollection(context, collection);
             while (iter.hasNext()) {
                 remove(context, repMan, iter.next());
             }
         } else if (dso instanceof Community) {
-            // else if it's a Community, also remove all sub-communities, collections (and items) from AIP storage
-            Community comm = (Community) dso;
-            for (Community subcomm : comm.getSubcommunities()) {
-                remove(context, repMan, subcomm);
+            // else if it is a Community, also remove all sub-communities, collections (and items) from AIP storage
+            Community community = (Community) dso;
+            for (Community subCommunity : community.getSubcommunities()) {
+                remove(context, repMan, subCommunity);
             }
-            for (Collection coll : comm.getCollections()) {
+            for (Collection coll : community.getCollections()) {
                 remove(context, repMan, coll);
             }
         } else if (dso instanceof Site) {
-            // else if it's a Site object, remove all top-level communities (and everything else) from AIP storage
+            // else if it is a Site object, remove all top-level communities (and everything else) from AIP storage
             List<Community> topCommunities = communityService.findAllTop(context);
 
-            for (Community subcomm : topCommunities) {
-                remove(context, repMan, subcomm);
+            for (Community subCommunity : topCommunities) {
+                remove(context, repMan, subCommunity);
             }
         }
     }
@@ -138,10 +142,16 @@ public class RemoveAIP extends AbstractCurationTask {
         ReplicaManager repMan = ReplicaManager.instance();
 
         // If the object is still in DSpace, call perform(dso) instead.
-        DSpaceObject dso = dereference(ctx, id);
-        if (dso != null) {
-            return perform(dso);
+        DSpaceObject dso;
+        try {
+            dso = dspaceObjectUtils.findDSpaceObject(ctx,id);
+            if (dso != null) {
+                return perform(dso);
+            }
+        }  catch (SQLException sqlE) {
+            throw new IOException(sqlE.getMessage(), sqlE);
         }
+
         // Otherwise, this object was already previously deleted from DSpace.
         // So, we'll treat this as a deletion "garbage clean"
 
@@ -168,7 +178,11 @@ public class RemoveAIP extends AbstractCurationTask {
             }
 
             // remove local deletion catalog
-            catFile.delete();
+            boolean successful = catFile.delete();
+            if (!successful) {
+                log.warn("Unable to delete AIP: {}", catFile);
+            }
+
             // remove remote deletion catalog
             repMan.removeObject(deleteGroupName, catId);
 
