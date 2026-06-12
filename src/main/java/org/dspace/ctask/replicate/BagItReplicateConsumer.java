@@ -62,7 +62,6 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  * @author richardrodgers
  */
 public class BagItReplicateConsumer implements Consumer {
-
     private Logger log = LogManager.getLogger();
 
     private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
@@ -175,10 +174,9 @@ public class BagItReplicateConsumer implements Consumer {
             case MODIFY_METADATA: // MODIFY_METADATA = just modify an object's metadata
                 // If subject of event is null, this means the object was likely deleted
                 if (event.getSubject(ctx) == null) {
-                    log.warn(event.getEventTypeAsString() + " event, could not get object for "
-                            + event.getSubjectTypeAsString() + " id="
-                            + String.valueOf(event.getSubjectID())
-                            + ", perhaps it has been deleted.");
+                    log.warn("{} event, could not get object for {} id={}, perhaps it has been deleted.",
+                        event.getEventTypeAsString(), event.getSubjectTypeAsString(),
+                        String.valueOf(event.getSubjectID()));
                     break;
                 }
 
@@ -243,7 +241,7 @@ public class BagItReplicateConsumer implements Consumer {
             taskPMap.clear();
         }
 
-        // if there any uncommitted deletions, record them now
+        // if there are any uncommitted deletions, record them now
         if (delObjId != null) {
             if (delTasks != null) {
                 entrySet.add(new TaskQueueEntry(name, stamp, delTasks, delObjId));
@@ -362,7 +360,7 @@ public class BagItReplicateConsumer implements Consumer {
                     String catID = repMan.deletionCatalogId(delObjId, null);
                     File packDir = repMan.stage(context, deleteGroupName, catID);
                     File archive = packer.pack(packDir);
-                    // System.out.println("delcat about to transfer");
+                    // System.out.println("deleted catalog about to transfer");
                     repMan.transferObject(deleteGroupName, archive);
                 }
             } catch (AuthorizeException | SQLException e) {
@@ -394,7 +392,7 @@ public class BagItReplicateConsumer implements Consumer {
                 }
                 return true;
             } catch (IOException ioE) {
-                // log.error("Unable to read filter file '" + filterName + "'");
+                // log.error("Unable to read filter file '{}'", filterName);
                 idFilter = null;
             } finally {
                 if (reader != null) {

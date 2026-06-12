@@ -93,7 +93,10 @@ public class METSRestoreFromAIP extends AbstractPackagerTask {
                 // remove the deletion catalog (as the object is now restored)
                 repMan.removeObject(deleteGroupName, catId);
                 // remove from local cache as well
-                catArchive.delete();
+                boolean successful = catArchive.delete();
+                if (!successful) {
+                    log.warn("Unable to delete object: {}", catArchive);
+                }
             }
 
             result = getSuccessMsg(id, pkgParams);
@@ -146,12 +149,15 @@ public class METSRestoreFromAIP extends AbstractPackagerTask {
 
             // Remove the locally cached archive file - it is no longer needed.
             if (archive.exists()) {
-                archive.delete();
+                boolean successful = archive.delete();
+                if (!successful) {
+                    log.warn("Unable to delete archived file: {}", archive);
+                }
             }
 
             // check if recursiveMode is enabled (restore/replace multiple objects)
             if (pkgParams.recursiveModeEnabled()) {
-                // See if this package refered to child packages,
+                // See if this package referred to child packages,
                 // if so, we want to also replace those child objects
                 List<String> childPkgRefs = packer.getChildPackageRefs();
                 if (childPkgRefs != null && !childPkgRefs.isEmpty()) {

@@ -41,8 +41,6 @@ import org.dspace.curate.TaskQueueEntry;
  * @author Tim Donohue
  */
 public class FilteredFileTaskQueue extends FileTaskQueue {
-    private static Logger log = LogManager.getLogger();
-
     /**
      * Returns the set of UNIQUE task entries from the named queue. Any duplicate
      * task entries in the queue are ignored. The operation locks

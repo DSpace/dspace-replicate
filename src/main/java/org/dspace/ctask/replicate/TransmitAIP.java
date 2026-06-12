@@ -12,6 +12,8 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -42,12 +44,15 @@ import org.dspace.pack.PackerFactory;
  */
 @Suspendable(invoked = Curator.Invoked.INTERACTIVE)
 public class TransmitAIP extends AbstractCurationTask {
+    private static final Logger log = LogManager.getLogger();
+
     // Group where all AIPs will be stored
     private String storeGroupName;
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {
         super.init(curator, taskId);
+        log.info("Init TransmitAIP");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     }
 

@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
@@ -51,6 +53,8 @@ import org.dspace.pack.PackerFactory;
  */
 @Suspendable(invoked = Curator.Invoked.INTERACTIVE)
 public class CompareWithAIP extends AbstractCurationTask {
+    private final Logger log = LogManager.getLogger();
+
     private String archFmt;
     private int status = Curator.CURATE_UNSET;
     private String result = null;
@@ -88,7 +92,10 @@ public class CompareWithAIP extends AbstractCurationTask {
                 File archive = packer.pack(packDir);
                 String chkSum = Utils.checksum(archive, "MD5");
                 // remove local archive file -- it's no longer needed
-                archive.delete();
+                //boolean successful = archive.delete();
+                //if (!successful) {
+                //    log.warn("Failed to delete archive {}", archive.getAbsolutePath());
+                //}
 
                 // compare with replica
                 String repChkSum = repMan.objectAttribute(storeGroupName, objId, "checksum");
@@ -133,25 +140,25 @@ public class CompareWithAIP extends AbstractCurationTask {
 
         // If container is a Collection, make sure all Items have AIPs in remote storage
         if (Constants.COLLECTION == type) {
-            Collection coll = (Collection)dso;
-            Iterator<Item> iter = itemService.findByCollection(context, coll);
+            Collection collection = (Collection)dso;
+            Iterator<Item> iter = itemService.findByCollection(context, collection);
             while (iter.hasNext()) {
                 checkReplica(context, repMan, iter.next());
             }
         } else if (Constants.COMMUNITY == type) {
-            // If Community, make sure all Sub-Communities/Collections have AIPs in remote storage
-            Community comm = (Community)dso;
-            for (Community subcomm : comm.getSubcommunities()) {
-                checkReplica(context, repMan, subcomm);
+            // If it is a Community, make sure all Sub-Communities/Collections have AIPs in remote storage
+            Community community = (Community)dso;
+            for (Community subCommunity : community.getSubcommunities()) {
+                checkReplica(context, repMan, subCommunity);
             }
-            for (Collection coll : comm.getCollections()) {
-                checkReplica(context, repMan, coll);
+            for (Collection collection : community.getCollections()) {
+                checkReplica(context, repMan, collection);
             }
         } else if (Constants.SITE == type) {
-            // If Site, check to see all Top-Level Communities have an AIP in remote storage
-            List<Community> topComm = communityService.findAllTop(context);
-            for (Community comm : topComm) {
-                checkReplica(context, repMan, comm);
+            // If it is a Site, check to see all Top-Level Communities have an AIP in remote storage
+            List<Community> topCommunities = communityService.findAllTop(context);
+            for (Community topCommunity : topCommunities) {
+                checkReplica(context, repMan, topCommunity);
             }
         }
     }

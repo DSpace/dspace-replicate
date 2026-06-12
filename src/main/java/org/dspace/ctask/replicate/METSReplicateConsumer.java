@@ -82,7 +82,6 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  * @author richardrodgers
  */
 public class METSReplicateConsumer implements Consumer {
-
     private Logger log = LogManager.getLogger();
 
     private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
@@ -255,10 +254,9 @@ public class METSReplicateConsumer implements Consumer {
                 case MODIFY_METADATA: // MODIFY_METADATA = just modify an object's metadata
                     // If subject of event is null, this means the object was likely deleted
                     if (event.getSubject(ctx) == null) {
-                        log.warn(event.getEventTypeAsString() + " event, could not get object for "
-                                + event.getSubjectTypeAsString() + " id="
-                                + String.valueOf(event.getSubjectID())
-                                + ", perhaps it has been deleted.");
+                        log.warn("{} event, could not get object for {} id={}, perhaps it has been deleted.",
+                            event.getEventTypeAsString(), event.getSubjectTypeAsString(),
+                            String.valueOf(event.getSubjectID()));
                         break;
                     }
 
@@ -329,7 +327,7 @@ public class METSReplicateConsumer implements Consumer {
             taskPMap.clear();
         }
 
-        // if there any uncommitted deletions, record them now
+        // if there are any uncommitted deletions, record them now
         if (delObjId != null) {
             if (delTasks != null) {
                 entrySet.add(new TaskQueueEntry(name, stamp, delTasks, delObjId));
@@ -566,7 +564,7 @@ public class METSReplicateConsumer implements Consumer {
                 }
             } else {
                 // Otherwise (if the task ends in "+p"),
-                //  it should be added to the list of tasks to perform immediately
+                // it should be added to the list of tasks to perform immediately
                 String sTask = task.substring(0, task.lastIndexOf("+p"));
                 if ("add".equals(propName)) {
                     if (addPTasks == null) {

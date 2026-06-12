@@ -63,7 +63,6 @@ public class FetchAIP extends AbstractCurationTask {
         }
     }
 
-
     /**
      * Perform the 'Fetch AIP' task
      * @param ctx DSpace Context
