@@ -55,7 +55,7 @@ public interface Packer {
      * when packing to a bag. Filter syntax:
      * <code>["+"]{BundleName,}+</code>
      * That is, a list of Item bundle names taken to be exclusions, unless
-     * preceeded by a '+", where the list is taken to be inclusive.
+     * preceded by a '+", where the list is taken to be inclusive.
      *
      * @param filter filter
      */
