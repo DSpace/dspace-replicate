@@ -91,11 +91,12 @@ public class CompareWithAIP extends AbstractCurationTask {
                 File packDir = repMan.stage(context, storeGroupName, id);
                 File archive = packer.pack(packDir);
                 String chkSum = Utils.checksum(archive, "MD5");
+
                 // remove local archive file -- it's no longer needed
-                //boolean successful = archive.delete();
-                //if (!successful) {
-                //    log.warn("Failed to delete archive {}", archive.getAbsolutePath());
-                //}
+                boolean successful = archive.delete();
+                if (!successful) {
+                    log.warn("Failed to delete archive {}", archive.getAbsolutePath());
+                }
 
                 // compare with replica
                 String repChkSum = repMan.objectAttribute(storeGroupName, objId, "checksum");
