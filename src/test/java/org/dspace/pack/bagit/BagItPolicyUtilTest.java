@@ -24,6 +24,9 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 
 import org.dspace.authorize.ResourcePolicy;
@@ -40,7 +43,6 @@ import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
 import org.dspace.pack.bagit.xml.policy.Policies;
 import org.dspace.pack.bagit.xml.policy.Policy;
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -78,11 +80,11 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         when(adminGroup.getName()).thenReturn(Group.ADMIN);
 
         // set up an admin ResourcePolicy for the Community
-        final DateTime groupDateTime = DateTime.now().minusDays(1);
+        final Date groupDate = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
         final ResourcePolicy adminGroupPolicy = initReloadable(ResourcePolicy.class);
         adminGroupPolicy.setGroup(adminGroup);
         adminGroupPolicy.setRpType(TYPE_CUSTOM);
-        adminGroupPolicy.setStartDate(groupDateTime.toDate());
+        adminGroupPolicy.setStartDate(groupDate);
         community.getResourcePolicies().add(adminGroupPolicy);
 
         // now test that the Policy pojo we get back is correct
@@ -100,7 +102,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         assertThat(child.getAction()).isEqualTo("READ");
         assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
         assertThat(child.getGroup()).isEqualTo(Group.ADMIN);
-        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(groupDateTime.toDate()));
+        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(groupDate));
 
         assertThat(child.getName()).isNull();
         assertThat(child.getEndDate()).isNull();
@@ -119,11 +121,11 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         when(anonGroup.getName()).thenReturn(Group.ANONYMOUS);
 
         // set up the ResourcePolicy
-        final DateTime groupDateTime = DateTime.now().minusDays(1);
+        final Date groupDate = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
         final ResourcePolicy anonGroupPolicy = initReloadable(ResourcePolicy.class);
         anonGroupPolicy.setGroup(anonGroup);
         anonGroupPolicy.setRpType(TYPE_CUSTOM);
-        anonGroupPolicy.setEndDate(groupDateTime.toDate());
+        anonGroupPolicy.setEndDate(groupDate);
 
         community.getResourcePolicies().add(anonGroupPolicy);
 
@@ -140,7 +142,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         assertThat(child.getAction()).isEqualTo("READ");
         assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
         assertThat(child.getGroup()).isEqualTo(Group.ANONYMOUS);
-        assertThat(child.getEndDate()).isEqualTo(dateFormat.format(groupDateTime.toDate()));
+        assertThat(child.getEndDate()).isEqualTo(dateFormat.format(groupDate));
 
         assertThat(child.getName()).isNull();
         assertThat(child.getEperson()).isNull();
@@ -160,11 +162,11 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         when(ePerson.getEmail()).thenReturn(epersonEmail);
 
         // Create the ePerson policy
-        final DateTime ePersonDateTime = DateTime.now().plusDays(1);
+        final Date ePersonDate = Date.from(Instant.now().plus(1, ChronoUnit.DAYS));
         final ResourcePolicy ePersonPolicy = initReloadable(ResourcePolicy.class);
         ePersonPolicy.setEPerson(ePerson);
         ePersonPolicy.setRpType(TYPE_CUSTOM);
-        ePersonPolicy.setStartDate(ePersonDateTime.toDate());
+        ePersonPolicy.setStartDate(ePersonDate);
 
         community.getResourcePolicies().add(ePersonPolicy);
 
@@ -181,7 +183,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         assertThat(child.getAction()).isEqualTo("READ");
         assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
         assertThat(child.getEperson()).isEqualTo(epersonEmail);
-        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(ePersonDateTime.toDate()));
+        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(ePersonDate));
 
         assertThat(child.getName()).isNull();
         assertThat(child.getGroup()).isNull();
