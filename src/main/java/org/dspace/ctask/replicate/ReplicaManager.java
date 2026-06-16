@@ -81,9 +81,9 @@ public class ReplicaManager {
         Path repPath = Path.of(repDir);
         try {
             Files.createDirectories(repPath);
-            System.out.println("Successfully created replicate directory: " + repPath);
+            log.debug("Successfully created replicate.store.dir directory: {}", repPath);
         } catch (IOException e) {
-            System.err.println("Failed to create replicate.store.dir: " + e.getMessage());
+            log.debug("Failed to create replicate.store.dir directory: {}", e.getMessage());
             throw e;
         }
 

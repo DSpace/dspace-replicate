@@ -52,7 +52,7 @@ public class LocalObjectStore implements ObjectStore {
         Path storePath = Path.of(storeDir);
         try {
             Files.createDirectories(storePath);
-            log.info("Successfully created replicate store directory: {}", storePath);
+            log.info("Successfully created object store directory: {}", storePath);
         } catch (IOException e) {
             log.warn("Failed to create replicate.store.dir: {}", e.getMessage());
             throw e;

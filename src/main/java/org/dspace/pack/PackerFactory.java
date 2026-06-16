@@ -7,6 +7,8 @@
  */
 package org.dspace.pack;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.content.Collection;
 import org.dspace.content.Community;
 import org.dspace.content.DSpaceObject;
@@ -30,6 +32,8 @@ import org.duraspace.bagit.profile.BagProfile;
  * @author richardrodgers
  */
 public class PackerFactory {
+    private static final Logger log = LogManager.getLogger(PackerFactory.class);
+
     // basic bag property names - some optional
     public static final String OBJFILE = "object.properties";
     public static final String BAG_TYPE = "bagType";
@@ -63,6 +67,7 @@ public class PackerFactory {
         Packer packer = null;
         int type = dso.getType();
         if ("mets".equals(packType)) {
+            log.info("Creating Packer for METS package type.");
             if (metsPacker == null) {
                 metsPacker = new METSPacker(context, dso, archFmt);
             } else {
@@ -73,20 +78,26 @@ public class PackerFactory {
             if (cfgFilter != null) {
                 packer.setContentFilter(cfgFilter);
             }
-        } else if (Constants.ITEM == type) {
-            packer = new ItemPacker(context, (Item)dso, archFmt);
-            if (cfgFilter != null) {
-                packer.setContentFilter(cfgFilter);
+        } else if ("bagit".equals(packType)) {
+            log.info("Creating Packer for BagIt package type.");
+            if (Constants.ITEM == type) {
+                packer = new ItemPacker(context, (Item)dso, archFmt);
+                if (cfgFilter != null) {
+                    packer.setContentFilter(cfgFilter);
+                }
+            } else if (Constants.COLLECTION == type) {
+                packer = new CollectionPacker(context, (Collection)dso, archFmt);
+            } else if (Constants.COMMUNITY == type) {
+                packer = new CommunityPacker(context, (Community)dso, archFmt);
+            } else if (Constants.SITE == type) {
+                packer = new SitePacker(context, (Site)dso, archFmt);
+            } else {
+                throw new RuntimeException("No BagIt packer for object type.");
             }
-        } else if (Constants.COLLECTION == type) {
-            packer = new CollectionPacker(context, (Collection)dso, archFmt);
-        } else if (Constants.COMMUNITY == type) {
-            packer = new CommunityPacker(context, (Community)dso, archFmt);
-        } else if (Constants.SITE == type) {
-            packer = new SitePacker(context, (Site)dso, archFmt);
         } else {
-            throw new RuntimeException("No packer for object type.");
+            throw new RuntimeException("Invalid packer package type. Check 'replicate.packer.pkgtype' in replicate.cfg.");
         }
+
         return packer;
     }
 }
