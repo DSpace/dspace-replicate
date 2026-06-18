@@ -13,8 +13,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.dspace.curate.FileTaskQueue;
 import org.dspace.curate.TaskQueueEntry;
 
@@ -41,8 +39,6 @@ import org.dspace.curate.TaskQueueEntry;
  * @author Tim Donohue
  */
 public class FilteredFileTaskQueue extends FileTaskQueue {
-    private static Logger log = LogManager.getLogger();
-
     /**
      * Returns the set of UNIQUE task entries from the named queue. Any duplicate
      * task entries in the queue are ignored. The operation locks

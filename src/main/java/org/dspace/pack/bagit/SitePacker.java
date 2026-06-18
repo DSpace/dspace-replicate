@@ -74,7 +74,7 @@ public class SitePacker implements Packer {
         objectProperties.add(OBJECT_ID + PROPERTIES_DELIMITER + site.getHandle());
         properties.put(OBJFILE, objectProperties);
 
-        // human readable metadata (dspace.properties)
+        // human-readable metadata (dspace.properties)
         final List<String> dspaceProperties = new ArrayList<>();
         dspaceProperties.add("Site-Handle" + PROPERTIES_DELIMITER + site.getHandle());
         dspaceProperties.add("DSpace-Version" + PROPERTIES_DELIMITER + Util.getSourceVersion());

@@ -37,13 +37,12 @@ import org.dspace.curate.Distributive;
  */
 @Distributive
 public class MoveToTrashSingleAIP extends AbstractCurationTask {
+    private static Logger log = LogManager.getLogger();
+
     // Source and destination group where AIP will be moved to
     private String srcGroupName;
     private String destGroupName;
-
     private String archFmt;
-
-    private static Logger log = LogManager.getLogger();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {

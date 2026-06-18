@@ -50,7 +50,7 @@ public class METSPacker implements Packer {
     private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
     private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
-    private Logger log = LogManager.getLogger();
+    private final Logger log = LogManager.getLogger();
 
     /** The context to use */
     private Context context;
@@ -138,15 +138,14 @@ public class METSPacker implements Packer {
             pkgParams.addProperty("filterBundles", contentFilter);
         }
 
+        // Create a new archive for the package
         File archive = new File(packDir.getParentFile(), packDir.getName() + "." + archFmt);
 
         // disseminate the requested object
         try {
             dip.disseminate(context, dso, pkgParams, archive);
-        } catch (PackageException pkgE) {
+        } catch (PackageException | CrosswalkException pkgE) {
             throw new IOException(pkgE.getMessage(), pkgE);
-        } catch (CrosswalkException xwkE) {
-            throw new IOException(xwkE.getMessage(), xwkE);
         }
 
         return archive;
@@ -202,7 +201,7 @@ public class METSPacker implements Packer {
 
             //--- Default settings/parameters for PackageIngester --
             // These default settings should work for a wide variety of replace/restore actions.
-            // For more info, see: https://wiki.duraspace.org/display/DSDOC18/AIP+Backup+and+Restore
+            // For more info, see: https://wiki.lyrasis.org/spaces/DSDOC8x/pages/315720697/Importing+and+Exporting+Content+via+Packages
             // Always run in Replace mode (always replace existing objects & restore ones that are missing)
             pkgParams.setReplaceModeEnabled(true);
 
@@ -247,12 +246,8 @@ public class METSPacker implements Packer {
                 // of all changes (this is the default)
                 throw isE;
             }
-        } catch (PackageException pkgE) {
+        } catch (PackageException | CrosswalkException | WorkflowException pkgE) {
             throw new IOException(pkgE.getMessage(), pkgE);
-        } catch (CrosswalkException xwkE) {
-            throw new IOException(xwkE.getMessage(), xwkE);
-        } catch (WorkflowException wfE) {
-            throw new IOException(wfE.getMessage(), wfE);
         }
 
         // If we are using a class that extends AbstractPackageIngester,
@@ -301,8 +296,8 @@ public class METSPacker implements Packer {
         // up the size of all Community, Collection & Item AIPs
         // Then, perform this task for all Top-Level Communities in the Site
         // (this will recursively perform task for all objects in DSpace)
-        for (Community subcomm : communityService.findAllTop(context)) {
-            size += communitySize(subcomm);
+        for (Community community : communityService.findAllTop(context)) {
+            size += communitySize(community);
         }
 
         return size;
@@ -328,13 +323,13 @@ public class METSPacker implements Packer {
         }
 
         // Calculate sub-communities
-        for (Community comm : community.getSubcommunities()) {
-            size += communitySize(comm);
+        for (Community subCommunities : community.getSubcommunities()) {
+            size += communitySize(subCommunities);
         }
 
         // Calculate collections
-        for (Collection coll : community.getCollections()) {
-            size += collectionSize(coll);
+        for (Collection collections : community.getCollections()) {
+            size += collectionSize(collections);
         }
 
         return size;

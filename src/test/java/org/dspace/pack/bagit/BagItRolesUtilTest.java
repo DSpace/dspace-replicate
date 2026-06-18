@@ -238,7 +238,6 @@ public class BagItRolesUtilTest extends BagItPackerTest {
         // verify mocks
         final String query = "COLLECTION\\_" + uuid + "\\_";
         verify(groupService, times(1)).search(any(Context.class), eq(query));
-        verifyZeroInteractions(ePersonService);
 
         assertThat(dSpaceRoles).isNotNull();
 

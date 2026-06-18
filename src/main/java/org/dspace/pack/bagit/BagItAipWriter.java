@@ -21,6 +21,8 @@ import java.nio.file.StandardOpenOption;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -35,7 +37,6 @@ import jakarta.xml.bind.Marshaller;
 import org.apache.commons.io.FileUtils;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Bitstream;
-import org.dspace.content.Item;
 import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.BitstreamService;
 import org.dspace.core.Context;
@@ -52,9 +53,6 @@ import org.duraspace.bagit.profile.BagProfile;
 import org.duraspace.bagit.profile.BagProfileConstants;
 import org.duraspace.bagit.serialize.BagSerializer;
 import org.duraspace.bagit.serialize.SerializationSupport;
-import org.joda.time.LocalDate;
-import org.joda.time.format.ISODateTimeFormat;
-
 
 /**
  * The BagItAipWriter handles the packaging of DSpaceObjects into their respective bags. It processes the metadata and
@@ -399,7 +397,7 @@ public class BagItAipWriter {
         bagInfo.put(BagProfileConstants.BAGIT_PROFILE_IDENTIFIER, identifier);
         bagInfo.put(BagConfig.BAG_SIZE_KEY, FileUtils.byteCountToDisplaySize(successBytes.get()));
         bagInfo.put(BagConfig.PAYLOAD_OXUM_KEY, successBytes.toString() + "." + successFiles.toString());
-        bagInfo.put(BagConfig.BAGGING_DATE_KEY, ISODateTimeFormat.date().print(LocalDate.now()));
+        bagInfo.put(BagConfig.BAGGING_DATE_KEY, LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
         return bagInfo;
     }
 

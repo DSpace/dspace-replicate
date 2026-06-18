@@ -102,7 +102,9 @@ public class TransmitManifest extends AbstractCurationTask {
                 manFile = siteManifest(context, repMan, (Site)dso);
             }
 
-            repMan.transferObject(manifestGroupName, manFile);
+            if (manFile != null) {
+                repMan.transferObject(manifestGroupName, manFile);
+            }
         } catch (SQLException sqlE) {
             throw new IOException(sqlE);
         }
@@ -127,7 +129,7 @@ public class TransmitManifest extends AbstractCurationTask {
         // Manifests stored as text files
         String filename = repMan.storageId(context, site.getHandle(), MANIFEST_EXTENSION);
 
-        log.debug("Creating manifest for: " + site.getHandle());
+        log.debug("Creating site manifest for: {}", site.getHandle());
 
         //Create site manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
@@ -170,7 +172,7 @@ public class TransmitManifest extends AbstractCurationTask {
         // Manifests stored as text files
         String filename = repMan.storageId(context, comm.getHandle(), MANIFEST_EXTENSION);
 
-        log.debug("Creating manifest for: " + comm.getHandle());
+        log.debug("Creating community manifest for: {}", comm.getHandle());
 
         // Create community manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
@@ -219,7 +221,7 @@ public class TransmitManifest extends AbstractCurationTask {
          // Manifests stored as text files
         String filename = repMan.storageId(context, coll.getHandle(), MANIFEST_EXTENSION);
 
-        log.debug("Creating manifest for: " + coll.getHandle());
+        log.debug("Creating manifest for collection: {}", coll.getHandle());
 
         //Create Collection manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
@@ -241,7 +243,7 @@ public class TransmitManifest extends AbstractCurationTask {
         }
 
         writer.close();
-        report("Created manifest for: " + coll.getHandle());
+        report("Created manifest for collection: " + coll.getHandle());
         return manFile;
     }
 
@@ -258,7 +260,7 @@ public class TransmitManifest extends AbstractCurationTask {
     private File itemManifest(Context context, ReplicaManager repMan, Item item) throws IOException, SQLException {
         String filename = repMan.storageId(context, item.getHandle(), MANIFEST_EXTENSION);
 
-        log.debug("Creating manifest for: " + item.getHandle());
+        log.debug("Creating manifest for item: {}", item.getHandle());
 
         //Create Item manifest
         File manFile = repMan.stage(context, manifestGroupName, filename);
@@ -319,7 +321,7 @@ public class TransmitManifest extends AbstractCurationTask {
         }
 
         writer.close();
-        report("Created manifest for: " + item.getHandle());
+        report("Created manifest for item: " + item.getHandle());
         return manFile;
     }
 

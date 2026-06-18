@@ -9,7 +9,11 @@ package org.dspace.ctask.replicate.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.dspace.ctask.replicate.ObjectStore;
 import org.dspace.curate.Utils;
 import org.dspace.services.ConfigurationService;
@@ -30,7 +34,10 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  * @author richardrodgers
  */
 public class LocalObjectStore implements ObjectStore {
-    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    private final Logger log = LogManager.getLogger(LocalObjectStore.class);
+
+    private final ConfigurationService configurationService =
+        DSpaceServicesFactory.getInstance().getConfigurationService();
 
     // where replicas are kept
     protected String storeDir = null;
@@ -43,9 +50,13 @@ public class LocalObjectStore implements ObjectStore {
     public void init() throws IOException {
         storeDir = configurationService.getProperty("replicate.store.dir");
 
-        File storeFile = new File(storeDir);
-        if (! storeFile.exists()) {
-            storeFile.mkdirs();
+        Path storePath = Path.of(storeDir);
+        try {
+            Files.createDirectories(storePath);
+            log.info("Successfully created object store directory: {}", storePath);
+        } catch (IOException e) {
+            log.warn("Failed to create replicate.store.dir: {}", e.getMessage());
+            throw e;
         }
     }
 
@@ -76,7 +87,10 @@ public class LocalObjectStore implements ObjectStore {
         File remFile = new File(storeDir + File.separator + group, id);
         if (remFile.exists()) {
             size = remFile.length();
-            remFile.delete();
+            boolean successful = remFile.delete();
+            if (!successful) {
+                log.warn("Cannot delete object: '{}'.", remFile);
+            }
         }
         return size;
     }
