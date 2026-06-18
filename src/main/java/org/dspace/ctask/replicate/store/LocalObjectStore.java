@@ -36,7 +36,8 @@ import org.dspace.services.factory.DSpaceServicesFactory;
 public class LocalObjectStore implements ObjectStore {
     private final Logger log = LogManager.getLogger(LocalObjectStore.class);
 
-    private final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    private final ConfigurationService configurationService =
+        DSpaceServicesFactory.getInstance().getConfigurationService();
 
     // where replicas are kept
     protected String storeDir = null;

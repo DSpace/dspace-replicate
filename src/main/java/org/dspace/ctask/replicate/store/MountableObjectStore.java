@@ -41,7 +41,7 @@ public class MountableObjectStore extends LocalObjectStore {
         if (archFile.exists()) {
             boolean successful = archFile.delete();
             if (!successful) {
-                System.out.println("Cannot delete archive file: " +file.getAbsolutePath());
+                System.out.println("Cannot delete archive file: " + file.getAbsolutePath());
             }
         }
 

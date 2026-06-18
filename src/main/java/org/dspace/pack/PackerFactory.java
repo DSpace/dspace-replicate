@@ -95,7 +95,8 @@ public class PackerFactory {
                 throw new RuntimeException("No BagIt packer for object type.");
             }
         } else {
-            throw new RuntimeException("Invalid packer package type. Check 'replicate.packer.pkgtype' in replicate.cfg.");
+            throw new RuntimeException("Invalid packer package type. " +
+                "Check 'replicate.packer.pkgtype' in replicate.cfg.");
         }
 
         return packer;
