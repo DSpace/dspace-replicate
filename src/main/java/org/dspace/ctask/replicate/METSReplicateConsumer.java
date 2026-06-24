@@ -199,13 +199,21 @@ public class METSReplicateConsumer implements Consumer {
 
                         // make sure we are supposed to process this Collection
                         if (acceptId(id, event, ctx)) {
+                            // --- NEW CHECK: Fetch and verify the item using event.getDetail() ---
+                            String addedItemIdentifier = event.getDetail();
+                            Item addedItem = itemService.findByIdOrLegacyId(ctx, addedItemIdentifier);
+
+                            if (addedItem == null || !addedItem.isArchived()) {
+                                // Skip replication if the item isn't archived yet
+                                break;
+                            }
                             // add Collection to the master lists of modified objects
                             // for which we need to perform tasks
                             mapId(taskQMap, modQTasks, id);
                             mapId(taskPMap, modPTasks, id);
 
                             //now, get Handle of Item that was mapped/added
-                            id = event.getDetail();
+                            id = addedItemIdentifier;
 
                             // add Item to the master lists of modified objects
                             // for which we need to perform tasks
@@ -252,16 +260,23 @@ public class METSReplicateConsumer implements Consumer {
                     break;
                 case MODIFY: // MODIFY = modify an object
                 case MODIFY_METADATA: // MODIFY_METADATA = just modify an object's metadata
+                    DSpaceObject subjectObj = event.getSubject(ctx);
                     // If subject of event is null, this means the object was likely deleted
-                    if (event.getSubject(ctx) == null) {
+                    if (subjectObj == null) {
                         log.warn("{} event, could not get object for {} id={}, perhaps it has been deleted.",
                             event.getEventTypeAsString(), event.getSubjectTypeAsString(),
                             String.valueOf(event.getSubjectID()));
                         break;
                     }
 
+                    // --- NEW CHECK: Skip unarchived items ---
+                    if (subjType == Constants.ITEM && !((Item) subjectObj).isArchived()) {
+                        break;
+                    }
+                    // ----------------------------------------
+
                     // For MODIFY events, the Handle of modified object needs to be obtained from the Subject
-                    id = event.getSubject(ctx).getHandle();
+                    id = subjectObj.getHandle();
 
                     // make sure handle resolves - these could be events
                     // for a newly created item that hasn't been assigned a handle
