@@ -7,7 +7,7 @@
     <description>Replication Task Suite: A DSpace add-on providing Curation Tasks that perform replication
      (backup and restore) of DSpace content to other locations or services.</description>
     <url>https://wiki.lyrasis.org/display/DSPACE/ReplicationTaskSuite</url>
-    <version>8.5-SNAPSHOT</version>
+    <version>9.3-SNAPSHOT</version>
 
     <organization>
         <name>LYRASIS</name>
@@ -15,15 +15,15 @@
     </organization>
 
     <properties>
-        <!-- DSpace Version Information (supported version of DSpace is 8.1 or above) -->
-        <dspace.version>[8.4,8.20)</dspace.version>
+        <!-- DSpace Version Information (supported version of DSpace is 9.3 or above) -->
+        <dspace.version>[9.3,9.20)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
         <duracloud.version>8.1.0</duracloud.version>
         <!-- DuraSpace BagIt Support Library -->
         <bagit-support.version>1.1.0</bagit-support.version>
         <jaxb-api.version>4.0.5</jaxb-api.version>
         <jaxb-runtime.version>4.0.9</jaxb-runtime.version>
-        <!-- Replication Task Suite requires Java 17 because DSpace 8 requires it -->
+        <!-- Replication Task Suite requires Java 17 because DSpace 9 requires it -->
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -400,7 +400,7 @@
         </dependency>
 
         <!-- JAXB is no longer bundled for java 17
-             compile only as this will be brought in through dspace-api in 8.x -->
+             compile only as this will be brought in through dspace-api in 9.x -->
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
