@@ -54,8 +54,8 @@ import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
  * @author richardrodgers
  */
 public class CollectionPacker implements Packer {
-    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     // NB - these values must remain synchronized with DB schema
     // they represent the persistent object state

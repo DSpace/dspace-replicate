@@ -50,7 +50,7 @@ import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
  * @author richardrodgers
  */
 public class CommunityPacker implements Packer {
-    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
 
     // NB - these values must remain synchronized with DB schema -
     // they represent the persistent object state

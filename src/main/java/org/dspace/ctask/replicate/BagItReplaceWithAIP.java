@@ -40,16 +40,15 @@ import org.dspace.pack.PackerFactory;
  */
 @Mutative
 public class BagItReplaceWithAIP extends AbstractCurationTask {
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private final SiteService siteService = ContentServiceFactory.getInstance().getSiteService();
 
     private String archFmt;
 
     // Group where all AIPs are stored
     private String storeGroupName;
-
-    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
-    private SiteService siteService = ContentServiceFactory.getInstance().getSiteService();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {

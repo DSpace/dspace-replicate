@@ -21,7 +21,7 @@ import org.dspace.curate.Distributive;
 
 /**
  * MoveToTrashSingleAIP task moves a single AIP from one group (folder) in external
- * storage to another group (folder). Currently it always moves content
+ * storage to another group (folder). Currently, it always moves content
  * from the 'group.aip.name' store to the 'group.delete.name' store, essentially
  * moving the content into a "trash" folder.
  * <P>
@@ -37,8 +37,6 @@ import org.dspace.curate.Distributive;
  */
 @Distributive
 public class MoveToTrashSingleAIP extends AbstractCurationTask {
-    private static Logger log = LogManager.getLogger();
-
     // Source and destination group where AIP will be moved to
     private String srcGroupName;
     private String destGroupName;

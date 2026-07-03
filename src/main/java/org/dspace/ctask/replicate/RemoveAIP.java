@@ -41,6 +41,9 @@ import org.dspace.pack.bagit.CatalogPacker;
 public class RemoveAIP extends AbstractCurationTask {
     private static final Logger log = LogManager.getLogger();
 
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+
     private String archFmt;
 
     // Group where all AIPs are stored
@@ -48,9 +51,6 @@ public class RemoveAIP extends AbstractCurationTask {
 
     // Group where object deletion catalog/records are stored
     private String deleteGroupName;
-
-    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {

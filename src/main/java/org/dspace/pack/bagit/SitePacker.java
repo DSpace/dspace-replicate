@@ -47,7 +47,6 @@ import org.dspace.pack.bagit.xml.roles.DSpaceRoles;
  * @author mikejritter
  */
 public class SitePacker implements Packer {
-
     private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
     private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
 

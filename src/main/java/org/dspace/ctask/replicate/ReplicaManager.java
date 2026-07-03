@@ -40,11 +40,11 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  * @author richardrodgers
  */
 public class ReplicaManager {
-    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
-    private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
-    private HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
+    private final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    private final PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
+    private final HandleService handleService = HandleServiceFactory.getInstance().getHandleService();
 
-    private Logger log = LogManager.getLogger();
+    private final Logger log = LogManager.getLogger();
     // singleton instance
     private static ReplicaManager instance = null;
     // the replica provider

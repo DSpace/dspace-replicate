@@ -46,9 +46,9 @@ import org.dspace.workflow.WorkflowException;
  * @author richardrodgers
  */
 public class METSPacker implements Packer {
-    private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
-    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private final PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     private final Logger log = LogManager.getLogger();
 

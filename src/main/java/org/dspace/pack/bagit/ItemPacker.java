@@ -51,9 +51,9 @@ import org.dspace.pack.bagit.xml.policy.Policies;
  * @author richardrodgers
  */
 public class ItemPacker implements Packer {
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
-    private BundleService bundleService = ContentServiceFactory.getInstance().getBundleService();
-    private BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private final BundleService bundleService = ContentServiceFactory.getInstance().getBundleService();
+    private final BitstreamService bitstreamService = ContentServiceFactory.getInstance().getBitstreamService();
 
     // XML constants
     private static final String NAME = "name";
@@ -67,7 +67,7 @@ public class ItemPacker implements Packer {
     private String archFmt = null;
     private List<String> filterBundles = new ArrayList<>();
     private boolean exclude = true;
-    private List<RefFilter> refFilters = new ArrayList<>();
+    private final List<RefFilter> refFilters = new ArrayList<>();
 
     public ItemPacker(Context context, Item item, String archFmt) {
         this.context = context;
