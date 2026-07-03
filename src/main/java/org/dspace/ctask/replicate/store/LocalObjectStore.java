@@ -103,12 +103,18 @@ public class LocalObjectStore implements ObjectStore {
 
         File archDir = new File(storeDir, group);
         if (!archDir.isDirectory()) {
-            archDir.mkdirs();
+            boolean successful = archDir.mkdirs();
+            if (!successful) {
+                log.warn("Cannot create directory: '{}'.", archDir);
+            }
         }
 
         File archFile = new File(archDir, file.getName());
         if (archFile.exists()) {
-            archFile.delete();
+            boolean successful = archFile.delete();
+            if (!successful) {
+                log.warn("Cannot delete archive file: '{}'.", archFile);
+            }
         }
 
         if (!file.renameTo(archFile)) {
