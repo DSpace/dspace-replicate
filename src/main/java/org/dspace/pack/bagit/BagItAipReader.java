@@ -58,7 +58,6 @@ import org.slf4j.LoggerFactory;
  * @since 2020-03-19
  */
 public class BagItAipReader {
-
     private final Logger logger = LoggerFactory.getLogger(BagItAipReader.class);
 
     private final String dataDirectory = "data";

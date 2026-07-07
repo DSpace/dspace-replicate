@@ -22,11 +22,10 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.List;
 
 import org.dspace.authorize.ResourcePolicy;
@@ -73,14 +72,14 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
     @Test
     public void getPolicyForAdmin() throws Exception {
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-        // Setup group
+        // Set up the Group
         final Group adminGroup = mock(Group.class);
         when(adminGroup.getName()).thenReturn(Group.ADMIN);
 
-        // set up an admin ResourcePolicy for the Community
-        final Date groupDate = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+        // Set up an admin ResourcePolicy for the Community
+        final LocalDate groupDate = Instant.now().minus(1, ChronoUnit.DAYS)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate();
         final ResourcePolicy adminGroupPolicy = initReloadable(ResourcePolicy.class);
         adminGroupPolicy.setGroup(adminGroup);
         adminGroupPolicy.setRpType(TYPE_CUSTOM);
@@ -102,7 +101,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         assertThat(child.getAction()).isEqualTo("READ");
         assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
         assertThat(child.getGroup()).isEqualTo(Group.ADMIN);
-        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(groupDate));
+        assertThat(child.getStartDate()).isEqualTo(groupDate.toString());
 
         assertThat(child.getName()).isNull();
         assertThat(child.getEndDate()).isNull();
@@ -114,14 +113,14 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
     @Test
     public void getPolicyForAnonymous() throws Exception {
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-        // setup the Group
+        // Set up the Group
         final Group anonGroup = mock(Group.class);
         when(anonGroup.getName()).thenReturn(Group.ANONYMOUS);
 
         // set up the ResourcePolicy
-        final Date groupDate = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+        final LocalDate groupDate = Instant.now().minus(1, ChronoUnit.DAYS)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate();
         final ResourcePolicy anonGroupPolicy = initReloadable(ResourcePolicy.class);
         anonGroupPolicy.setGroup(anonGroup);
         anonGroupPolicy.setRpType(TYPE_CUSTOM);
@@ -142,7 +141,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         assertThat(child.getAction()).isEqualTo("READ");
         assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
         assertThat(child.getGroup()).isEqualTo(Group.ANONYMOUS);
-        assertThat(child.getEndDate()).isEqualTo(dateFormat.format(groupDate));
+        assertThat(child.getEndDate()).isEqualTo(groupDate.toString());
 
         assertThat(child.getName()).isNull();
         assertThat(child.getEperson()).isNull();
@@ -154,15 +153,15 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
     @Test
     public void getPolicyForEPerson() throws Exception {
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-        // setup the EPerson
+        // Set up the EPerson
         final String epersonEmail = "bagit-policy-util-test";
         final EPerson ePerson = mock(EPerson.class);
         when(ePerson.getEmail()).thenReturn(epersonEmail);
 
         // Create the ePerson policy
-        final Date ePersonDate = Date.from(Instant.now().plus(1, ChronoUnit.DAYS));
+        final LocalDate ePersonDate = Instant.now().plus(1, ChronoUnit.DAYS)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate();
         final ResourcePolicy ePersonPolicy = initReloadable(ResourcePolicy.class);
         ePersonPolicy.setEPerson(ePerson);
         ePersonPolicy.setRpType(TYPE_CUSTOM);
@@ -183,7 +182,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
         assertThat(child.getAction()).isEqualTo("READ");
         assertThat(child.getType()).isEqualTo(TYPE_CUSTOM);
         assertThat(child.getEperson()).isEqualTo(epersonEmail);
-        assertThat(child.getStartDate()).isEqualTo(dateFormat.format(ePersonDate));
+        assertThat(child.getStartDate()).isEqualTo(ePersonDate.toString());
 
         assertThat(child.getName()).isNull();
         assertThat(child.getGroup()).isNull();
@@ -195,7 +194,7 @@ public class BagItPolicyUtilTest extends BagItPackerTest {
 
     @Test
     public void registerPolicies() throws Exception {
-        // Read an aip in order to load a policy.xml
+        // Read an AIP in order to load a policy.xml
         final URL resources = BagItPolicyUtilTest.class.getClassLoader().getResource("");
         assertThat(resources).isNotNull();
 

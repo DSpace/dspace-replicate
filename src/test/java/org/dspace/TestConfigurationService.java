@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.HierarchicalConfiguration;
+import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.dspace.services.ConfigurationService;
 
 /**
@@ -117,6 +119,16 @@ public class TestConfigurationService implements ConfigurationService {
     public Configuration getConfiguration() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public HierarchicalConfiguration<ImmutableNode> getHierarchicalConfiguration() {
+        throw new UnsupportedOperationException();
+    };
+
+    @Override
+    public List<HierarchicalConfiguration<ImmutableNode>> getChildren(String name) {
+        throw new UnsupportedOperationException();
+    };
 
     @Override
     public boolean hasProperty(String name) {

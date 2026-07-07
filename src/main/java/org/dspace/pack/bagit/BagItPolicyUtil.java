@@ -9,11 +9,10 @@ package org.dspace.pack.bagit;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import com.google.common.collect.BiMap;
@@ -63,7 +62,6 @@ public class BagItPolicyUtil {
     public static Policies getPolicy(final Context context, final DSpaceObject dso) throws IOException {
         final Policies policies = new Policies();
         final BiMap<Integer, String> actions = actionMapper().inverse();
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
         for (ResourcePolicy resourcePolicy : dso.getResourcePolicies()) {
             final Policy policy = new Policy();
@@ -72,13 +70,13 @@ public class BagItPolicyUtil {
             policy.setName(resourcePolicy.getRpName());
             policy.setDescription(resourcePolicy.getRpDescription());
 
-            final Date endDate = resourcePolicy.getEndDate();
-            final Date startDate = resourcePolicy.getStartDate();
+            final LocalDate endDate = resourcePolicy.getEndDate();
+            final LocalDate startDate = resourcePolicy.getStartDate();
             if (startDate != null) {
-                policy.setStartDate(dateFormat.format(startDate));
+                policy.setStartDate(startDate.toString());
             }
             if (endDate != null) {
-                policy.setEndDate(dateFormat.format(endDate));
+                policy.setEndDate(endDate.toString());
             }
 
             // attributes for determining if adding policies on a group + what type of group or policies for a user
@@ -128,7 +126,8 @@ public class BagItPolicyUtil {
      */
     public static void registerPolicies(final Context context, final DSpaceObject dSpaceObject, final Policies policies)
         throws SQLException, AuthorizeException, PackageException {
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
         final GroupService groupService = EPersonServiceFactory.getInstance().getGroupService();
         final EPersonService ePersonService = EPersonServiceFactory.getInstance().getEPersonService();
         final AuthorizeService authorizeService = AuthorizeServiceFactory.getInstance().getAuthorizeService();
@@ -193,9 +192,9 @@ public class BagItPolicyUtil {
             final String rpStartDate = policy.getStartDate();
             if (rpStartDate != null) {
                 try {
-                    final Date date = dateFormat.parse(rpStartDate);
+                    final LocalDate date = LocalDate.parse(rpStartDate, dateFormat);
                     resourcePolicy.setStartDate(date);
-                } catch (ParseException ignored) {
+                } catch (DateTimeParseException ignored) {
                     logger.warn("Failed to parse rp-start-date. The date needs to be in the format 'yyyy-MM-dd'.");
                 }
             }
@@ -203,9 +202,9 @@ public class BagItPolicyUtil {
             final String rpEndDate = policy.getEndDate();
             if (rpEndDate != null) {
                 try {
-                    final Date date = dateFormat.parse(rpEndDate);
+                    final LocalDate date = LocalDate.parse(rpEndDate, dateFormat);
                     resourcePolicy.setEndDate(date);
-                } catch (ParseException ignored) {
+                } catch (DateTimeParseException ignored) {
                     logger.warn("Failed to parse rp-end-date. The date needs to be in the format 'yyyy-MM-dd'.");
                 }
             }

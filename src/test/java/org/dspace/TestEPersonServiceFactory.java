@@ -13,6 +13,7 @@ import org.dspace.eperson.factory.EPersonServiceFactory;
 import org.dspace.eperson.service.AccountService;
 import org.dspace.eperson.service.EPersonService;
 import org.dspace.eperson.service.GroupService;
+import org.dspace.eperson.service.RegistrationDataMetadataService;
 import org.dspace.eperson.service.RegistrationDataService;
 import org.dspace.eperson.service.SubscribeService;
 
@@ -40,6 +41,11 @@ public class TestEPersonServiceFactory extends EPersonServiceFactory {
     public RegistrationDataService getRegistrationDataService() {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public RegistrationDataMetadataService getRegistrationDAtaDataMetadataService() {
+        throw new UnsupportedOperationException();
+    };
 
     @Override
     public AccountService getAccountService() {

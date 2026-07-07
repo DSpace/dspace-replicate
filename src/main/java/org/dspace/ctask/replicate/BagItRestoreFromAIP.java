@@ -57,8 +57,13 @@ import org.dspace.pack.bagit.SitePacker;
 @Distributive
 @Mutative
 public class BagItRestoreFromAIP extends AbstractCurationTask {
+    private static final Logger log = LogManager.getLogger();
 
-    private static Logger log = LogManager.getLogger();
+    private final EmbargoService embargoService = EmbargoServiceFactory.getInstance().getEmbargoService();
+    private final WorkspaceItemService workspaceItemService = ContentServiceFactory.getInstance().getWorkspaceItemService();
+    private final InstallItemService installItemService = ContentServiceFactory.getInstance().getInstallItemService();
+    private final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+
     private String archFmt;
 
     // Group where all AIPs are stored
@@ -66,11 +71,6 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
 
     // Group where object deletion catalog/records are stored
     private String deleteGroupName;
-
-    private EmbargoService embargoService = EmbargoServiceFactory.getInstance().getEmbargoService();
-    private WorkspaceItemService workspaceItemService = ContentServiceFactory.getInstance().getWorkspaceItemService();
-    private InstallItemService installItemService = ContentServiceFactory.getInstance().getInstallItemService();
-    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {
@@ -224,10 +224,10 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
             packer.unpack(archive);
             // Install item
             Item item = installItemService.restoreItem(ctx, wi, objId);
-            String colls = props.getProperty(OTHER_IDS);
-            if (colls != null) {
+            String collections = props.getProperty(OTHER_IDS);
+            if (collections != null) {
                 // reset linked collections
-                for (String link : colls.split(",")) {
+                for (String link : collections.split(",")) {
                     Collection linkC = (Collection) handleService.resolveToObject(ctx, link);
                     collectionService.addItem(ctx, linkC, item);
                 }
@@ -251,17 +251,21 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * @throws IOException if IO error
      */
     private void recoverCollection(Context ctx, File archive, String collId, String commId) throws IOException {
-        Collection coll = null;
         try {
             if (commId != null) {
-                Community pcomm = (Community) handleService.resolveToObject(ctx, commId);
-                coll = collectionService.create(ctx, pcomm, collId);
+                Community parentCommunity = (Community) handleService.resolveToObject(ctx, commId);
+                Collection collection = collectionService.create(ctx, parentCommunity, collId);
+
+                if (collection != null) {
+                    // update with AIP data
+                    Packer packer = PackerFactory.instance(ctx, collection);
+                    packer.unpack(archive);
+                } else {
+                    log.error("Unable to restore collection {} because it could not be found.", collId);
+                }
             } else {
-                log.error("Collection '" + collId + "' lacks parent community");
+                log.error("Collection '{}' lacks parent community", collId);
             }
-            // update with AIP data
-            Packer packer = PackerFactory.instance(ctx, coll);
-            packer.unpack(archive);
         } catch (AuthorizeException | SQLException authE) {
             throw new IOException(authE);
         }
@@ -277,16 +281,17 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      */
     private void recoverCommunity(Context ctx, File archive, String commId, String parentId) throws IOException {
         // if not top-level, have parent create it
-        Community comm = null;
+        Community community = null;
         try {
             if (parentId != null) {
-                Community pcomm = (Community) handleService.resolveToObject(ctx, parentId);
-                comm = communityService.createSubcommunity(ctx, pcomm, commId);
+                Community parentCommunity = (Community) handleService.resolveToObject(ctx, parentId);
+                community = communityService.createSubcommunity(ctx, parentCommunity, commId);
             } else {
-                comm = communityService.create(null, ctx, commId);
+                community = communityService.create(null, ctx, commId);
             }
+
             // update with AIP data
-            Packer packer = PackerFactory.instance(ctx, comm);
+            Packer packer = PackerFactory.instance(ctx, community);
             packer.unpack(archive);
         } catch (AuthorizeException | SQLException authE) {
             throw new IOException(authE);

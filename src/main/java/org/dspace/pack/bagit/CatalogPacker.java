@@ -40,14 +40,14 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  * @author richardrodgers
  */
 public class CatalogPacker implements Packer {
-    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    private final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
 
     private final Context context;
     private final String objectId;
     private String ownerId = null;
     private List<String> members = null;
     // Package compression format (e.g. zip or tgz) - Catalog packer uses same as AIPs
-    private String archFmt = configurationService.getProperty("replicate.packer.archfmt");
+    private final String archFmt = configurationService.getProperty("replicate.packer.archfmt");
 
     public CatalogPacker(Context context, String objectId) {
         this.context = context;

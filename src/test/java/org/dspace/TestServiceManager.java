@@ -22,7 +22,7 @@ import org.springframework.context.ConfigurableApplicationContext;
  */
 public class TestServiceManager implements ServiceManager {
 
-    private Map<String, Object> serviceNameMap = new HashMap<>();
+    private final Map<String, Object> serviceNameMap = new HashMap<>();
 
     @Override
     public ConfigurableApplicationContext getApplicationContext() {

@@ -25,6 +25,8 @@ import org.dspace.curate.AbstractCurationTask;
  * @see org.dspace.content.packager.PackageIngester
  */
 public abstract class AbstractPackagerTask extends AbstractCurationTask {
+    private static final Logger log = LogManager.getLogger();
+
     // Name of recursive mode option configurable in curation task configuration file
     private final String recursiveMode = "recursiveMode";
 
@@ -33,8 +35,6 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask {
 
     // Name of useCollectionTemplate option configurable in curation task configuration file
     private final String useCollectionTemplate = "useCollectionTemplate";
-
-    private static Logger log = LogManager.getLogger();
 
     /**
      * Loads pre-configured PackageParameters settings from a given Module
@@ -47,7 +47,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask {
      * <p>
      * Valid 'options' include all packager options supported by the
      * Packager class, e.g. AIP packagers minimally support these options:
-     * https://wiki.lyrasis.org/display/DSDOC6x/AIP+Backup+and+Restore#AIPBackupandRestore-AdditionalPackagerOptions
+     * https://wiki.lyrasis.org/display/DSDOC9x/AIP+Backup+and+Restore#AIPBackupandRestore-AdditionalPackagerOptions
      * <p>
      * Please note that different Packager classes will support different options.
      * You should determine which options are valid for your Packager class
@@ -100,7 +100,7 @@ public abstract class AbstractPackagerTask extends AbstractCurationTask {
                         pkgParams.addProperty(option, value);
                     }
 
-                    log.debug("Set package parameter property <" + option + "> to value <" + value + ">");
+                    log.debug("Set package parameter property <{}> to value <{}>", option, value);
                 }
             }
 

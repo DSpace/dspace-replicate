@@ -42,12 +42,11 @@ import org.dspace.curate.Distributive;
  */
 @Distributive
 public class RemoveManifest extends AbstractCurationTask {
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     // Group where all Manifests are stored
     private String manifestGroupName;
-
-    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {
@@ -98,9 +97,9 @@ public class RemoveManifest extends AbstractCurationTask {
         repMan.removeObject(manifestGroupName, objId);
         report("Removing manifest for: " + objId);
         if (dso instanceof Collection) {
-            Collection coll = (Collection)dso;
+            Collection collection = (Collection)dso;
             try {
-                Iterator<Item> iter = itemService.findByCollection(context, coll);
+                Iterator<Item> iter = itemService.findByCollection(context, collection);
                 while (iter.hasNext()) {
                     remove(context, repMan, iter.next());
                 }
@@ -108,17 +107,17 @@ public class RemoveManifest extends AbstractCurationTask {
                 throw new IOException(sqlE);
             }
         } else if (dso instanceof Community) {
-            Community comm = (Community)dso;
-            for (Community subcomm : comm.getSubcommunities()) {
-                remove(context, repMan, subcomm);
+            Community community = (Community)dso;
+            for (Community subCommunity : community.getSubcommunities()) {
+                remove(context, repMan, subCommunity);
             }
-            for (Collection coll : comm.getCollections()) {
+            for (Collection coll : community.getCollections()) {
                 remove(context, repMan, coll);
             }
         } else if (dso instanceof Site) {
             List<Community> topCommunities = communityService.findAllTop(context);
-            for (Community subcomm : topCommunities) {
-                remove(context, repMan, subcomm);
+            for (Community subCommunity : topCommunities) {
+                remove(context, repMan, subCommunity);
             }
         }
     }

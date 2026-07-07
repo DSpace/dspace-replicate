@@ -50,6 +50,10 @@ import org.dspace.curate.Utils;
  */
 @Distributive
 public class TransmitManifest extends AbstractCurationTask {
+    private static final Logger log = LogManager.getLogger();
+
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     // Version of CDL Checkm spec that this manifest conforms to
     private static final String CKM_VSN = "0.7";
@@ -61,11 +65,6 @@ public class TransmitManifest extends AbstractCurationTask {
 
     // Group where all Manifests will be stored
     private String manifestGroupName;
-
-    private static Logger log = LogManager.getLogger();
-
-    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     @Override
     public void init(Curator curator, String taskId) throws IOException {

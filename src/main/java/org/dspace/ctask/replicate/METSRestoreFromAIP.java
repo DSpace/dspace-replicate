@@ -33,7 +33,7 @@ import org.dspace.pack.mets.METSPacker;
 @Distributive
 @Mutative
 public class METSRestoreFromAIP extends AbstractPackagerTask {
-    private Logger log = LogManager.getLogger();
+    private final Logger log = LogManager.getLogger();
 
     private String archFmt;
 

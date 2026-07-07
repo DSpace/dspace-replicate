@@ -62,13 +62,13 @@ import org.dspace.services.factory.DSpaceServicesFactory;
  * @author richardrodgers
  */
 public class BagItReplicateConsumer implements Consumer {
-    private Logger log = LogManager.getLogger();
+    private final Logger log = LogManager.getLogger();
 
-    private ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
-    private PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
-    private CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
-    private CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
-    private ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+    private final ConfigurationService configurationService = DSpaceServicesFactory.getInstance().getConfigurationService();
+    private final PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
+    private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
+    private final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
+    private final ItemService itemService = ContentServiceFactory.getInstance().getItemService();
 
     private ReplicaManager repMan = null;
     private TaskQueue taskQueue = null;
