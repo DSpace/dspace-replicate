@@ -256,9 +256,13 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
                 Community parentCommunity = (Community) handleService.resolveToObject(ctx, commId);
                 Collection collection = collectionService.create(ctx, parentCommunity, collId);
 
-                // update with AIP data
-                Packer packer = PackerFactory.instance(ctx, collection);
-                packer.unpack(archive);
+                if (collection != null) {
+                    // update with AIP data
+                    Packer packer = PackerFactory.instance(ctx, collection);
+                    packer.unpack(archive);
+                } else {
+                    log.error("Unable to restore collection {} because it could not be found.", collId);
+                }
             } else {
                 log.error("Collection '{}' lacks parent community", collId);
             }
