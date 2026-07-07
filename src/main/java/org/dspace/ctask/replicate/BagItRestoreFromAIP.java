@@ -60,7 +60,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     private static final Logger log = LogManager.getLogger();
 
     private final EmbargoService embargoService = EmbargoServiceFactory.getInstance().getEmbargoService();
-    private final WorkspaceItemService workspaceItemService = ContentServiceFactory.getInstance().getWorkspaceItemService();
+    private final WorkspaceItemService workspaceItemService =
+        ContentServiceFactory.getInstance().getWorkspaceItemService();
     private final InstallItemService installItemService = ContentServiceFactory.getInstance().getInstallItemService();
     private final CollectionService collectionService = ContentServiceFactory.getInstance().getCollectionService();
 
