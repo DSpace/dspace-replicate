@@ -16,7 +16,7 @@
 
     <properties>
         <!-- DSpace Version Information (supported version of DSpace is 9.3 or above) -->
-        <dspace.version>[9.3,9.20)</dspace.version>
+        <dspace.version>9.3</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
         <duracloud.version>8.1.0</duracloud.version>
         <!-- DuraSpace BagIt Support Library -->
