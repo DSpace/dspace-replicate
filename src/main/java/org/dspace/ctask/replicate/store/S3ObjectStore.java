@@ -11,6 +11,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CompletionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -20,12 +21,10 @@ import org.dspace.curate.Utils;
 import org.dspace.services.ConfigurationService;
 import org.dspace.services.factory.DSpaceServicesFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3CrtAsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -36,16 +35,22 @@ import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.sts.StsClient;
-import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
-import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
-import software.amazon.awssdk.transfer.s3.S3TransferManager;
-import software.amazon.awssdk.transfer.s3.model.DownloadFileRequest;
-import software.amazon.awssdk.transfer.s3.model.UploadFileRequest;
 
 /**
  * Implementation of {@link ObjectStore} with Amazon S3.
+ *
+ * <p>This implementation relies exclusively on the AWS SDK for Java v2 CRT-based
+ * asynchronous S3 client ({@link S3AsyncClient#crtBuilder()}), the same client used by
+ * dspace-api's {@code S3BitStoreService}. The CRT client transparently performs multipart
+ * uploads/downloads, so there is no 5&nbsp;GB single-request limitation and no separate
+ * transfer manager is required.</p>
+ *
+ * <p>A synchronous {@code S3Client} is intentionally <b>not</b> used: dspace-api excludes every
+ * {@code SdkHttpClient} implementation (apache-client, apache5-client, netty-nio-client) and only
+ * ships the {@code aws-crt} native library. Building a synchronous client would therefore fail at
+ * runtime with "Unable to load an HTTP implementation from any provider in the chain". For the same
+ * reason IAM role assumption is not supported here: it would require the AWS SDK {@code sts}
+ * module, which is not part of the DSpace distribution either.</p>
  *
  * @author Stefano Maffei (stefano.maffei at 4science.com)
  *
@@ -63,8 +68,7 @@ public class S3ObjectStore implements ObjectStore {
     private final ConfigurationService configurationService =
             DSpaceServicesFactory.getInstance().getConfigurationService();
 
-    private S3Client s3Client;
-    private S3TransferManager transferManager;
+    private S3AsyncClient s3AsyncClient;
     private String bucketName;
 
     @Override
@@ -77,26 +81,8 @@ public class S3ObjectStore implements ObjectStore {
         }
 
         s3Log.info("Starting S3 service initialization");
-        s3Client = initializeS3Client();
-        s3Log.info("S3 synchronous client successfully initialized");
-
-        // Initialize TransferManager for optimal upload/download performance
-        // It's now required as primary method for uploads without size limitations
-        try {
-            S3AsyncClient s3AsyncClient = initializeS3AsyncClient();
-            s3Log.info("S3 asynchronous client successfully initialized");
-
-            s3Log.info("Creating S3TransferManager (required for unrestricted upload sizes)");
-            transferManager = S3TransferManager.builder()
-                    .s3Client(s3AsyncClient)
-                    .build();
-            s3Log.info("S3TransferManager created successfully - uploads will support any file size");
-        } catch (Exception e) {
-            s3Log.warn("TransferManager initialization failed - uploads will be limited to 5GB: {}",
-                    e.getMessage());
-            s3Log.debug("S3TransferManager initialization error details", e);
-            throw new RuntimeException("Failed to initialize S3TransferManager,", e);
-        }
+        s3AsyncClient = initializeS3AsyncClient();
+        s3Log.info("S3 CRT asynchronous client successfully initialized");
 
         bucketName = configurationService.getProperty("replicate.s3.bucket-name");
         s3Log.info("Using S3 bucket: {}", bucketName);
@@ -109,8 +95,7 @@ public class S3ObjectStore implements ObjectStore {
             s3Log.info("Bucket {} already exists", bucketName);
         }
 
-        s3Log.info("S3ObjectStore initialization completed successfully (TransferManager available: {})",
-                transferManager != null);
+        s3Log.info("S3ObjectStore initialization completed successfully");
     }
 
     @Override
@@ -123,13 +108,14 @@ public class S3ObjectStore implements ObjectStore {
                     .bucket(bucketName)
                     .key(key)
                     .build();
-            s3Client.headObject(request);
+            s3AsyncClient.headObject(request).join();
             s3Log.info("Object existence check result: key={}, exists=true", key);
             return true;
-        } catch (NoSuchKeyException exception) {
-            s3Log.info("Object existence check result: key={}, exists=false", key);
-            return false;
-        } catch (S3Exception exception) {
+        } catch (CompletionException exception) {
+            if (exception.getCause() instanceof NoSuchKeyException) {
+                s3Log.info("Object existence check result: key={}, exists=false", key);
+                return false;
+            }
             s3Log.warn("Error checking object existence: key={}, error={}," +
                     " considering file as existing", key, exception.getMessage(), exception);
             return true;
@@ -165,7 +151,7 @@ public class S3ObjectStore implements ObjectStore {
                     .bucket(bucketName)
                     .key(key)
                     .build();
-            HeadObjectResponse response = s3Client.headObject(request);
+            HeadObjectResponse response = s3AsyncClient.headObject(request).join();
             String size = String.valueOf(response.contentLength());
             s3Log.info("Object size retrieved: key={}, size={}", key, size);
             return size;
@@ -180,45 +166,24 @@ public class S3ObjectStore implements ObjectStore {
         String key = getKey(id, group);
         s3Log.info("Starting fetch object: key={}, targetFile={}", key, file.getAbsolutePath());
 
-        if (transferManager != null) {
-            // Use TransferManager for optimal download performance
-            DownloadFileRequest request = DownloadFileRequest.builder()
-                    .getObjectRequest(GetObjectRequest.builder()
-                            .bucket(bucketName)
-                            .key(key)
-                            .build())
-                    .destination(file.toPath())
-                    .build();
+        // getObject(..., Path) refuses to overwrite an existing destination file, so remove it first.
+        if (file.exists() && !file.delete()) {
+            throw new IOException("Unable to overwrite existing destination file: " + file.getAbsolutePath());
+        }
 
-            try {
-                s3Log.info("Waiting for download completion via TransferManager: key={}", key);
-                transferManager.downloadFile(request).completionFuture().join();
-                long fileSize = file.length();
-                s3Log.info("Object fetch completed successfully via TransferManager: key={}," +
-                        " size={} bytes", key, fileSize);
-                return fileSize;
-            } catch (Exception e) {
-                s3Log.error("Failed to fetch object via TransferManager: key={}, error={}", key, e.getMessage(), e);
-                throw new IOException("Failed to fetch object: " + key, e);
-            }
-        } else {
-            // Fallback to synchronous download
-            s3Log.warn("TransferManager not available, using synchronous download: key={}", key);
-            try {
-                GetObjectRequest request = GetObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(key)
-                        .build();
-                s3Client.getObject(request, file.toPath());
-                long fileSize = file.length();
-                s3Log.info("Object fetch completed successfully via synchronous download: key={}," +
-                        " size={} bytes", key, fileSize);
-                return fileSize;
-            } catch (Exception e) {
-                s3Log.error("Failed to fetch object via synchronous download: key={}, error={}",
-                        key, e.getMessage(), e);
-                throw new IOException("Failed to fetch object: " + key, e);
-            }
+        try {
+            GetObjectRequest request = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+            // The CRT client automatically handles multipart download for large objects.
+            s3AsyncClient.getObject(request, file.toPath()).join();
+            long fileSize = file.length();
+            s3Log.info("Object fetch completed successfully: key={}, size={} bytes", key, fileSize);
+            return fileSize;
+        } catch (Exception e) {
+            s3Log.error("Failed to fetch object: key={}, error={}", key, e.getMessage(), e);
+            throw new IOException("Failed to fetch object: " + key, unwrap(e));
         }
     }
 
@@ -231,122 +196,23 @@ public class S3ObjectStore implements ObjectStore {
                 file.getAbsolutePath(), key, fileSize);
 
         try {
-            // Use TransferManager as primary method - handles multipart upload automatically for large files
-            if (transferManager != null) {
-                s3Log.info("Using TransferManager for upload" +
-                                " (automatically handles multipart for large files): key={}, size={} bytes",
-                        key, fileSize);
-
-                // Note: PutObjectRequest here is just metadata configuration (bucket, key, headers)
-                // TransferManager automatically decides whether to use simple PUT or multipart upload
-                // based on file size, removing the 5GB limitation of direct putObject() calls
-                UploadFileRequest request = UploadFileRequest.builder()
-                        .putObjectRequest(PutObjectRequest.builder()
-                                .bucket(bucketName)
-                                .key(key)
-                                .build())
-                        .source(file.toPath())
-                        .build();
-
-                transferManager.uploadFile(request).completionFuture().join();
-                s3Log.info("Object transfer completed successfully via TransferManager: key={}, size={} bytes",
-                        key, fileSize);
-                return fileSize;
-            } else {
-                throw new IOException("TransferManager is not available - cannot transfer object larger than 5GB: "
-                        + key);
-            }
+            // The CRT client automatically performs a multipart upload for large files,
+            // so there is no 5GB single-PutObject limitation.
+            PutObjectRequest request = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build();
+            s3AsyncClient.putObject(request, file.toPath()).join();
+            s3Log.info("Object transfer completed successfully: key={}, size={} bytes", key, fileSize);
+            return fileSize;
         } catch (Exception e) {
             s3Log.error("Failed to transfer object: key={}, file={}, error={}",
                     key, file.getAbsolutePath(), e.getMessage(), e);
-            throw new IOException("Failed to transfer object: " + key, e);
+            throw new IOException("Failed to transfer object: " + key, unwrap(e));
         } finally {
             if (file.exists() && !file.delete()) {
                 s3Log.warn("Failed to delete temporary file after transfer: {}", file.getAbsolutePath());
             }
-            System.gc(); // Suggest garbage collection to help release file handles
-            // not guaranteed but can help in some environments
-        }
-    }
-
-    /**
-     * Primary method for synchronous upload to S3
-     * Uses simple upload for files <= 5GB, multipart upload for larger files
-     *
-     * @param key the S3 object key
-     * @param file the file to upload
-     * @param fileSize the size of the file
-     * @throws IOException if upload fails
-     * @author Stefano Maffei (stefano.maffei at 4science.com)
-     */
-    private void performSyncUpload(String key, File file, long fileSize) throws IOException {
-        // AWS S3 putObject limit is 5GB - use multipart upload for larger files
-        final long fiveGB = 5L * 1024 * 1024 * 1024;
-
-        if (fileSize <= fiveGB) {
-            s3Log.info("Using simple upload for key: {}, size: {} bytes", key, fileSize);
-            performSimpleUpload(key, file, fileSize);
-        } else {
-            s3Log.info("File size exceeds 5GB limit, using multipart upload for key: {}, size: {} bytes",
-                    key, fileSize);
-            performMultipartUpload(key, file, fileSize);
-        }
-    }
-
-    /**
-     * Performs simple S3 upload for files <= 5GB
-     *
-     * @param key the S3 object key
-     * @param file the file to upload
-     * @param fileSize the size of the file
-     * @throws IOException if upload fails
-     * @author Stefano Maffei (stefano.maffei at 4science.com)
-     */
-    private void performSimpleUpload(String key, File file, long fileSize) throws IOException {
-        try {
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .build();
-
-            s3Client.putObject(putRequest, file.toPath());
-            s3Log.info("Simple upload completed successfully: key={}, size={} bytes", key, fileSize);
-        } catch (Exception e) {
-            s3Log.error("Simple upload failed: key={}, error={}", key, e.getMessage(), e);
-            throw new IOException("Simple upload failed for key: " + key, e);
-        }
-    }
-
-    /**
-     * Performs multipart upload for files > 5GB using TransferManager
-     *
-     * @param key the S3 object key
-     * @param file the file to upload
-     * @param fileSize the size of the file
-     * @throws IOException if upload fails
-     * @author Stefano Maffei (stefano.maffei at 4science.com)
-     */
-    private void performMultipartUpload(String key, File file, long fileSize) throws IOException {
-        if (transferManager == null) {
-            s3Log.error("Large file upload requires TransferManager but it's not available: key={}, size={} bytes",
-                    key, fileSize);
-            throw new IOException("Cannot upload file larger than 5GB without TransferManager: " + key);
-        }
-
-        try {
-            UploadFileRequest uploadRequest = UploadFileRequest.builder()
-                    .putObjectRequest(PutObjectRequest.builder()
-                            .bucket(bucketName)
-                            .key(key)
-                            .build())
-                    .source(file.toPath())
-                    .build();
-
-            transferManager.uploadFile(uploadRequest).completionFuture().join();
-            s3Log.info("Multipart upload completed successfully: key={}, size={} bytes", key, fileSize);
-        } catch (Exception e) {
-            s3Log.error("Multipart upload failed: key={}, error={}", key, e.getMessage(), e);
-            throw new IOException("Multipart upload failed for key: " + key, e);
         }
     }
 
@@ -363,12 +229,12 @@ public class S3ObjectStore implements ObjectStore {
                     .bucket(bucketName)
                     .key(key)
                     .build();
-            s3Client.deleteObject(request);
+            s3AsyncClient.deleteObject(request).join();
             s3Log.info("Object removed successfully: key={}, size={} bytes", key, size);
             return size;
         } catch (Exception e) {
             s3Log.error("Failed to remove object: key={}, error={}", key, e.getMessage(), e);
-            throw new IOException("Failed to remove object: " + key, e);
+            throw new IOException("Failed to remove object: " + key, unwrap(e));
         }
     }
 
@@ -388,20 +254,20 @@ public class S3ObjectStore implements ObjectStore {
                     .destinationBucket(bucketName)
                     .destinationKey(destKey)
                     .build();
-            s3Client.copyObject(copyRequest);
+            s3AsyncClient.copyObject(copyRequest).join();
 
             // After successful copy, delete the source object
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucketName)
                     .key(srcKey)
                     .build();
-            s3Client.deleteObject(deleteRequest);
+            s3AsyncClient.deleteObject(deleteRequest).join();
 
             s3Log.info("Object moved successfully: srcKey={}, destKey={}, size={} bytes", srcKey, destKey, fileSize);
             return fileSize;
         } catch (Exception e) {
             s3Log.error("Failed to move object: srcKey={}, destKey={}, error={}", srcKey, destKey, e.getMessage(), e);
-            throw new IOException("Failed to move object: " + srcKey + " to " + destKey, e);
+            throw new IOException("Failed to move object: " + srcKey + " to " + destKey, unwrap(e));
         }
     }
 
@@ -438,77 +304,39 @@ public class S3ObjectStore implements ObjectStore {
     }
 
     /**
-     * Supports:
-     * 1) Static credentials (legacy)
-     * 2) AssumeRole (cross-account)
-     * 3) Default IAM role
+     * Builds the CRT-based asynchronous S3 client.
+     *
+     * <p>Credential resolution mirrors dspace-api's {@code S3BitStoreService}:</p>
+     * <ol>
+     *   <li>If static credentials are configured
+     *       ({@code replicate.s3.access-key} / {@code replicate.s3.secret-key}) they are used.
+     *       Kept only for backwards compatibility with legacy buckets.</li>
+     *   <li>Otherwise no explicit credentials provider is set, so the CRT client resolves
+     *       credentials through its native default chain (IAM role attached to the
+     *       instance/task/pod, environment variables or a shared config profile). This is the
+     *       recommended setup and, for cross-account access, the role assumption is configured
+     *       through the standard AWS credential chain rather than an explicit STS client.</li>
+     * </ol>
      */
-    private S3Client initializeS3Client() {
-        Region region = Region.US_EAST_1;
-        String regionName = configurationService.getProperty("replicate.s3.region-name");
+    private S3AsyncClient initializeS3AsyncClient() {
+        S3CrtAsyncClientBuilder builder = S3AsyncClient.crtBuilder()
+                .region(resolveRegion());
 
-        if (StringUtils.isNotBlank(regionName)) {
-            try {
-                region = Region.of(regionName);
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid AWS region: {}, using default", regionName);
-            }
-        }
-
-        // 1️⃣ Legacy static credentials (unchanged behavior)
         String accessKey = configurationService.getProperty("replicate.s3.access-key");
         String secretKey = configurationService.getProperty("replicate.s3.secret-key");
 
         if (isNotBlank(accessKey) && isNotBlank(secretKey)) {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-            return S3Client.builder()
-                    .region(region)
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .build();
+            builder.credentialsProvider(StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKey, secretKey)));
+            s3Log.info("Using static S3 credentials (legacy)");
+        } else {
+            s3Log.info("Using default AWS credential provider chain (IAM role / environment)");
         }
 
-        // 2️⃣ AssumeRole (cross-account)
-        String roleArn = configurationService.getProperty("replicate.s3.assume-role-arn");
-
-        if (isNotBlank(roleArn)) {
-            String externalId = configurationService.getProperty("replicate.s3.assume-role-external-id");
-
-            AssumeRoleRequest.Builder assumeRoleBuilder = AssumeRoleRequest.builder()
-                    .roleArn(roleArn)
-                    .roleSessionName("dspace-s3-replication-session");
-
-            if (isNotBlank(externalId)) {
-                assumeRoleBuilder.externalId(externalId);
-                log.info("AssumeRole configured with external ID for enhanced security");
-            } else {
-                log.warn("AssumeRole configured without external ID - " +
-                        "consider adding replicate.s3.assume-role-external-id for better security");
-            }
-
-            StsClient stsClient = StsClient.builder()
-                    .region(region)
-                    .build();
-
-            AwsCredentialsProvider credentialsProvider = StsAssumeRoleCredentialsProvider.builder()
-                    .stsClient(stsClient)
-                    .refreshRequest(assumeRoleBuilder.build())
-                    .asyncCredentialUpdateEnabled(true)
-                    .build();
-
-            return S3Client.builder()
-                    .region(region)
-                    .credentialsProvider(credentialsProvider)
-                    .build();
-        }
-
-        // 3️⃣ Default IAM role (EC2 / ECS / EKS)
-        return S3Client.builder()
-                .region(region)
-                .credentialsProvider(DefaultCredentialsProvider.builder().build())
-                .build();
+        return builder.build();
     }
 
-    private S3AsyncClient initializeS3AsyncClient() {
+    private Region resolveRegion() {
         Region region = Region.US_EAST_1;
         String regionName = configurationService.getProperty("replicate.s3.region-name");
 
@@ -519,58 +347,7 @@ public class S3ObjectStore implements ObjectStore {
                 log.warn("Invalid AWS region: {}, using default", regionName);
             }
         }
-
-        // 1️⃣ Legacy static credentials (unchanged behavior)
-        String accessKey = configurationService.getProperty("replicate.s3.access-key");
-        String secretKey = configurationService.getProperty("replicate.s3.secret-key");
-
-        if (isNotBlank(accessKey) && isNotBlank(secretKey)) {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-            return S3AsyncClient.crtBuilder()
-                    .region(region)
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                    .build();
-        }
-
-        // 2️⃣ AssumeRole (cross-account)
-        String roleArn = configurationService.getProperty("replicate.s3.assume-role-arn");
-
-        if (isNotBlank(roleArn)) {
-            String externalId = configurationService.getProperty("replicate.s3.assume-role-external-id");
-
-            AssumeRoleRequest.Builder assumeRoleBuilder = AssumeRoleRequest.builder()
-                    .roleArn(roleArn)
-                    .roleSessionName("dspace-s3-replication-session");
-
-            if (isNotBlank(externalId)) {
-                assumeRoleBuilder.externalId(externalId);
-                log.info("AssumeRole configured with external ID for enhanced security");
-            } else {
-                log.warn("AssumeRole configured without external ID - " +
-                        "consider adding replicate.s3.assume-role-external-id for better security");
-            }
-
-            StsClient stsClient = StsClient.builder()
-                    .region(region)
-                    .build();
-
-            AwsCredentialsProvider credentialsProvider = StsAssumeRoleCredentialsProvider.builder()
-                    .stsClient(stsClient)
-                    .refreshRequest(assumeRoleBuilder.build())
-                    .asyncCredentialUpdateEnabled(true)
-                    .build();
-
-            return S3AsyncClient.crtBuilder()
-                    .region(region)
-                    .credentialsProvider(credentialsProvider)
-                    .build();
-        }
-
-        // 3️⃣ Default IAM role (EC2 / ECS / EKS)
-        return S3AsyncClient.crtBuilder()
-                .region(region)
-                .credentialsProvider(DefaultCredentialsProvider.builder().build())
-                .build();
+        return region;
     }
 
     private boolean bucketExists(String bucketName) {
@@ -578,12 +355,13 @@ public class S3ObjectStore implements ObjectStore {
             HeadBucketRequest request = HeadBucketRequest.builder()
                     .bucket(bucketName)
                     .build();
-            s3Client.headBucket(request);
+            s3AsyncClient.headBucket(request).join();
             return true;
-        } catch (NoSuchBucketException e) {
-            return false;
-        } catch (Exception e) {
-            log.warn("Error checking bucket existence: {}", e.getMessage());
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof NoSuchBucketException) {
+                return false;
+            }
+            log.warn("Error checking bucket existence: {}", unwrap(e).getMessage());
             return true; // Assume it exists to avoid creating it
         }
     }
@@ -593,11 +371,22 @@ public class S3ObjectStore implements ObjectStore {
             CreateBucketRequest request = CreateBucketRequest.builder()
                     .bucket(bucketName)
                     .build();
-            s3Client.createBucket(request);
+            s3AsyncClient.createBucket(request).join();
         } catch (Exception e) {
             log.error("Failed to create bucket: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create S3 bucket: " + bucketName, e);
+            throw new RuntimeException("Failed to create S3 bucket: " + bucketName, unwrap(e));
         }
+    }
+
+    /**
+     * Unwraps the actual cause from a {@link CompletionException} thrown by the asynchronous
+     * client's {@code join()} calls, so error messages and rethrown causes are meaningful.
+     */
+    private Throwable unwrap(Throwable t) {
+        if (t instanceof CompletionException && t.getCause() != null) {
+            return t.getCause();
+        }
+        return t;
     }
 
     /**
@@ -609,24 +398,14 @@ public class S3ObjectStore implements ObjectStore {
         s3Log.info("Cleaning up S3ObjectStore resources");
 
         try {
-            if (transferManager != null) {
-                transferManager.close();
-                s3Log.info("S3TransferManager closed successfully");
+            if (s3AsyncClient != null) {
+                s3AsyncClient.close();
+                s3Log.info("S3 client closed successfully");
             }
         } catch (Exception e) {
-            s3Log.warn("Error closing S3TransferManager: {}", e.getMessage());
-        }
-
-        try {
-            if (s3Client != null) {
-                s3Client.close();
-                s3Log.info("S3Client closed successfully");
-            }
-        } catch (Exception e) {
-            s3Log.warn("Error closing S3Client: {}", e.getMessage());
+            s3Log.warn("Error closing S3 client: {}", e.getMessage());
         }
 
         s3Log.info("S3ObjectStore resources cleanup completed");
     }
 }
-

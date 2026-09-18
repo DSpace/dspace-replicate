@@ -23,10 +23,6 @@
         <bagit-support.version>1.1.0</bagit-support.version>
         <jaxb-api.version>4.0.5</jaxb-api.version>
         <jaxb-runtime.version>4.0.9</jaxb-runtime.version>
-        <!-- AWS SDK v2 version: MUST match the version used by dspace-api ${dspace.version}
-             (dspace-api declares software.amazon.awssdk:s3), otherwise the
-             maven-enforcer-plugin DependencyConvergence rule will fail. -->
-        <aws.sdk.version>2.43.2</aws.sdk.version>
         <!-- Replication Task Suite requires Java 17 because DSpace 9 requires it -->
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -416,42 +412,6 @@
             <artifactId>jaxb-runtime</artifactId>
             <version>${jaxb-runtime.version}</version>
             <scope>compile</scope>
-        </dependency>
-
-        <!-- AWS SDK v2 artifacts needed by S3ObjectStore which are NOT declared by dspace-api
-             (dspace-api only brings in "s3"). Scope is 'provided' because these JARs are expected
-             to be present in the DSpace installation's lib/ at runtime. -->
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>sts</artifactId>
-            <version>${aws.sdk.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>netty-nio-client</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>apache-client</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>s3-transfer-manager</artifactId>
-            <version>${aws.sdk.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>netty-nio-client</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>software.amazon.awssdk</groupId>
-                    <artifactId>apache-client</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <!-- DuraCloud dependencies (used for replication to/from DuraCloud).
