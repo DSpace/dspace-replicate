@@ -7,7 +7,7 @@
     <description>Replication Task Suite: A DSpace add-on providing Curation Tasks that perform replication
      (backup and restore) of DSpace content to other locations or services.</description>
     <url>https://wiki.lyrasis.org/display/DSPACE/ReplicationTaskSuite</url>
-    <version>9.5-SNAPSHOT</version>
+    <version>10.1-SNAPSHOT</version>
 
     <organization>
         <name>LYRASIS</name>
@@ -15,8 +15,8 @@
     </organization>
 
     <properties>
-        <!-- DSpace Version Information (supported version of DSpace is 9.3 or above) -->
-        <dspace.version>9.4</dspace.version>
+        <!-- DSpace Version Information (supported version of DSpace is 10.1 or above) -->
+        <dspace.version>[10.1,10.20)</dspace.version>
         <!-- DuraCloud Version Information (supported version of DuraCloud) -->
         <duracloud.version>8.1.0</duracloud.version>
         <!-- DuraSpace BagIt Support Library -->
@@ -24,7 +24,7 @@
         <jaxb-api.version>4.0.5</jaxb-api.version>
         <jaxb-runtime.version>4.0.9</jaxb-runtime.version>
         <!-- Replication Task Suite requires Java 17 because DSpace 9 requires it -->
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
     </properties>
