@@ -67,8 +67,8 @@ public class TransmitManifest extends AbstractCurationTask {
     private String manifestGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         template = configurationService.getProperty("replicate.checkm.template");
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
@@ -77,15 +77,15 @@ public class TransmitManifest extends AbstractCurationTask {
      * Perform 'Transmit Manifest' task
      * <p>
      * Actually generates manifest and transmits to Replica ObjectStore
+     * @param context current DSpace Context
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         try {
-            Context context = Curator.curationContext();
             File manFile = null;
             int type = dso.getType();
             if (Constants.ITEM == type) {

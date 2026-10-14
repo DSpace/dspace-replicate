@@ -47,8 +47,8 @@ public class METSRestoreFromAIP extends AbstractPackagerTask {
     private final String metsModuleConfig = "replicate-mets";
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
         deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
@@ -110,19 +110,20 @@ public class METSRestoreFromAIP extends AbstractPackagerTask {
         return status;
     }
 
+    /**
+     * Perform the Restore/Replace task.
+     * <P>
+     * Actually restore/replace an object in the repository with
+     * whatever information is contained in the AIP.
+     * @param ctx current DSpace Context
+     * @param dso the DSpace object to restore/replace
+     * @return integer which represents Curator return status
+     * @throws IOException if I/O error
+     */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
-        int status = Curator.CURATE_FAIL;
-        try {
-            // Get Context from current curation thread
-            Context ctx = Curator.curationContext();
-            status = perform(ctx, dso.getHandle());
-            // Note: context will be committed/closed by Curator
-        } catch (SQLException sqlE) {
-            throw new IOException(sqlE);
-        }
-
-        return status;
+    public int perform(Context ctx, DSpaceObject dso) throws IOException {
+        // Note: context will be committed/closed by Curator
+        return perform(ctx, dso.getHandle());
     }
 
     /**

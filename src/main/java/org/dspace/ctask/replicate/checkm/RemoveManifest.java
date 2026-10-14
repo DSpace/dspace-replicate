@@ -49,8 +49,8 @@ public class RemoveManifest extends AbstractCurationTask {
     private String manifestGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
 
@@ -60,15 +60,15 @@ public class RemoveManifest extends AbstractCurationTask {
      * to the replica of the container object. No change is made to
      * the DSPace object itself.
      * 
+     * @param context current DSpace Context
      * @param dso the DSpace object
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         try {
-            Context context = Curator.curationContext();
             remove(context, repMan, dso);
         } catch (SQLException e) {
             throw new IOException(e);
@@ -141,7 +141,7 @@ public class RemoveManifest extends AbstractCurationTask {
         try {
             dso = dspaceObjectUtils.findDSpaceObject(ctx,id);
             if (dso != null) {
-                return perform(dso);
+                return perform(ctx, dso);
             }
         }  catch (SQLException sqlE) {
             throw new IOException(sqlE.getMessage(), sqlE);

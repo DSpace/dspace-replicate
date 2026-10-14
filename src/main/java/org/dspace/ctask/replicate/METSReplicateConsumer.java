@@ -200,8 +200,7 @@ public class METSReplicateConsumer implements Consumer {
 
                         // make sure we are supposed to process this Collection
                         if (acceptId(id, event, ctx)) {
-                            // --- NEW CHECK: Fetch and verify the item using event.getDetail() ---
-                            String addedItemIdentifier = event.getDetail();
+                            String addedItemIdentifier = ReplicateEventUtils.resolveHandle(event);
                             Item addedItem = itemService.findByIdOrLegacyId(ctx, addedItemIdentifier);
 
                             if (addedItem == null || !addedItem.isArchived()) {
@@ -229,7 +228,7 @@ public class METSReplicateConsumer implements Consumer {
                 case CREATE: // CREATE = Create a new object.
                 case INSTALL: // INSTALL = Install an object (exits workflow/workspace). Only used for Items.
                     // For CREATE & INSTALL, the Handle of object being created is found in Event Detail
-                    id = event.getDetail();
+                    id = ReplicateEventUtils.resolveHandle(event);
 
                     // if NOT (Create & Item)
                     // (i.e. We don't want to replicate items UNTIL they are Installed)
@@ -294,7 +293,7 @@ public class METSReplicateConsumer implements Consumer {
                 case REMOVE: //REMOVE = Remove an object from a container or group
                 case DELETE: //DELETE = Delete an object (actually destroy it)
                     // For REMOVE & DELETE, the Handle of object being deleted is found in Event Detail
-                    id = event.getDetail();
+                    id = ReplicateEventUtils.resolveHandle(event);
 
                     // make sure we are supposed to process this object
                     if (acceptId(id, event, ctx)) {
@@ -334,7 +333,7 @@ public class METSReplicateConsumer implements Consumer {
         if (!taskPMap.isEmpty()) {
             Curator curator = new Curator();
             for (String task : taskPMap.keySet()) {
-                curator.addTask(task);
+                curator.addTask(ctx, task);
                 for (String id : taskQMap.get(task)) {
                     curator.curate(ctx, id);
                 }
@@ -419,7 +418,8 @@ public class METSReplicateConsumer implements Consumer {
         } else if (REMOVE == type) {
             // either marks end of current deletion or is member of
             // enclosing one: ignore if latter
-            if (event.getDetail().equals(id) || (delObjId != null && delObjId.equals(id))) {
+            String removedId = ReplicateEventUtils.resolveHandle(event);
+            if ((removedId != null && removedId.equals(id)) || (delObjId != null && delObjId.equals(id))) {
                 // determine owner and write out deletion catalog
                 if (Constants.COLLECTION == event.getSubjectType()) {
                     // my owner is a collection

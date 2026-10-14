@@ -63,26 +63,26 @@ public class CompareWithAIP extends AbstractCurationTask {
     private String storeGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
     }
 
     /**
      * Perform 'Compare with AIP' task
+     * @param context current DSpace Context
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         String id = dso.getHandle();
         status = Curator.CURATE_SUCCESS;
         result = "Checksums of local and remote agree";
         try {
-            Context context = Curator.curationContext();
             String objId = repMan.storageId(context, id, archFmt);
             Packer packer = PackerFactory.instance(context, dso);
             // First, make sure this object has an AIP in remote storage

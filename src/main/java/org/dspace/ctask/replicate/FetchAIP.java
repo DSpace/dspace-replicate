@@ -10,7 +10,6 @@ package org.dspace.ctask.replicate;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -34,8 +33,8 @@ public class FetchAIP extends AbstractCurationTask {
     private String storeGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         baseFolder = configurationService.getProperty("replicate.base.dir");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
@@ -43,18 +42,15 @@ public class FetchAIP extends AbstractCurationTask {
 
     /**
      * Perform the 'Fetch AIP' task
+     * @param ctx current DSpace Context
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context ctx, DSpaceObject dso) throws IOException {
         if (dso != null) {
-            try {
-                return perform(Curator.curationContext(), dso.getHandle());
-            } catch (SQLException e) {
-                throw new IOException(e);
-            }
+            return perform(ctx, dso.getHandle());
         } else {
             String result = "DSpace Object not found!";
             report(result);

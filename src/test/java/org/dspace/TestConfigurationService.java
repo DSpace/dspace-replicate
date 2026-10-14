@@ -116,6 +116,17 @@ public class TestConfigurationService implements ConfigurationService {
     }
 
     @Override
+    public Properties getPropertiesWithPrefix(String prefix) {
+        final Properties prefixed = new Properties();
+        for (String property : properties.stringPropertyNames()) {
+            if (property.startsWith(prefix)) {
+                prefixed.setProperty(property, properties.getProperty(property));
+            }
+        }
+        return prefixed;
+    }
+
+    @Override
     public Configuration getConfiguration() {
         throw new UnsupportedOperationException();
     }

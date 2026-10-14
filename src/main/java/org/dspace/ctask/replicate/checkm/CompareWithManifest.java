@@ -44,23 +44,23 @@ public class CompareWithManifest extends AbstractCurationTask {
     private String manifestGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
 
     /**
      * Perform 'Compare with Manifest' task
+     * @param context current DSpace Context
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
 
         try {
-            Context context = Curator.curationContext();
             String filename = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
             int status = checkManifest(repMan, filename, context);
 

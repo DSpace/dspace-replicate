@@ -51,8 +51,8 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
     private String storeGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     }
@@ -62,17 +62,17 @@ public class BagItReplaceWithAIP extends AbstractCurationTask {
      * <P>
      * Actually overwrite any existing object data in the repository with
      * whatever information is contained in the AIP.
+     * @param context current DSpace Context
      * @param dso the DSpace object to replace
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         final ReplicaManager repMan = ReplicaManager.instance();
 
         // overwrite with AIP data
         try {
-            Context context = Curator.curationContext();
             final Packer packer = PackerFactory.instance(context, dso);
             int status = Curator.CURATE_FAIL;
             String result = null;

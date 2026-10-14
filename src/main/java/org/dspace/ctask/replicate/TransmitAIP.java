@@ -50,8 +50,8 @@ public class TransmitAIP extends AbstractCurationTask {
     private String storeGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         log.info("Init TransmitAIP");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     }
@@ -60,16 +60,16 @@ public class TransmitAIP extends AbstractCurationTask {
      * Perform 'Transmit AIP' task
      * <p>
      * Actually generates the AIP and transmits it to the replica ObjectStore
+     * @param context current DSpace Context
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
 
         try {
-            Context context = Curator.curationContext();
             Packer packer = PackerFactory.instance(context, dso);
             File archive = packer.pack(repMan.stage(context, storeGroupName, dso.getHandle()));
             String msg = "Created AIP: '" + archive.getName() +

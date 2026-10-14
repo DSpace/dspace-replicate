@@ -10,7 +10,6 @@ package org.dspace.ctask.replicate.checkm;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -36,30 +35,26 @@ public class FetchManifest extends AbstractCurationTask {
     private String manifestGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
 
     /**
      * Perform 'Fetch Manifest' task
+     * @param context current DSpace Context
      * @param dso DSpace Object to perform on
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
-        try {
-            Context context = Curator.curationContext();
-            ReplicaManager repMan = ReplicaManager.instance();
-            String objId = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
-            File archive = repMan.fetchObject(context, manifestGroupName, objId);
-            boolean found = archive != null;
-            setResult("Manifest for object: " + dso.getHandle() + " found: " + found);
-            return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;
-        } catch (SQLException e) {
-            throw new IOException(e);
-        }
+    public int perform(Context context, DSpaceObject dso) throws IOException {
+        ReplicaManager repMan = ReplicaManager.instance();
+        String objId = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
+        File archive = repMan.fetchObject(context, manifestGroupName, objId);
+        boolean found = archive != null;
+        setResult("Manifest for object: " + dso.getHandle() + " found: " + found);
+        return found ? Curator.CURATE_SUCCESS : Curator.CURATE_FAIL;
     }
 }

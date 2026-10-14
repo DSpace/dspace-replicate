@@ -9,7 +9,6 @@
 package org.dspace.ctask.replicate;
 
 import java.io.IOException;
-import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -38,8 +37,8 @@ public class VerifyAIP extends AbstractCurationTask {
     private String storeGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
     }
@@ -48,18 +47,15 @@ public class VerifyAIP extends AbstractCurationTask {
      * Performs the "Verify AIP" task.
      * <p>
      * Simply tests for presence of AIP in replica ObjectStore.
+     * @param ctx current DSpace Context
      * @param dso the DSpace Object to verify
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context ctx, DSpaceObject dso) throws IOException {
         if (dso != null) {
-            try {
-                return perform(Curator.curationContext(), dso.getHandle());
-            } catch (SQLException e) {
-                throw new IOException(e);
-            }
+            return perform(ctx, dso.getHandle());
         } else {
             String result = "DSpace Object not found!";
             report(result);

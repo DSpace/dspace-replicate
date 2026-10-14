@@ -74,8 +74,8 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
     private String deleteGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         deleteGroupName = configurationService.getProperty("replicate.group.delete.name");
         storeGroupName = configurationService.getProperty("replicate.group.aip.name");
         archFmt = configurationService.getProperty("replicate.packer.archfmt");
@@ -85,19 +85,19 @@ public class BagItRestoreFromAIP extends AbstractCurationTask {
      * Perform 'Recover From AIP' task on a particular object. If the {@code dso} is a {@link Site}, attempt to restore
      * the Site and child objects. Otherwise this method returns an exception.
      *
+     * @param context current DSpace Context
      * @param dso DSpace Object to recover
      * @return integer which represents Curator return status
      * @throws IOException if IO error
      */
     @Override
-    public int perform(final DSpaceObject dso) throws IOException {
+    public int perform(final Context context, final DSpaceObject dso) throws IOException {
         // allow recovery of Site objects as they always exist in a new DSpace repository
         if (dso != null && dso.getType() == Constants.SITE) {
             String result;
             int status = Curator.CURATE_SUCCESS;
 
             try {
-                Context context = Curator.curationContext();
                 final ReplicaManager repMan = ReplicaManager.instance();
                 final String storageId = repMan.storageId(context, dso.getHandle(), archFmt);
                 final File file = repMan.fetchObject(context, storeGroupName, storageId);

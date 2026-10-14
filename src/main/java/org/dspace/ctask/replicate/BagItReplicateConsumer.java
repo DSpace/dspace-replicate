@@ -154,7 +154,7 @@ public class BagItReplicateConsumer implements Consumer {
         int subjType = event.getSubjectType();
 
         // This is the Handle of the object on which an event occurred
-        String id = event.getDetail();
+        String id = ReplicateEventUtils.resolveHandle(event);
 
         // System.out.println("got event type: " + evType + " for subject type: " + subjType);
         switch (evType) {
@@ -233,7 +233,7 @@ public class BagItReplicateConsumer implements Consumer {
         if (!taskPMap.isEmpty()) {
             Curator curator = new Curator();
             for (String task : taskPMap.keySet()) {
-                curator.addTask(task);
+                curator.addTask(ctx, task);
                 for (String id : taskQMap.get(task)) {
                     curator.curate(ctx, id);
                 }

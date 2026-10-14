@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
@@ -32,10 +33,17 @@ import org.dspace.pack.PackerFactory;
  */
 @Distributive
 public class EstimateAIPSize extends AbstractCurationTask {
+    /**
+     * Perform 'Estimate AIP Size' task
+     * @param context current DSpace Context
+     * @param dso DSpace Object to perform on
+     * @return integer which represents Curator return status
+     * @throws IOException if I/O error
+     */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         try {
-            Packer packer = PackerFactory.instance(Curator.curationContext(), dso);
+            Packer packer = PackerFactory.instance(context, dso);
             // just report the size
             long size = packer.size("");
             String msg = "ID: " + dso.getHandle() + " (" + dso.getName() +

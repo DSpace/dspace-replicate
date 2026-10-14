@@ -10,6 +10,7 @@ package org.dspace.ctask.replicate;
 import java.io.IOException;
 
 import org.dspace.content.DSpaceObject;
+import org.dspace.core.Context;
 import org.dspace.curate.AbstractCurationTask;
 import org.dspace.curate.Curator;
 import org.dspace.curate.Distributive;
@@ -29,12 +30,13 @@ import org.dspace.curate.Distributive;
 public class ReadOdometer extends AbstractCurationTask {
     /**
      * Performs the "Read Odometer" task.
+     * @param context current DSpace Context
      * @param dso this param is ignored, as the odometer is sitewide
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         Odometer odometer = repMan.getOdometer();
         StringBuilder sb = new StringBuilder();

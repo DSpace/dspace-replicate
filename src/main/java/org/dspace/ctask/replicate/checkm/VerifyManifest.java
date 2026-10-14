@@ -9,7 +9,6 @@
 package org.dspace.ctask.replicate.checkm;
 
 import java.io.IOException;
-import java.sql.SQLException;
 
 import org.dspace.content.DSpaceObject;
 import org.dspace.core.Context;
@@ -41,26 +40,20 @@ public class VerifyManifest extends AbstractCurationTask {
     private String manifestGroupName;
 
     @Override
-    public void init(Curator curator, String taskId) throws IOException {
-        super.init(curator, taskId);
+    public void init(Context ctx, Curator curator, String taskId) throws IOException {
+        super.init(ctx, curator, taskId);
         manifestGroupName = configurationService.getProperty("replicate.group.manifest.name");
     }
 
     /**
      * Perform the 'Verify Manifest' task
+     * @param context current DSpace Context
      * @param dso the DSpace Object to be verified
      * @return integer which represents Curator return status
      * @throws IOException if I/O error
      */
     @Override
-    public int perform(DSpaceObject dso) throws IOException {
-        Context context;
-        try {
-            context = Curator.curationContext();
-        } catch (SQLException e) {
-            throw new IOException(e);
-        }
-
+    public int perform(Context context, DSpaceObject dso) throws IOException {
         ReplicaManager repMan = ReplicaManager.instance();
         String objId = repMan.storageId(context, dso.getHandle(), TransmitManifest.MANIFEST_EXTENSION);
         boolean found = repMan.objectExists(manifestGroupName, objId);
