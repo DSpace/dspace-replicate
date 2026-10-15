@@ -41,4 +41,18 @@ public final class ReplicateEventUtils {
 
         return null;
     }
+
+    public static String resolveParentAfterItemDelete(Event event) {
+        if (event == null || event.getDetailList() == null) {
+            return null;
+        }
+        if (event.getEventType() == Event.DELETE) {
+            for (EventDetail detail : event.getDetailList()) {
+                if (detail != null && DetailType.PARENT_HANDLE == detail.getDetailType() && detail.getDetailObject() != null) {
+                    return detail.getDetailObject().toString();
+                }
+            }
+        }
+        return null;
+    }
 }

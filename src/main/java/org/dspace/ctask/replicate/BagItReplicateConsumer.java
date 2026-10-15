@@ -277,11 +277,13 @@ public class BagItReplicateConsumer implements Consumer {
         if (idFilter == null) {
             return true;
         }
-
         // filter supports only container ids - so if id is for an item,
         // find its owning collection
         String id2check = id;
-        if (event.getSubjectType() == Constants.ITEM) {
+        if (event.getSubjectType() == Constants.ITEM && event.getEventType() == DELETE) {
+            id2check = ReplicateEventUtils.resolveParentAfterItemDelete(event);
+        }
+        else if (event.getSubjectType() == Constants.ITEM) {
             // NB: Item should be available form context cache - should
             // not incur a performance hit here
             Item item = itemService.find(ctx, event.getSubjectID());
@@ -289,6 +291,7 @@ public class BagItReplicateConsumer implements Consumer {
             if (coll != null) {
                 id2check = coll.getHandle();
             }
+
         }
 
         boolean onList = idFilter.contains(id2check);
