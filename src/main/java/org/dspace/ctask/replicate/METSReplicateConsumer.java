@@ -85,7 +85,7 @@ public class METSReplicateConsumer implements Consumer {
     private final Logger log = LogManager.getLogger();
 
     private final ConfigurationService configurationService =
-        DSpaceServicesFactory.getInstance().getConfigurationService();
+            DSpaceServicesFactory.getInstance().getConfigurationService();
     private final PluginService pluginService = CoreServiceFactory.getInstance().getPluginService();
     private final SiteService siteService = ContentServiceFactory.getInstance().getSiteService();
     private final CommunityService communityService = ContentServiceFactory.getInstance().getCommunityService();
@@ -243,7 +243,7 @@ public class METSReplicateConsumer implements Consumer {
                         // get parent of this newly created object & mark it as modified
                         DSpaceObject subject = event.getSubject(ctx);
                         DSpaceObject parent = ContentServiceFactory.getInstance()
-                            .getDSpaceObjectService(subject).getParentObject(ctx, subject);
+                                .getDSpaceObjectService(subject).getParentObject(ctx, subject);
 
                         if (parent != null) {
                             id = parent.getHandle();
@@ -264,8 +264,8 @@ public class METSReplicateConsumer implements Consumer {
                     // If subject of event is null, this means the object was likely deleted
                     if (subjectObj == null) {
                         log.warn("{} event, could not get object for {} id={}, perhaps it has been deleted.",
-                            event.getEventTypeAsString(), event.getSubjectTypeAsString(),
-                            String.valueOf(event.getSubjectID()));
+                                event.getEventTypeAsString(), event.getSubjectTypeAsString(),
+                                String.valueOf(event.getSubjectID()));
                         break;
                     }
 
@@ -381,7 +381,10 @@ public class METSReplicateConsumer implements Consumer {
         // filter supports only container ids - so if id is for an item,
         // find its owning collection
         String id2check = id;
-        if (event.getSubjectType() == Constants.ITEM) {
+        if (event.getSubjectType() == Constants.ITEM && event.getEventType() == DELETE) {
+            id2check = ReplicateEventUtils.resolveParentAfterItemDelete(event);
+        }
+        else if (event.getSubjectType() == Constants.ITEM) {
             // NB: Item should be available form context cache - should
             // not incur a performance hit here
             Item item = itemService.find(ctx, event.getSubjectID());
@@ -389,6 +392,7 @@ public class METSReplicateConsumer implements Consumer {
             if (coll != null) {
                 id2check = coll.getHandle();
             }
+
         }
 
         boolean onList = idFilter.contains(id2check);
