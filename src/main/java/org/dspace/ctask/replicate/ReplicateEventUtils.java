@@ -41,4 +41,26 @@ public final class ReplicateEventUtils {
 
         return null;
     }
+
+    /**
+     * Resolve the Collection Handle carried by the event. The Collection Handle is provided in the
+     * event details for Item DELETE events. The Handle is looked up among all the details of the event
+     * by {@link DetailType#PARENT_HANDLE}, as an event may carry details of several types.
+     *
+     * @param event the event to inspect
+     * @return the Handle carried by the event, or {@code null} if the event carries no Handle detail
+     */
+    public static String resolveParentAfterItemDelete(Event event) {
+        if (event == null || event.getDetailList() == null) {
+            return null;
+        }
+        if (event.getEventType() == Event.DELETE) {
+            for (EventDetail detail : event.getDetailList()) {
+                if (detail != null && DetailType.PARENT_HANDLE == detail.getDetailType() && detail.getDetailObject() != null) {
+                    return detail.getDetailObject().toString();
+                }
+            }
+        }
+        return null;
+    }
 }
