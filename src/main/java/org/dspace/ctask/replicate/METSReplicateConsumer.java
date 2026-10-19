@@ -295,10 +295,17 @@ public class METSReplicateConsumer implements Consumer {
                     // For REMOVE & DELETE, the Handle of object being deleted is found in Event Detail
                     id = ReplicateEventUtils.resolveHandle(event);
 
-                    // make sure we are supposed to process this object
-                    if (acceptId(id, event, ctx)) {
-                        // analyze & process the deletion/removal event
+                    if (evType == Event.DELETE) {
+                        // deletes are processed without checking filters
+                        // https://github.com/DSpace/dspace-replicate/issues/97
                         deleteEvent(ctx, id, event);
+                    }
+                    else {
+                        // make sure we are supposed to process this object
+                        if (acceptId(id, event, ctx)) {
+                            deleteEvent(ctx, id, event); {
+                            }
+                        }
                     }
                     break;
                 default:

@@ -197,9 +197,17 @@ public class BagItReplicateConsumer implements Consumer {
                 break;
             case REMOVE: // REMOVE = Remove an object from a container or group
             case DELETE: // DELETE = Delete an object (actually destroy it)
-                // make sure we are supposed to process this object
-                if (acceptId(id, event, ctx)) {   // analyze & process the deletion/removal event
+                if (evType == Event.DELETE) {
+                    // deletes are processed without checking filters
+                    // https://github.com/DSpace/dspace-replicate/issues/97
                     deleteEvent(ctx, id, event);
+                }
+                else {
+                    // make sure we are supposed to process this object
+                    if (acceptId(id, event, ctx)) {
+                        deleteEvent(ctx, id, event); {
+                        }
+                    }
                 }
                 break;
             default:
